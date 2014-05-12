@@ -20,11 +20,6 @@ data PCCTag = PCCDataTag T.Text T.Text
 
 type PCCTags = [PCCTag]
 
--- ! is negation, which really should be separated out in its own
--- parser. there might be other operators, too. but for now...
-allCapsAndExclamation :: Parser T.Text
-allCapsAndExclamation = takeWhile $ inClass "A-Z!"
-
 parseComment :: Parser PCCTag
 parseComment = do
   c <- commentedLine
@@ -32,7 +27,7 @@ parseComment = do
 
 parseDataTag :: Parser PCCTag
 parseDataTag = do
-  k <- allCapsAndExclamation
+  k <- allCaps
   v <- ":" .*> restOfLine
   return $ PCCDataTag k v
 

@@ -5,7 +5,7 @@ all:
 	$(GHC) -Wall --make Pcgen -o pcgen-rules
 
 validation:
-	for file in `find $(DATA_DIR) -type f | grep "\.pcc$$"`; \
+	for file in `find $(DATA_DIR) -type f | grep "\.${EXTENSION}$$"`; \
 	do \
 	  ./pcgen-rules $$file | grep "parsing failed"; \
 	done; \

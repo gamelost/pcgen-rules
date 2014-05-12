@@ -2,7 +2,7 @@ GHC=ghc
 DATA_DIR=data/
 
 all:
-	$(GHC) --make Pcgen -o pcgen-rules
+	$(GHC) -Wall --make Pcgen -o pcgen-rules
 
 validation:
 	for file in `find $(DATA_DIR) -type f | grep "\.pcc$$"`; \

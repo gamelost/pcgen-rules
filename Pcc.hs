@@ -2,12 +2,12 @@
 
 module Pcc where
 
-import Prelude hiding (takeWhile, readFile)
+import Prelude hiding (takeWhile)
 import qualified Data.Text as T
 import Data.Attoparsec.Text
-import Data.Text.IO(readFile)
 import Control.Applicative
 import Fs
+import Util
 
 -- store the path of a given reference file.
 data Lookup = Lookup { location :: Location
@@ -22,21 +22,17 @@ type PCCTags = [PCCTag]
 
 -- ! is negation, which really should be separated out in its own
 -- parser. there might be other operators, too. but for now...
-allCaps :: Parser T.Text
-allCaps = takeWhile $ inClass "A-Z!"
-
-restOfLine :: Parser T.Text
-restOfLine =
-  takeTill (\c -> c == '\n' || c == '\r')
+allCapsAndExclamation :: Parser T.Text
+allCapsAndExclamation = takeWhile $ inClass "A-Z!"
 
 parseComment :: Parser PCCTag
 parseComment = do
-  c <- "#" .*> restOfLine
+  c <- commentedLine
   return $ PCCComment c
 
 parseDataTag :: Parser PCCTag
 parseDataTag = do
-  k <- allCaps
+  k <- allCapsAndExclamation
   v <- ":" .*> restOfLine
   return $ PCCDataTag k v
 
@@ -58,24 +54,9 @@ parsePCCLine = many $ (parseBodyTag <|>
                        parseDataTag <|>
                        parseComment) <* many endOfLine
 
--- do not use parseOnly: it does not fail if there is any leftover
--- input. If our parser is incorrect here, we want instant failure.
-parsePCCResult :: FilePath -> IResult T.Text t -> t
-parsePCCResult pccFilename result =
-  case result of
-    Done left success | left == T.empty ->
-      success
-    Partial c ->
-        -- just give the continuation an empty result and try again
-        parsePCCResult pccFilename $ c T.empty
-    Fail _ _ err ->
-      error $ "failed to parse " ++ pccFilename ++ " with error " ++ err
-    _ ->
-      error $ "failed to parse " ++ pccFilename
-
 parsePCC :: FilePath -> IO PCCTags
 parsePCC pccName = do
-  contents <- readFile pccName
-  print $ "** parsing " ++ pccName
+  contents <- readContents pccName
+  print $ "** parsing PCC: " ++ pccName
   let result = parse parsePCCLine contents in
-    return $ parsePCCResult pccName result
+    return $ parseResult pccName result

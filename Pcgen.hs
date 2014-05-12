@@ -4,7 +4,9 @@ import System.Environment(getArgs)
 import qualified Data.Map as M
 import qualified Data.Text as T
 import Data.Maybe(mapMaybe)
+import System.FilePath(splitExtension)
 import Pcc
+import Lst
 import Fs
 
 type PCCMap = M.Map T.Text [T.Text]
@@ -38,6 +40,14 @@ constructPCC result = do
 main :: IO ()
 main = do
   args <- getArgs
-  firstPcc <- parsePCC $ head args
-  results <- constructPCC firstPcc
-  print results
+  let inputFilename = head args
+  case snd $ splitExtension inputFilename of
+    d | d == ".lst" -> do
+      lstFile <- parseLST inputFilename
+      print lstFile
+    d | d == ".pcc" -> do
+      firstPcc <- parsePCC inputFilename
+      results <- constructPCC firstPcc
+      print results
+    _ ->
+      error "Error: no valid filename supplied"

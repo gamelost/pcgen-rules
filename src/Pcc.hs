@@ -52,6 +52,6 @@ parsePCCLine = many $ (parseBodyTag <|>
 parsePCC :: FilePath -> IO PCCTags
 parsePCC pccName = do
   contents <- readContents pccName
-  print $ "** parsing PCC: " ++ pccName
+  --print $ "** parsing PCC: " ++ pccName
   let result = parse parsePCCLine contents in
     return $ parseResult pccName result

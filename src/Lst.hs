@@ -14,9 +14,12 @@ type Sequence = (T.Text, [T.Text])
 type Progression = (Int, [Sequence])
 
 data LSTTag = LSTDefinition T.Text [Attribute]
-            | LSTStandalone Attribute
+            | LSTAttributes [Attribute]
+            | LSTAttribute Attribute
+            | LSTStandalone T.Text
             | LSTProgression Progression
             | LSTDeleted T.Text
+            | LSTMod T.Text Attribute
             | LSTComment T.Text deriving Show
 
 type LSTTags = [LSTTag]
@@ -30,7 +33,7 @@ parseComment = do
   return $ LSTComment c
 
 parseDescriber :: Parser T.Text
-parseDescriber = takeWhile1 (/= '\t')
+parseDescriber = takeWhile1 (\c -> c /= '\t' && c /= ':')
 
 parseName :: Parser T.Text
 parseName = takeWhile1 $ notInClass "\t\n\r"
@@ -67,26 +70,46 @@ parseLSTDeleted = do
   return $ LSTDeleted x
   where eatTillPeriod = takeWhile1 $ notInClass "."
 
+parseLSTMod :: Parser LSTTag
+parseLSTMod = do
+  x <- eatTillPeriod <*. ".MOD" <* tabs
+  a <- parseAttribute
+  return $ LSTMod x a
+  where eatTillPeriod = takeWhile1 $ notInClass "."
+
+parseLSTAttribute :: Parser LSTTag
+parseLSTAttribute = liftM LSTAttribute parseAttribute
+
 parseLSTStandalone :: Parser LSTTag
-parseLSTStandalone = liftM LSTStandalone parseAttribute
+parseLSTStandalone = do
+  s <- takeWhile1 $ notInClass ":\n\r\t"
+  return $ LSTStandalone s
 
 parseLSTData :: Parser LSTTag
 parseLSTData = do
   describer <- parseDescriber <* tabs
-  attributes <- parseAttribute `sepBy1` tabs
+  attributes <- parseAttribute `sepBy1` tabs <* tabs
   return $ LSTDefinition describer attributes
+
+parseLSTAttributes :: Parser LSTTag
+parseLSTAttributes = do
+  attributes <- parseAttribute `sepBy1` tabs
+  return $ LSTAttributes attributes
 
 parseLSTLine :: Parser LSTTags
 parseLSTLine = many $ (parseComment <|>
                        parseLSTDeleted <|>
                        parseLSTSequence <|>
                        parseLSTEmptySequence <|>
+                       parseLSTAttributes <|>
                        parseLSTData <|>
+                       parseLSTAttribute <|>
+                       parseLSTMod <|>
                        parseLSTStandalone) <* many endOfLine
 
 parseLST :: FilePath -> IO LSTTags
 parseLST lstName = do
   contents <- readContents lstName
-  print $ "** parsing LST " ++ lstName
+  --print $ "** parsing LST " ++ lstName
   let result = parse parseLSTLine contents in
     return $ parseResult lstName result

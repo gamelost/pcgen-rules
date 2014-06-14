@@ -3,3 +3,6 @@ data/
 *.o
 pcgen-rules
 
+/cabal.sandbox.config
+/dist/
+/.cabal-sandbox/

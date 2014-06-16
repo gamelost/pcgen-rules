@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Lst.Language where
 
 import qualified Data.Text as T
@@ -25,16 +27,43 @@ data LanguageLine = Source Headers
 
 type Languages = [LanguageLine]
 
+parseProductIdentity :: Parser Bool
+parseProductIdentity = do
+  _ <- string "NAMEISPI:"
+  answer <- allCaps
+  return $ answer == "YES"
+
+parseSourcePage :: Parser T.Text
+parseSourcePage = do
+  _ <- string "SOURCEPAGE:"
+  parseString
+
+convertLanguageType :: T.Text -> LanguageType
+convertLanguageType "Read" = Read
+convertLanguageType "Spoken" = Spoken
+convertLanguageType "Written" = Written
+convertLanguageType l = Other l
+
 parseLanguage :: Parser LanguageLine
 parseLanguage = do
-  -- not finished
-  name <- takeWhile1 $ notInClass "\t"
-  return $ Definition LanguageDefinition { name = name }
+  name <- parseString <* tabs
+  pi <- option False parseProductIdentity <* tabs
+  _ <- string "TYPE:"
+  types <- parseWord `sepBy` char '.' <* tabs
+  page <- option (T.pack "") parseSourcePage <* tabs
+  let languages = map convertLanguageType types
+  return $ Definition LanguageDefinition { name = name,
+                                           productIdentity = pi,
+                                           languageType = languages,
+                                           sourcePage = page }
 
 parseComment :: Parser LanguageLine
 parseComment = liftM Comment commentedLine
 
+parseHeader :: Parser LanguageLine
+parseHeader = liftM Source parseHeaders
+
 parseLanguageLine :: Parser Languages
-parseLanguageLine = many $ (parseComment <|>
-                            --parseHeaders <|>
-                            parseLanguage) <* many endOfLine
+parseLanguageLine = many1 $ (parseComment <|>
+                             parseHeader <|>
+                             parseLanguage) <* many endOfLine

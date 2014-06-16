@@ -47,7 +47,7 @@ parseWord :: Parser T.Text
 parseWord = takeWhile1 $ inClass "-A-Za-z"
 
 parseString :: Parser T.Text
-parseString = takeWhile1 $ inClass "-A-Za-z0-9 ,./:?'()"
+parseString = takeWhile1 $ inClass "-A-Za-z0-9 ,./:?'()" -- do not put in '='
 
 restOfLine :: Parser T.Text
 restOfLine = takeTill (\c -> c == '\n' || c == '\r')
@@ -71,8 +71,8 @@ diceRoll = do
   faces <- manyNumbers
   return $ T.concat [rolls, d, faces]
 
-commentedLine :: Parser T.Text
-commentedLine = "#" .*> restOfLine
+parseCommentLine :: Parser T.Text
+parseCommentLine = "#" .*> restOfLine
 
 -- do not use parseOnly: it does not fail if there is any leftover
 -- input. If our parser does not consume everything, we want instant

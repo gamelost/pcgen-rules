@@ -22,7 +22,7 @@ data PCCTag = PCCDataTag T.Text T.Text
 type PCCTags = [PCCTag]
 
 parseComment :: Parser PCCTag
-parseComment = liftM PCCComment commentedLine
+parseComment = liftM PCCComment parseCommentLine
 
 parseDataTag :: Parser PCCTag
 parseDataTag = do

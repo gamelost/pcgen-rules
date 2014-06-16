@@ -6,6 +6,7 @@ import qualified Data.Text as T
 import Control.Monad(liftM)
 import Data.Attoparsec.Text
 import Control.Applicative
+import Restrictions
 import Common
 
 -- we only define the most common language types here
@@ -19,6 +20,7 @@ data LanguageDefinition = LanguageDefinition { name :: T.Text
                                              , productIdentity :: Bool -- optional
                                              , languageType :: [LanguageType]
                                              , sourcePage :: T.Text -- optional
+                                             , restriction :: Maybe Restriction
                                              } deriving Show
 
 data LanguageLine = Source Headers
@@ -44,26 +46,25 @@ convertLanguageType "Spoken" = Spoken
 convertLanguageType "Written" = Written
 convertLanguageType l = Other l
 
-parseLanguage :: Parser LanguageLine
-parseLanguage = do
+parseLanguageDefinition :: Parser LanguageDefinition
+parseLanguageDefinition = do
   name <- parseString <* tabs
   pi <- option False parseProductIdentity <* tabs
   _ <- string "TYPE:"
   types <- parseWord `sepBy` char '.' <* tabs
+  restriction <- option Nothing parseRestriction <* tabs
   page <- option (T.pack "") parseSourcePage <* tabs
   let languages = map convertLanguageType types
-  return $ Definition LanguageDefinition { name = name,
-                                           productIdentity = pi,
-                                           languageType = languages,
-                                           sourcePage = page }
-
-parseComment :: Parser LanguageLine
-parseComment = liftM Comment commentedLine
-
-parseHeader :: Parser LanguageLine
-parseHeader = liftM Source parseHeaders
+  return LanguageDefinition { name = name
+                            , productIdentity = pi
+                            , languageType = languages
+                            , sourcePage = page
+                            , restriction = restriction }
 
 parseLanguageLine :: Parser Languages
-parseLanguageLine = many1 $ (parseComment <|>
-                             parseHeader <|>
-                             parseLanguage) <* many endOfLine
+parseLanguageLine = do
+  -- next line added solely because of saspg_languages.lst, ugh
+  _ <- many endOfLine
+  many1 $ (liftM Comment parseCommentLine <|>
+           liftM Source parseHeaders <|>
+           liftM Definition parseLanguageDefinition) <* many endOfLine

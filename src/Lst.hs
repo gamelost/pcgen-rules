@@ -33,7 +33,7 @@ data LSTBody = LSTGeneric LSTTags
              | LSTLanguages Languages deriving Show
 
 parseComment :: Parser LSTTag
-parseComment = liftM LSTComment commentedLine
+parseComment = liftM LSTComment parseCommentLine
 
 parseDescriber :: Parser T.Text
 parseDescriber = takeWhile1 (\c -> c /= '\t' && c /= ':')

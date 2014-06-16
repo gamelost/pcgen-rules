@@ -43,7 +43,7 @@ main = do
   let inputFilename = head args
   case snd $ splitExtension inputFilename of
     d | d == ".lst" -> do
-      lstFile <- parseLST inputFilename
+      lstFile <- parseLST inputFilename (T.pack $ args !! 1)
       print lstFile
     d | d == ".pcc" -> do
       firstPcc <- parsePCC inputFilename

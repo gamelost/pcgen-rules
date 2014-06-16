@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Util where
+module Common where
 
 import Prelude hiding (takeWhile)
 import qualified Data.ByteString as B
@@ -8,6 +8,15 @@ import qualified Data.Text as T
 import Data.Text.Encoding(decodeUtf8With)
 import Data.Text.Encoding.Error(lenientDecode)
 import Data.Attoparsec.Text
+
+-- header for lst files
+data SourceDescriber a = SourceLong
+                       | SourceShort
+                       | SourceWeb
+                       | SourceDate deriving Show
+
+type Header = [SourceDescriber T.Text]
+type Headers = [Header]
 
 -- ! is negation, which really should be separated out in its own
 -- parser. there might be other operators, too. but for now...
@@ -19,6 +28,9 @@ restOfLine = takeTill (\c -> c == '\n' || c == '\r')
 
 manyNumbers :: Parser T.Text
 manyNumbers = takeWhile1 $ inClass "0-9"
+
+tabs :: Parser ()
+tabs = skipWhile (== '\t')
 
 --- we may want (eventually) to embed this into a data structure
 diceRoll :: Parser T.Text

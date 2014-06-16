@@ -3,11 +3,12 @@
 module Pcc where
 
 import Prelude hiding (takeWhile)
+import Control.Monad(liftM)
 import qualified Data.Text as T
 import Data.Attoparsec.Text
 import Control.Applicative
 import Fs
-import Util
+import Common
 
 -- store the path of a given reference file.
 data Lookup = Lookup { location :: Location
@@ -21,9 +22,7 @@ data PCCTag = PCCDataTag T.Text T.Text
 type PCCTags = [PCCTag]
 
 parseComment :: Parser PCCTag
-parseComment = do
-  c <- commentedLine
-  return $ PCCComment c
+parseComment = liftM PCCComment commentedLine
 
 parseDataTag :: Parser PCCTag
 parseDataTag = do

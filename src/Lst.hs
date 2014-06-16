@@ -7,8 +7,12 @@ import Control.Monad(liftM)
 import qualified Data.Text as T
 import Data.Attoparsec.Text
 import Control.Applicative
-import Util
+import Common
 
+-- custom lst types
+import Lst.Language(parseLanguageLine, Languages)
+
+-- generic lst placeholders while we implement specific lst types
 type Attribute = (T.Text, T.Text)
 type Sequence = (T.Text, [T.Text])
 type Progression = (Int, [Sequence])
@@ -24,13 +28,12 @@ data LSTTag = LSTDefinition T.Text [Attribute]
 
 type LSTTags = [LSTTag]
 
-tabs :: Parser ()
-tabs = skipWhile (== '\t')
+-- structure of lst file
+data LSTBody = LSTGeneric LSTTags
+             | LSTLanguages Languages deriving Show
 
 parseComment :: Parser LSTTag
-parseComment = do
-  c <- commentedLine
-  return $ LSTComment c
+parseComment = liftM LSTComment commentedLine
 
 parseDescriber :: Parser T.Text
 parseDescriber = takeWhile1 (\c -> c /= '\t' && c /= ':')
@@ -107,9 +110,14 @@ parseLSTLine = many $ (parseComment <|>
                        parseLSTMod <|>
                        parseLSTStandalone) <* many endOfLine
 
-parseLST :: FilePath -> IO LSTTags
-parseLST lstName = do
+parseLST :: FilePath -> T.Text -> IO LSTBody
+parseLST lstName what = do
   contents <- readContents lstName
-  --print $ "** parsing LST " ++ lstName
-  let result = parse parseLSTLine contents in
-    return $ parseResult lstName result
+  return $ parseResult lstName $ parse lstType contents where
+    lstType = case what of
+      d | d == "LANGUAGE" ->
+        --print $ "** parsing " ++ d ++ " LST " ++ lstName
+        liftM LSTLanguages parseLanguageLine
+      _ ->
+        --print $ "** parsing generic LST " ++ lstName
+        liftM LSTGeneric parseLSTLine

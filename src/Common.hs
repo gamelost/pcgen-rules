@@ -11,38 +11,6 @@ import Control.Monad(liftM)
 import Data.Attoparsec.Text
 import Control.Applicative
 
--- parse the source headers for lst files
-
-data SourceDescriber = SourceLong T.Text
-                     | SourceShort T.Text
-                     | SourceWeb T.Text
-                     | SourceDate T.Text deriving Show
-
-type Headers = [SourceDescriber]
-
-parseSource :: T.Text -> Parser T.Text
-parseSource source = do
-  _ <- string source
-  parseString
-
-parseSourceLong :: Parser SourceDescriber
-parseSourceLong = liftM SourceLong $ parseSource "SOURCELONG:"
-
-parseSourceShort :: Parser SourceDescriber
-parseSourceShort = liftM SourceShort $ parseSource "SOURCESHORT:"
-
-parseSourceWeb :: Parser SourceDescriber
-parseSourceWeb = liftM SourceWeb $ parseSource "SOURCEWEB:"
-
-parseSourceDate :: Parser SourceDescriber
-parseSourceDate = liftM SourceDate $ parseSource "SOURCEDATE:"
-
-parseHeaders :: Parser Headers
-parseHeaders = many1 (parseSourceLong <|>
-                      parseSourceShort <|>
-                      parseSourceWeb <|>
-                      parseSourceDate) <* tabs
-
 parseWord :: Parser T.Text
 parseWord = takeWhile1 $ inClass "-A-Za-z"
 
@@ -62,14 +30,6 @@ manyNumbers = takeWhile1 $ inClass "0-9"
 
 tabs :: Parser ()
 tabs = skipWhile (== '\t')
-
---- we may want (eventually) to embed this into a data structure
-diceRoll :: Parser T.Text
-diceRoll = do
-  rolls <- manyNumbers
-  d <- string "d"
-  faces <- manyNumbers
-  return $ T.concat [rolls, d, faces]
 
 parseCommentLine :: Parser T.Text
 parseCommentLine = "#" .*> restOfLine

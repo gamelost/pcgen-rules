@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
 import System.Environment(getArgs)
@@ -42,9 +44,14 @@ main = do
   args <- getArgs
   let inputFilename = head args
   case snd $ splitExtension inputFilename of
-    d | d == ".lst" -> do
-      lstFile <- parseLST inputFilename (T.pack $ args !! 1)
-      print lstFile
+    d | d == ".lst" ->
+      case T.pack $ args !! 1 of
+        "LANGUAGE" -> do
+          lFile <- parseLanguageLST inputFilename
+          print lFile
+        _ -> do
+          gFile <- parseGenericLST inputFilename
+          print gFile
     d | d == ".pcc" -> do
       firstPcc <- parsePCC inputFilename
       results <- constructPCC firstPcc

@@ -25,12 +25,6 @@ data LanguageDefinition = LanguageDefinition { name :: T.Text
                                              , modification :: Maybe Modification
                                              } deriving Show
 
-data LanguageLine = Source Headers
-                  | Definition LanguageDefinition
-                  | Comment T.Text deriving Show
-
-type Languages = [LanguageLine]
-
 parseProductIdentity :: Parser Bool
 parseProductIdentity = do
   _ <- string "NAMEISPI:"
@@ -70,11 +64,6 @@ parseLanguageDefinition p = do
                             , modification = mod
                             , restriction = restriction }
 
-parseLanguageLine :: Parser Languages
-parseLanguageLine = do
-  -- next line added solely because of saspg_languages.lst, ugh
-  _ <- many endOfLine
-  many1 $ (liftM Comment parseCommentLine <|>
-           liftM Source parseHeaders <|>
-           liftM Definition (parseLanguageDefinition parseLanguageMod) <|>
-           liftM Definition (parseLanguageDefinition parseLanguage)) <* many endOfLine
+parseLanguageLine :: Parser LanguageDefinition
+parseLanguageLine = parseLanguageDefinition parseLanguageMod <|>
+                    parseLanguageDefinition parseLanguage

@@ -10,114 +10,55 @@ import Control.Applicative
 import Common
 
 -- custom lst types
-import Lst.Language(parseLanguageLine, Languages)
+import Lst.Language(LanguageDefinition, parseLanguageLine)
+import Lst.Generic(LSTTag, parseGenericLine)
 
--- generic lst placeholders while we implement specific lst types
-type Attribute = (T.Text, T.Text)
-type Sequence = (T.Text, [T.Text])
-type Progression = (Int, [Sequence])
+-- structure of a lst file
+data LST a = Source [Header]
+           | Definition a
+           | Comment T.Text deriving Show
 
-data LSTTag = LSTDefinition T.Text [Attribute]
-            | LSTAttributes [Attribute]
-            | LSTAttribute Attribute
-            | LSTStandalone T.Text
-            | LSTProgression Progression
-            | LSTDeleted T.Text
-            | LSTMod T.Text Attribute
-            | LSTComment T.Text deriving Show
+-- source headers: these are found in nearly every lst file type.
+data Header = SourceLong T.Text
+            | SourceShort T.Text
+            | SourceWeb T.Text
+            | SourceDate T.Text deriving Show
 
-type LSTTags = [LSTTag]
+parseSource :: T.Text -> Parser T.Text
+parseSource source = do
+  _ <- string source
+  parseString
 
--- structure of lst file
-data LSTBody = LSTGeneric LSTTags
-             | LSTLanguages Languages deriving Show
+parseSourceLong :: Parser Header
+parseSourceLong = liftM SourceLong $ parseSource "SOURCELONG:"
 
-parseComment :: Parser LSTTag
-parseComment = liftM LSTComment parseCommentLine
+parseSourceShort :: Parser Header
+parseSourceShort = liftM SourceShort $ parseSource "SOURCESHORT:"
 
-parseDescriber :: Parser T.Text
-parseDescriber = takeWhile1 (\c -> c /= '\t' && c /= ':')
+parseSourceWeb :: Parser Header
+parseSourceWeb = liftM SourceWeb $ parseSource "SOURCEWEB:"
 
-parseName :: Parser T.Text
-parseName = takeWhile1 $ notInClass "\t\n\r"
+parseSourceDate :: Parser Header
+parseSourceDate = liftM SourceDate $ parseSource "SOURCEDATE:"
 
-parseAttribute :: Parser Attribute
-parseAttribute = do
-  a <- allCaps
-  v <- ":" .*> parseName
-  return (a, v)
+parseHeaders :: Parser [Header]
+parseHeaders = many1 (parseSourceLong <|>
+                      parseSourceShort <|>
+                      parseSourceWeb <|>
+                      parseSourceDate) <* tabs
 
-parseSequenceCommas :: Parser [T.Text]
-parseSequenceCommas = (diceRoll <|> manyNumbers <|> parseName) `sepBy1` ","
+parseLSTLine :: Parser a -> Parser [LST a]
+parseLSTLine parseDefinition = do
+  -- next line added solely because of saspg_languages.lst, ugh
+  _ <- many endOfLine
+  many1 $ (liftM Source parseHeaders <|>
+           liftM Comment parseCommentLine <|>
+           liftM Definition parseDefinition) <* many endOfLine
 
-parseSequence :: Parser Sequence
-parseSequence = do
-  a <- allCaps
-  v <- ":" .*> parseSequenceCommas
-  return (a, v)
-
-parseLSTSequence :: Parser LSTTag
-parseLSTSequence = do
-  n <- manyNumbers <* tabs
-  seqs <- some $ parseSequence <* tabs
-  return $ LSTProgression (read $ T.unpack n :: Int, seqs)
-
-parseLSTEmptySequence :: Parser LSTTag
-parseLSTEmptySequence = do
-  n <- manyNumbers <* tabs
-  return $ LSTProgression (read $ T.unpack n :: Int, [])
-
-parseLSTDeleted :: Parser LSTTag
-parseLSTDeleted = do
-  x <- eatTillPeriod <*. ".FORGET"
-  return $ LSTDeleted x
-  where eatTillPeriod = takeWhile1 $ notInClass "."
-
-parseLSTMod :: Parser LSTTag
-parseLSTMod = do
-  x <- eatTillPeriod <*. ".MOD" <* tabs
-  a <- parseAttribute
-  return $ LSTMod x a
-  where eatTillPeriod = takeWhile1 $ notInClass "."
-
-parseLSTAttribute :: Parser LSTTag
-parseLSTAttribute = liftM LSTAttribute parseAttribute
-
-parseLSTStandalone :: Parser LSTTag
-parseLSTStandalone = do
-  s <- takeWhile1 $ notInClass ":\n\r\t"
-  return $ LSTStandalone s
-
-parseLSTData :: Parser LSTTag
-parseLSTData = do
-  describer <- parseDescriber <* tabs
-  attributes <- parseAttribute `sepBy1` tabs <* tabs
-  return $ LSTDefinition describer attributes
-
-parseLSTAttributes :: Parser LSTTag
-parseLSTAttributes = do
-  attributes <- parseAttribute `sepBy1` tabs
-  return $ LSTAttributes attributes
-
-parseLSTLine :: Parser LSTTags
-parseLSTLine = many $ (parseComment <|>
-                       parseLSTDeleted <|>
-                       parseLSTSequence <|>
-                       parseLSTEmptySequence <|>
-                       parseLSTAttributes <|>
-                       parseLSTData <|>
-                       parseLSTAttribute <|>
-                       parseLSTMod <|>
-                       parseLSTStandalone) <* many endOfLine
-
-parseLST :: FilePath -> T.Text -> IO LSTBody
-parseLST lstName what = do
+parseLST :: FilePath -> Parser [LST a] -> IO [LST a]
+parseLST lstName lstParser = do
   contents <- readContents lstName
-  return $ parseResult lstName $ parse lstType contents where
-    lstType = case what of
-      d | d == "LANGUAGE" ->
-        --print $ "** parsing " ++ d ++ " LST " ++ lstName
-        liftM LSTLanguages parseLanguageLine
-      _ ->
-        --print $ "** parsing generic LST " ++ lstName
-        liftM LSTGeneric parseLSTLine
+  return $ parseResult lstName $ parse lstParser contents
+
+parseLanguageLST lstName = parseLST lstName $ parseLSTLine parseLanguageLine
+parseGenericLST lstName = parseLST lstName $ parseLSTLine parseGenericLine

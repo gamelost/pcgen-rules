@@ -7,6 +7,7 @@ import Control.Monad(liftM)
 import Data.Attoparsec.Text
 import Control.Applicative
 import Restrictions
+import Modifications
 import Common
 
 -- we only define the most common language types here
@@ -21,6 +22,7 @@ data LanguageDefinition = LanguageDefinition { name :: T.Text
                                              , languageType :: [LanguageType]
                                              , sourcePage :: T.Text -- optional
                                              , restriction :: Maybe Restriction
+                                             , modification :: Maybe Modification
                                              } deriving Show
 
 data LanguageLine = Source Headers
@@ -46,9 +48,15 @@ convertLanguageType "Spoken" = Spoken
 convertLanguageType "Written" = Written
 convertLanguageType l = Other l
 
-parseLanguageDefinition :: Parser LanguageDefinition
-parseLanguageDefinition = do
-  name <- parseString <* tabs
+parseLanguageMod :: Parser (T.Text, Maybe Modification)
+parseLanguageMod = liftM (\x -> (x, Just Add)) parseModification
+
+parseLanguage :: Parser (T.Text, Maybe Modification)
+parseLanguage = liftM (\x -> (x, Nothing)) parseString
+
+parseLanguageDefinition :: Parser (T.Text, Maybe Modification) -> Parser LanguageDefinition
+parseLanguageDefinition p = do
+  (name, mod) <- p <* tabs
   pi <- option False parseProductIdentity <* tabs
   _ <- string "TYPE:"
   types <- parseWord `sepBy` char '.' <* tabs
@@ -59,6 +67,7 @@ parseLanguageDefinition = do
                             , productIdentity = pi
                             , languageType = languages
                             , sourcePage = page
+                            , modification = mod
                             , restriction = restriction }
 
 parseLanguageLine :: Parser Languages
@@ -67,4 +76,5 @@ parseLanguageLine = do
   _ <- many endOfLine
   many1 $ (liftM Comment parseCommentLine <|>
            liftM Source parseHeaders <|>
-           liftM Definition parseLanguageDefinition) <* many endOfLine
+           liftM Definition (parseLanguageDefinition parseLanguageMod) <|>
+           liftM Definition (parseLanguageDefinition parseLanguage)) <* many endOfLine

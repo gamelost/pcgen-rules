@@ -30,14 +30,19 @@ parseSource source = do
   _ <- string source
   parseString
 
+parseSourceUrl :: T.Text -> Parser T.Text
+parseSourceUrl source = do
+  _ <- string source
+  parseUrl
+
+parseSourceWeb :: Parser Header
+parseSourceWeb = liftM SourceWeb $ parseSourceUrl "SOURCEWEB:"
+
 parseSourceLong :: Parser Header
 parseSourceLong = liftM SourceLong $ parseSource "SOURCELONG:"
 
 parseSourceShort :: Parser Header
 parseSourceShort = liftM SourceShort $ parseSource "SOURCESHORT:"
-
-parseSourceWeb :: Parser Header
-parseSourceWeb = liftM SourceWeb $ parseSource "SOURCEWEB:"
 
 parseSourceDate :: Parser Header
 parseSourceDate = liftM SourceDate $ parseSource "SOURCEDATE:"

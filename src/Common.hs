@@ -15,7 +15,10 @@ parseWord :: Parser T.Text
 parseWord = takeWhile1 $ inClass "-A-Za-z"
 
 parseString :: Parser T.Text
-parseString = takeWhile1 $ inClass "-A-Za-z0-9 ,./:?'()" -- do not put in '='
+parseString = takeWhile1 $ inClass "-A-Za-z0-9_ ,./:?'()" -- do not put in '='
+
+parseUrl :: Parser T.Text
+parseUrl = takeWhile1 $ inClass "-A-Za-z0-9_ =%&,./:?'()"
 
 restOfLine :: Parser T.Text
 restOfLine = takeTill (\c -> c == '\n' || c == '\r')

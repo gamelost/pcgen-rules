@@ -3,7 +3,6 @@
 module Lst.ArmorProf where
 
 import qualified Data.Text as T
-import Control.Monad(liftM)
 import Control.Applicative
 import Data.Attoparsec.Text
 import Modifications
@@ -14,9 +13,7 @@ data ArmorProf = ArmorProf { armorName :: T.Text
                            , modification :: Maybe Modification } deriving Show
 
 parseArmorType :: Parser T.Text
-parseArmorType = do
-  _ <- string "TYPE:"
-  parseWord
+parseArmorType = string "TYPE:" >> parseWord
 
 parseArmorProficency :: Parser (T.Text, Maybe Modification) -> Parser ArmorProf
 parseArmorProficency p = do

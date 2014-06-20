@@ -15,7 +15,7 @@ parseWord :: Parser T.Text
 parseWord = takeWhile1 $ inClass "-A-Za-z"
 
 parseString :: Parser T.Text
-parseString = takeWhile1 $ inClass "-A-Za-z0-9_ &+,./:?#'()" -- do not put in '='
+parseString = takeWhile1 $ inClass "-A-Za-z0-9_ &+,./:?#'()~" -- do not put in '='
 
 parseUrl :: Parser T.Text
 parseUrl = takeWhile1 $ inClass "-A-Za-z0-9_ =%&+,./:?#'()"
@@ -49,6 +49,12 @@ parseTabs = anything `sepBy` tabs
 
 parseCommentLine :: Parser T.Text
 parseCommentLine = "#" .*> restOfLine
+
+parseWordAndNumber :: Parser T.Text
+parseWordAndNumber = takeWhile1 $ inClass "-A-Za-z0-9"
+
+yesOrNo :: Parser Bool
+yesOrNo = liftM (== "YES") allCaps
 
 optionMaybe :: Parser a -> Parser (Maybe a)
 optionMaybe x = option Nothing $ liftM Just x

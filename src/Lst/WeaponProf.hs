@@ -16,21 +16,13 @@ data WeaponProf = WeaponProf { weaponName :: T.Text
                              , modification :: Maybe Modification } deriving Show
 
 parseProductIdentity :: Parser Bool
-parseProductIdentity = do
-  _ <- string "NAMEISPI:"
-  answer <- allCaps
-  return $ answer == "YES"
+parseProductIdentity = string "NAMEISPI:" >> yesOrNo
 
 parseWeaponType :: Parser [T.Text]
-parseWeaponType = do
-  _ <- string "TYPE:"
-  parseWord `sepBy` char '.'
+parseWeaponType = string "TYPE:" >> parseWord `sepBy` char '.'
 
 parseWeaponHands :: Parser Int
-parseWeaponHands = do
-  _ <- string "HANDS:"
-  n <- manyNumbers
-  return $ textToInt n
+parseWeaponHands = string "HANDS:" >> liftM textToInt manyNumbers
 
 parseWeaponProficency :: Parser (T.Text, Maybe Modification) -> Parser WeaponProf
 parseWeaponProficency p = do

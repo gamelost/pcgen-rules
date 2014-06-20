@@ -19,57 +19,60 @@ data LanguageType = Read
 
 data LanguageDefinition = LanguageDefinition { name :: T.Text
                                              , key :: Maybe T.Text
-                                             , productIdentity :: Bool -- optional
+                                             , productIdentity :: Bool
+                                             , useUntrained :: Bool
                                              , languageType :: [LanguageType]
-                                             , sourcePage :: T.Text -- optional
+                                             , keyStat :: Maybe T.Text
+                                             , sourcePage :: Maybe T.Text
                                              , restriction :: Maybe Restriction
                                              , modification :: Maybe Modification
                                              } deriving Show
 
 parseProductIdentity :: Parser Bool
-parseProductIdentity = do
-  _ <- string "NAMEISPI:"
-  answer <- allCaps
-  return $ answer == "YES"
+parseProductIdentity = string "NAMEISPI:" >> yesOrNo
+
+parseUseUntrained :: Parser Bool
+parseUseUntrained = string "USEUNTRAINED:" >> yesOrNo
+
+parseKeyStat :: Parser T.Text
+parseKeyStat = string "KEYSTAT:" >> parseString
 
 parseSourcePage :: Parser T.Text
-parseSourcePage = do
-  _ <- string "SOURCEPAGE:"
-  parseString
-
-convertLanguageType :: T.Text -> LanguageType
-convertLanguageType "Read" = Read
-convertLanguageType "Spoken" = Spoken
-convertLanguageType "Written" = Written
-convertLanguageType l = Other l
+parseSourcePage = string "SOURCEPAGE:" >> parseString
 
 parseKey :: Parser T.Text
-parseKey = do
-  _ <- string "KEY:"
-  parseString
+parseKey = string "KEY:" >> parseString
 
 parseType :: Parser [T.Text]
-parseType = do
-  _ <- string "TYPE:"
-  parseWord `sepBy` char '.'
+parseType = string "TYPE:" >> parseWordAndNumber `sepBy` char '.'
 
 parseLanguageDefinition :: Parser (T.Text, Maybe Modification) -> Parser LanguageDefinition
 parseLanguageDefinition p = do
   (languageName, modifier) <- p <* tabs
   languageKey <- optionMaybe parseKey <* tabs
   pid <- option False parseProductIdentity <* tabs
+  keystat <- optionMaybe parseKeyStat <* tabs
+  untrained <- option False parseUseUntrained <* tabs
   types <- parseType <* tabs
   languageRestriction <- option Nothing parseRestriction <* tabs
-  page <- option (T.pack "") parseSourcePage <* tabs
+  page <- optionMaybe parseSourcePage <* tabs
   let languages = map convertLanguageType types
   return LanguageDefinition { name = languageName
                             , key = languageKey
                             , productIdentity = pid
+                            , useUntrained = untrained
                             , languageType = languages
+                            , keyStat = keystat
                             , sourcePage = page
                             , modification = modifier
-                            , restriction = languageRestriction }
+                            , restriction = languageRestriction } where
+    convertLanguageType :: T.Text -> LanguageType
+    convertLanguageType "Read" = Read
+    convertLanguageType "Spoken" = Spoken
+    convertLanguageType "Written" = Written
+    convertLanguageType l = Other l
 
 parseLanguageLine :: Parser LanguageDefinition
 parseLanguageLine = parseLanguageDefinition parseStartMod <|>
+                    -- parseLanguageDefinition parseStartForget <|>
                     parseLanguageDefinition parseStart

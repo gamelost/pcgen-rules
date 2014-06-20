@@ -55,6 +55,9 @@ main = do
         "SHIELDPROF" -> do
           sFile <- parseShieldProfLST inputFilename
           print sFile
+        "WEAPONPROF" -> do
+          wFile <- parseWeaponProfLST inputFilename
+          print wFile
         _ -> do
           gFile <- parseGenericLST inputFilename
           print gFile

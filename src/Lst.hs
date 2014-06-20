@@ -10,6 +10,7 @@ import Control.Applicative
 import Common
 
 -- custom lst types
+import Lst.WeaponProf(WeaponProf, parseWeaponProfLine)
 import Lst.ArmorProf(ArmorProf, parseArmorProfLine)
 import Lst.ShieldProf(ShieldProf, parseShieldProfLine)
 import Lst.Language(LanguageDefinition, parseLanguageLine)
@@ -78,3 +79,6 @@ parseArmorProfLST lstName = parseLST lstName $ parseLSTLine parseArmorProfLine
 
 parseShieldProfLST :: FilePath -> IO [LST ShieldProf]
 parseShieldProfLST lstName = parseLST lstName $ parseLSTLine parseShieldProfLine
+
+parseWeaponProfLST :: FilePath -> IO [LST WeaponProf]
+parseWeaponProfLST lstName = parseLST lstName $ parseLSTLine parseWeaponProfLine

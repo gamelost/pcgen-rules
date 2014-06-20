@@ -11,6 +11,7 @@ import Common
 
 -- custom lst types
 import Lst.ArmorProf(ArmorProf, parseArmorProfLine)
+import Lst.ShieldProf(ShieldProf, parseShieldProfLine)
 import Lst.Language(LanguageDefinition, parseLanguageLine)
 import Lst.Generic(LSTTag, parseGenericLine)
 
@@ -74,3 +75,6 @@ parseGenericLST lstName = parseLST lstName $ parseLSTLine parseGenericLine
 
 parseArmorProfLST :: FilePath -> IO [LST ArmorProf]
 parseArmorProfLST lstName = parseLST lstName $ parseLSTLine parseArmorProfLine
+
+parseShieldProfLST :: FilePath -> IO [LST ShieldProf]
+parseShieldProfLST lstName = parseLST lstName $ parseLSTLine parseShieldProfLine

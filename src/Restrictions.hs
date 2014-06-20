@@ -26,9 +26,6 @@ data Restriction = PreClassRestriction PreClass
                  | PreVarRestriction PreVar
                  | PreAbilityRestriction PreAbility deriving Show
 
-textToInt :: T.Text -> Int
-textToInt t = read (T.unpack t) :: Int
-
 parseEqual :: Parser (T.Text, Int)
 parseEqual = do
   x <- parseString

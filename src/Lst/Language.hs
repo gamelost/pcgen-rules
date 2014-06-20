@@ -18,6 +18,7 @@ data LanguageType = Read
                     deriving Show
 
 data LanguageDefinition = LanguageDefinition { name :: T.Text
+                                             , key :: Maybe T.Text
                                              , productIdentity :: Bool -- optional
                                              , languageType :: [LanguageType]
                                              , sourcePage :: T.Text -- optional
@@ -42,22 +43,27 @@ convertLanguageType "Spoken" = Spoken
 convertLanguageType "Written" = Written
 convertLanguageType l = Other l
 
-parseLanguageMod :: Parser (T.Text, Maybe Modification)
-parseLanguageMod = liftM (\x -> (x, Just Add)) parseModification
+parseKey :: Parser T.Text
+parseKey = do
+  _ <- string "KEY:"
+  parseString
 
-parseLanguage :: Parser (T.Text, Maybe Modification)
-parseLanguage = liftM (\x -> (x, Nothing)) parseString
+parseType :: Parser [T.Text]
+parseType = do
+  _ <- string "TYPE:"
+  parseWord `sepBy` char '.'
 
 parseLanguageDefinition :: Parser (T.Text, Maybe Modification) -> Parser LanguageDefinition
 parseLanguageDefinition p = do
   (languageName, modifier) <- p <* tabs
+  languageKey <- optionMaybe parseKey <* tabs
   pid <- option False parseProductIdentity <* tabs
-  _ <- string "TYPE:"
-  types <- parseWord `sepBy` char '.' <* tabs
+  types <- parseType <* tabs
   languageRestriction <- option Nothing parseRestriction <* tabs
   page <- option (T.pack "") parseSourcePage <* tabs
   let languages = map convertLanguageType types
   return LanguageDefinition { name = languageName
+                            , key = languageKey
                             , productIdentity = pid
                             , languageType = languages
                             , sourcePage = page
@@ -65,5 +71,5 @@ parseLanguageDefinition p = do
                             , restriction = languageRestriction }
 
 parseLanguageLine :: Parser LanguageDefinition
-parseLanguageLine = parseLanguageDefinition parseLanguageMod <|>
-                    parseLanguageDefinition parseLanguage
+parseLanguageLine = parseLanguageDefinition parseStartMod <|>
+                    parseLanguageDefinition parseStart

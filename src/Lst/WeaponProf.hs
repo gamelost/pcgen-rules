@@ -21,12 +21,6 @@ parseProductIdentity = do
   answer <- allCaps
   return $ answer == "YES"
 
-parseWeaponProfMod :: Parser (T.Text, Maybe Modification)
-parseWeaponProfMod = liftM (\x -> (x, Just Add)) parseModification
-
-parseWeaponProf :: Parser (T.Text, Maybe Modification)
-parseWeaponProf = liftM (\x -> (x, Nothing)) parseString
-
 parseWeaponType :: Parser [T.Text]
 parseWeaponType = do
   _ <- string "TYPE:"
@@ -42,7 +36,7 @@ parseWeaponProficency :: Parser (T.Text, Maybe Modification) -> Parser WeaponPro
 parseWeaponProficency p = do
   (name, modifier) <- p <* tabs
   pid <- option False parseProductIdentity <* tabs
-  at <- option Nothing $ liftM Just parseWeaponType <* tabs
+  at <- optionMaybe parseWeaponType <* tabs
   hands <- option 1 parseWeaponHands
   return WeaponProf { weaponName = name
                     , weaponType = at
@@ -51,5 +45,5 @@ parseWeaponProficency p = do
                     , modification = modifier }
 
 parseWeaponProfLine :: Parser WeaponProf
-parseWeaponProfLine = parseWeaponProficency parseWeaponProfMod <|>
-                      parseWeaponProficency parseWeaponProf
+parseWeaponProfLine = parseWeaponProficency parseStartMod <|>
+                      parseWeaponProficency parseStart

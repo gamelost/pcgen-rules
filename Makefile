@@ -6,7 +6,7 @@ all:
 .PHONY: all
 
 test-languages:
-	$(VERIFY) LANGUAGES "languages"
+	$(VERIFY) LANGUAGE "languages"
 
 test-shieldprof:
 	$(VERIFY) SHIELDPROF "(prof_shield|profs_shield|shieldprof)"

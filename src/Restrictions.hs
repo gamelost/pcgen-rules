@@ -88,6 +88,7 @@ parsePreAbility = do
                     , abilities = abilities }
 
 -- restriction <- option Nothing parseRestriction <* tabs
+parseRestriction :: Parser (Maybe Restriction)
 parseRestriction = liftM Just (liftM PreClassRestriction parsePreClass <|>
                                liftM PreVarRestriction parsePreVar <|>
                                liftM PreAbilityRestriction parsePreAbility)

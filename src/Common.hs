@@ -20,9 +20,6 @@ parseString = takeWhile1 $ inClass "-A-Za-z0-9_ &+,./:?#'()" -- do not put in '=
 parseUrl :: Parser T.Text
 parseUrl = takeWhile1 $ inClass "-A-Za-z0-9_ =%&+,./:?#'()"
 
-restOfLine :: Parser T.Text
-restOfLine = takeTill (\c -> c == '\n' || c == '\r')
-
 -- ! is negation, which really should be separated out in its own
 -- parser. there might be other operators, too. but for now...
 allCaps :: Parser T.Text
@@ -37,8 +34,24 @@ tabs = skipWhile (== '\t')
 textToInt :: T.Text -> Int
 textToInt t = read (T.unpack t) :: Int
 
+(<||>) :: Applicative f => f Bool -> f Bool -> f Bool
+(<||>) = liftA2 (||)
+infixr 2 <||>
+
+restOfLine :: Parser T.Text
+restOfLine = takeTill ((== '\n') <||> (== '\r'))
+
+anything :: Parser T.Text
+anything = takeTill ((== '\n') <||> (== '\r') <||> (== '\t'))
+
+parseTabs :: Parser [T.Text]
+parseTabs = anything `sepBy` tabs
+
 parseCommentLine :: Parser T.Text
 parseCommentLine = "#" .*> restOfLine
+
+optionMaybe :: Parser a -> Parser (Maybe a)
+optionMaybe x = option Nothing $ liftM Just x
 
 -- do not use parseOnly: it does not fail if there is any leftover
 -- input. If our parser does not consume everything, we want instant

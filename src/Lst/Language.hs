@@ -50,19 +50,19 @@ parseLanguage = liftM (\x -> (x, Nothing)) parseString
 
 parseLanguageDefinition :: Parser (T.Text, Maybe Modification) -> Parser LanguageDefinition
 parseLanguageDefinition p = do
-  (name, mod) <- p <* tabs
-  pi <- option False parseProductIdentity <* tabs
+  (languageName, modifier) <- p <* tabs
+  pid <- option False parseProductIdentity <* tabs
   _ <- string "TYPE:"
   types <- parseWord `sepBy` char '.' <* tabs
-  restriction <- option Nothing parseRestriction <* tabs
+  languageRestriction <- option Nothing parseRestriction <* tabs
   page <- option (T.pack "") parseSourcePage <* tabs
   let languages = map convertLanguageType types
-  return LanguageDefinition { name = name
-                            , productIdentity = pi
+  return LanguageDefinition { name = languageName
+                            , productIdentity = pid
                             , languageType = languages
                             , sourcePage = page
-                            , modification = mod
-                            , restriction = restriction }
+                            , modification = modifier
+                            , restriction = languageRestriction }
 
 parseLanguageLine :: Parser LanguageDefinition
 parseLanguageLine = parseLanguageDefinition parseLanguageMod <|>

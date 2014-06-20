@@ -49,6 +49,9 @@ main = do
         "LANGUAGE" -> do
           lFile <- parseLanguageLST inputFilename
           print lFile
+        "ARMORPROF" -> do
+          aFile <- parseArmorProfLST inputFilename
+          print aFile
         _ -> do
           gFile <- parseGenericLST inputFilename
           print gFile

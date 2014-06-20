@@ -10,6 +10,7 @@ import Control.Applicative
 import Common
 
 -- custom lst types
+import Lst.ArmorProf(ArmorProf, parseArmorProfLine)
 import Lst.Language(LanguageDefinition, parseLanguageLine)
 import Lst.Generic(LSTTag, parseGenericLine)
 
@@ -60,5 +61,11 @@ parseLST lstName lstParser = do
   contents <- readContents lstName
   return $ parseResult lstName $ parse lstParser contents
 
+parseLanguageLST :: FilePath -> IO [LST LanguageDefinition]
 parseLanguageLST lstName = parseLST lstName $ parseLSTLine parseLanguageLine
+
+parseGenericLST :: FilePath -> IO [LST LSTTag]
 parseGenericLST lstName = parseLST lstName $ parseLSTLine parseGenericLine
+
+parseArmorProfLST :: FilePath -> IO [LST ArmorProf]
+parseArmorProfLST lstName = parseLST lstName $ parseLSTLine parseArmorProfLine

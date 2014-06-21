@@ -19,17 +19,14 @@ parseModification = do
   _ <- string ".MOD"
   return what
 
-parseForget :: Parser T.Text
-parseForget = do
+parseStartForget :: Parser T.Text
+parseStartForget = do
   what <- parseStartString
   _ <- string ".FORGET"
   return what
 
 parseStartMod :: Parser (T.Text, Maybe Modification)
 parseStartMod = liftM (\x -> (x, Just Add)) parseModification
-
-parseStartForget :: Parser (T.Text, Maybe Modification)
-parseStartForget = liftM (\x -> (x, Just Forget)) parseForget
 
 parseStart :: Parser (T.Text, Maybe Modification)
 parseStart = liftM (\x -> (x, Nothing)) parseString

@@ -46,6 +46,19 @@ parseKey = string "KEY:" >> parseString
 parseType :: Parser [T.Text]
 parseType = string "TYPE:" >> parseWordAndNumber `sepBy` char '.'
 
+parseForgetLanguageDefinition :: Parser LanguageDefinition
+parseForgetLanguageDefinition = do
+  languageName <- parseStartForget <* tabs
+  return LanguageDefinition { name = languageName
+                            , key = Nothing
+                            , productIdentity = False
+                            , useUntrained = False
+                            , languageType = []
+                            , keyStat = Nothing
+                            , sourcePage = Nothing
+                            , modification = Just Forget
+                            , restriction = Nothing }
+
 parseLanguageDefinition :: Parser (T.Text, Maybe Modification) -> Parser LanguageDefinition
 parseLanguageDefinition p = do
   (languageName, modifier) <- p <* tabs
@@ -53,7 +66,7 @@ parseLanguageDefinition p = do
   pid <- option False parseProductIdentity <* tabs
   keystat <- optionMaybe parseKeyStat <* tabs
   untrained <- option False parseUseUntrained <* tabs
-  types <- parseType <* tabs
+  types <- parseType <* tabs -- required
   languageRestriction <- option Nothing parseRestriction <* tabs
   page <- optionMaybe parseSourcePage <* tabs
   let languages = map convertLanguageType types
@@ -73,6 +86,6 @@ parseLanguageDefinition p = do
     convertLanguageType l = Other l
 
 parseLanguageLine :: Parser LanguageDefinition
-parseLanguageLine = parseLanguageDefinition parseStartMod <|>
-                    -- parseLanguageDefinition parseStartForget <|>
+parseLanguageLine = parseForgetLanguageDefinition <|>
+                    parseLanguageDefinition parseStartMod <|>
                     parseLanguageDefinition parseStart

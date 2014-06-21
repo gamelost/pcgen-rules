@@ -31,6 +31,9 @@ manyNumbers = takeWhile1 $ inClass "0-9"
 tabs :: Parser ()
 tabs = skipWhile (== '\t')
 
+tag :: String -> Parser Char
+tag t = string (T.pack t) >> char ':'
+
 textToInt :: T.Text -> Int
 textToInt t = read (T.unpack t) :: Int
 

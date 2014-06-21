@@ -50,13 +50,13 @@ main = do
           lFile <- parseLanguageLST inputFilename
           print lFile
         "ARMORPROF" -> do
-          aFile <- parseArmorProfLST inputFilename
+          aFile <- parseArmorLST inputFilename
           print aFile
         "SHIELDPROF" -> do
-          sFile <- parseShieldProfLST inputFilename
+          sFile <- parseShieldLST inputFilename
           print sFile
         "WEAPONPROF" -> do
-          wFile <- parseWeaponProfLST inputFilename
+          wFile <- parseWeaponLST inputFilename
           print wFile
         "SKILL" -> do
           sFile <- parseSkillLST inputFilename

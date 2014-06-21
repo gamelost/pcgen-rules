@@ -7,26 +7,31 @@ import Data.Attoparsec.Text
 import Control.Monad(liftM)
 import Common
 
--- intentionally simple, for now
-data Modification = Add | Forget | Reset deriving Show
+data Operation = Add | Modify | Forget deriving Show
+
+data Modification a = Modification { operation :: Operation
+                                   , record :: a } deriving Show
 
 parseStartString :: Parser T.Text
 parseStartString = takeWhile1 $ inClass "-A-Za-z0-9 /'()" -- no punctuation
 
-parseModification :: Parser T.Text
-parseModification = do
+parseModSuffix :: Parser T.Text
+parseModSuffix = do
   what <- parseStartString
   _ <- string ".MOD"
   return what
 
-parseStartForget :: Parser T.Text
-parseStartForget = do
+parseForgetSuffix :: Parser T.Text
+parseForgetSuffix = do
   what <- parseStartString
   _ <- string ".FORGET"
   return what
 
-parseStartMod :: Parser (T.Text, Maybe Modification)
-parseStartMod = liftM (\x -> (x, Just Add)) parseModification
+parseMod :: Parser (T.Text, Operation)
+parseMod = liftM (\x -> (x, Modify)) parseModSuffix
 
-parseStart :: Parser (T.Text, Maybe Modification)
-parseStart = liftM (\x -> (x, Nothing)) parseString
+parseForget :: Parser (T.Text, Operation)
+parseForget = liftM (\x -> (x, Forget)) parseForgetSuffix
+
+parseAdd :: Parser (T.Text, Operation)
+parseAdd = liftM (\x -> (x, Add)) parseString

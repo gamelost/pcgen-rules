@@ -25,43 +25,31 @@ data LanguageDefinition = LanguageDefinition { name :: T.Text
                                              , keyStat :: Maybe T.Text
                                              , sourcePage :: Maybe T.Text
                                              , restriction :: Maybe Restriction
-                                             , modification :: Maybe Modification
                                              } deriving Show
 
+type LanguageMod = Modification LanguageDefinition
+
 parseProductIdentity :: Parser Bool
-parseProductIdentity = string "NAMEISPI:" >> yesOrNo
+parseProductIdentity = tag "NAMEISPI" >> yesOrNo
 
 parseUseUntrained :: Parser Bool
-parseUseUntrained = string "USEUNTRAINED:" >> yesOrNo
+parseUseUntrained = tag "USEUNTRAINED" >> yesOrNo
 
 parseKeyStat :: Parser T.Text
-parseKeyStat = string "KEYSTAT:" >> parseString
+parseKeyStat = tag "KEYSTAT" >> parseString
 
 parseSourcePage :: Parser T.Text
-parseSourcePage = string "SOURCEPAGE:" >> parseString
+parseSourcePage = tag "SOURCEPAGE" >> parseString
 
 parseKey :: Parser T.Text
-parseKey = string "KEY:" >> parseString
+parseKey = tag "KEY" >> parseString
 
 parseType :: Parser [T.Text]
-parseType = string "TYPE:" >> parseWordAndNumber `sepBy` char '.'
+parseType = tag "TYPE" >> parseWordAndNumber `sepBy` char '.'
 
-parseForgetLanguageDefinition :: Parser LanguageDefinition
-parseForgetLanguageDefinition = do
-  languageName <- parseStartForget <* tabs
-  return LanguageDefinition { name = languageName
-                            , key = Nothing
-                            , productIdentity = False
-                            , useUntrained = False
-                            , languageType = []
-                            , keyStat = Nothing
-                            , sourcePage = Nothing
-                            , modification = Just Forget
-                            , restriction = Nothing }
-
-parseLanguageDefinition :: Parser (T.Text, Maybe Modification) -> Parser LanguageDefinition
+parseLanguageDefinition :: Parser (T.Text, Operation) -> Parser LanguageMod
 parseLanguageDefinition p = do
-  (languageName, modifier) <- p <* tabs
+  (languageName, op) <- p <* tabs
   languageKey <- optionMaybe parseKey <* tabs
   pid <- option False parseProductIdentity <* tabs
   keystat <- optionMaybe parseKeyStat <* tabs
@@ -70,22 +58,22 @@ parseLanguageDefinition p = do
   languageRestriction <- option Nothing parseRestriction <* tabs
   page <- optionMaybe parseSourcePage <* tabs
   let languages = map convertLanguageType types
-  return LanguageDefinition { name = languageName
-                            , key = languageKey
-                            , productIdentity = pid
-                            , useUntrained = untrained
-                            , languageType = languages
-                            , keyStat = keystat
-                            , sourcePage = page
-                            , modification = modifier
-                            , restriction = languageRestriction } where
+  return Modification { operation = op
+                      , record = LanguageDefinition { name = languageName
+                                                    , key = languageKey
+                                                    , productIdentity = pid
+                                                    , useUntrained = untrained
+                                                    , languageType = languages
+                                                    , keyStat = keystat
+                                                    , sourcePage = page
+                                                    , restriction = languageRestriction } } where
     convertLanguageType :: T.Text -> LanguageType
     convertLanguageType "Read" = Read
     convertLanguageType "Spoken" = Spoken
     convertLanguageType "Written" = Written
     convertLanguageType l = Other l
 
-parseLanguageLine :: Parser LanguageDefinition
-parseLanguageLine = parseForgetLanguageDefinition <|>
-                    parseLanguageDefinition parseStartMod <|>
-                    parseLanguageDefinition parseStart
+parseLanguageLine :: Parser LanguageMod
+parseLanguageLine = parseLanguageDefinition parseForget <|>
+                    parseLanguageDefinition parseMod <|>
+                    parseLanguageDefinition parseAdd

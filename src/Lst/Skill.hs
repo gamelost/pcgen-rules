@@ -35,23 +35,34 @@ data Skill = Skill { name :: T.Text
                    , visibility :: Visibility
                    , readOnly :: Bool
                    , restriction :: Maybe Restriction
-                   , modification :: Maybe Modification
                    } deriving Show
 
-parseExclusive :: Parser Bool
-parseExclusive = string "EXCLUSIVE:" >> yesOrNo
+defaultSkill = Skill { name = "undefined"
+                     , armorClassCheck = No
+                     , classes = []
+                     , exclusive = False
+                     , keyStat = Nothing
+                     , useUntrained = False
+                     , sourcePage = Nothing
+                     , visibility = Always
+                     , readOnly = False
+                     , restriction = Nothing }
 
-parseKeyStat :: Parser T.Text
-parseKeyStat = string "KEYSTAT:" >> parseString
+type SkillMod = Modification Skill
+parseExclusive :: Parser Bool
+parseExclusive = tag "EXCLUSIVE" >> yesOrNo
 
 parseUseUntrained :: Parser Bool
-parseUseUntrained = string "USEUNTRAINED:" >> yesOrNo
+parseUseUntrained = tag "USEUNTRAINED" >> yesOrNo
+
+parseKeyStat :: Parser T.Text
+parseKeyStat = tag "KEYSTAT" >> parseString
 
 parseSourcePage :: Parser T.Text
-parseSourcePage = string "SOURCEPAGE:" >> parseString
+parseSourcePage = tag "SOURCEPAGE" >> parseString
 
 parseACheck :: Parser ACheck
-parseACheck = string "ACHECK:" >> liftM matchACheck allCaps where
+parseACheck = tag "ACHECK" >> liftM matchACheck allCaps where
   matchACheck :: T.Text -> ACheck
   matchACheck "DOUBLE" = Double
   matchACheck "PROFICIENT" = Proficient
@@ -62,7 +73,7 @@ parseACheck = string "ACHECK:" >> liftM matchACheck allCaps where
 
 parseVisibility :: Parser (Visibility, Bool)
 parseVisibility = do
-  visible <- string "VISIBLE:" >> liftM matchVisibility allCaps
+  visible <- tag "VISIBLE" >> liftM matchVisibility allCaps
   readonly <- option False (string "|READONLY" >> return True)
   return (visible, readonly) where
     matchVisibility :: T.Text -> Visibility
@@ -73,9 +84,9 @@ parseVisibility = do
     matchVisibility "CSHEET" = CSheet
     matchVisibility _ = Always
 
-parseSkillDefinition :: Parser (T.Text, Maybe Modification) -> Parser Skill
+parseSkillDefinition :: Parser (T.Text, Operation) -> Parser SkillMod
 parseSkillDefinition p = do
-  (languageName, modifier) <- p <* tabs
+  (languageName, op) <- p <* tabs
   keystat <- optionMaybe parseKeyStat <* tabs
   untrained <- option False parseUseUntrained <* tabs
   -- classes <- optionMaybe parseKey <* tabs
@@ -84,18 +95,18 @@ parseSkillDefinition p = do
   languageRestriction <- option Nothing parseRestriction <* tabs
   (isVisible, readonly) <- option (Always, True) parseVisibility <* tabs
   page <- optionMaybe parseSourcePage <* tabs
-  return Skill { name = languageName
-               , armorClassCheck = acheck
-               , classes = []
-               , exclusive = isExclusive
-               , useUntrained = untrained
-               , keyStat = keystat
-               , sourcePage = page
-               , visibility = isVisible
-               , readOnly = readonly
-               , modification = modifier
-               , restriction = languageRestriction }
+  return Modification { operation = op
+                      , record = defaultSkill { name = languageName
+                                              , armorClassCheck = acheck
+                                              , classes = []
+                                              , exclusive = isExclusive
+                                              , useUntrained = untrained
+                                              , keyStat = keystat
+                                              , sourcePage = page
+                                              , visibility = isVisible
+                                              , readOnly = readonly
+                                              , restriction = languageRestriction } }
 
-parseSkillLine :: Parser Skill
-parseSkillLine = parseSkillDefinition parseStartMod <|>
-                 parseSkillDefinition parseStart
+parseSkillLine :: Parser SkillMod
+parseSkillLine = parseSkillDefinition parseMod <|>
+                 parseSkillDefinition parseAdd

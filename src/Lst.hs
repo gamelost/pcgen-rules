@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Lst where
 
 import Prelude hiding (takeWhile)
@@ -10,11 +8,11 @@ import Control.Applicative
 import Common
 
 -- custom lst types
-import Lst.Skill(Skill, parseSkillLine)
-import Lst.WeaponProf(WeaponProf, parseWeaponProfLine)
-import Lst.ArmorProf(ArmorProf, parseArmorProfLine)
-import Lst.ShieldProf(ShieldProf, parseShieldProfLine)
-import Lst.Language(LanguageDefinition, parseLanguageLine)
+import Lst.Skill(SkillMod, parseSkillLine)
+import Lst.WeaponProf(WeaponMod, parseWeaponLine)
+import Lst.ArmorProf(ArmorMod, parseArmorLine)
+import Lst.ShieldProf(ShieldMod, parseShieldLine)
+import Lst.Language(LanguageMod, parseLanguageLine)
 import Lst.Generic(LSTTag, parseGenericLine)
 
 -- structure of a lst file
@@ -28,27 +26,23 @@ data Header = SourceLong T.Text
             | SourceWeb T.Text
             | SourceDate T.Text deriving Show
 
-parseSource :: T.Text -> Parser T.Text
-parseSource source = do
-  _ <- string source
-  parseString
+parseSource :: String -> Parser T.Text
+parseSource source = tag source >> parseString
 
-parseSourceUrl :: T.Text -> Parser T.Text
-parseSourceUrl source = do
-  _ <- string source
-  parseUrl
+parseSourceUrl :: String -> Parser T.Text
+parseSourceUrl source = tag source >> parseUrl
 
 parseSourceWeb :: Parser Header
-parseSourceWeb = liftM SourceWeb $ parseSourceUrl "SOURCEWEB:"
+parseSourceWeb = liftM SourceWeb $ parseSourceUrl "SOURCEWEB"
 
 parseSourceLong :: Parser Header
-parseSourceLong = liftM SourceLong $ parseSource "SOURCELONG:"
+parseSourceLong = liftM SourceLong $ parseSource "SOURCELONG"
 
 parseSourceShort :: Parser Header
-parseSourceShort = liftM SourceShort $ parseSource "SOURCESHORT:"
+parseSourceShort = liftM SourceShort $ parseSource "SOURCESHORT"
 
 parseSourceDate :: Parser Header
-parseSourceDate = liftM SourceDate $ parseSource "SOURCEDATE:"
+parseSourceDate = liftM SourceDate $ parseSource "SOURCEDATE"
 
 parseHeaders :: Parser [Header]
 parseHeaders = many1 (parseSourceLong <|>
@@ -69,20 +63,20 @@ parseLST lstName lstParser = do
   contents <- readContents lstName
   return $ parseResult lstName $ parse lstParser contents
 
-parseLanguageLST :: FilePath -> IO [LST LanguageDefinition]
+parseLanguageLST :: FilePath -> IO [LST LanguageMod]
 parseLanguageLST lstName = parseLST lstName $ parseLSTLine parseLanguageLine
 
 parseGenericLST :: FilePath -> IO [LST LSTTag]
 parseGenericLST lstName = parseLST lstName $ parseLSTLine parseGenericLine
 
-parseArmorProfLST :: FilePath -> IO [LST ArmorProf]
-parseArmorProfLST lstName = parseLST lstName $ parseLSTLine parseArmorProfLine
+parseArmorLST :: FilePath -> IO [LST ArmorMod]
+parseArmorLST lstName = parseLST lstName $ parseLSTLine parseArmorLine
 
-parseShieldProfLST :: FilePath -> IO [LST ShieldProf]
-parseShieldProfLST lstName = parseLST lstName $ parseLSTLine parseShieldProfLine
+parseShieldLST :: FilePath -> IO [LST ShieldMod]
+parseShieldLST lstName = parseLST lstName $ parseLSTLine parseShieldLine
 
-parseWeaponProfLST :: FilePath -> IO [LST WeaponProf]
-parseWeaponProfLST lstName = parseLST lstName $ parseLSTLine parseWeaponProfLine
+parseWeaponLST :: FilePath -> IO [LST WeaponMod]
+parseWeaponLST lstName = parseLST lstName $ parseLSTLine parseWeaponLine
 
-parseSkillLST  :: FilePath -> IO [LST Skill]
+parseSkillLST  :: FilePath -> IO [LST SkillMod]
 parseSkillLST lstName = parseLST lstName $ parseLSTLine parseSkillLine

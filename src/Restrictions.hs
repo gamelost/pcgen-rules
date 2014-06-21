@@ -42,7 +42,7 @@ parseEqual = do
 --   x is alignment abbreviation or alignment array number
 parsePreAlign :: Parser PreAlign
 parsePreAlign = do
-  args <- string "PREALIGN:" >> parseWord `sepBy` char ','
+  args <- tag "PREALIGN" >> parseWord `sepBy` char ','
   return PreAlign { alignments = map parseAlignment args } where
     parseAlignment :: T.Text -> Alignment
     parseAlignment x | x == "LG" || x == "0" = LG
@@ -63,7 +63,7 @@ parsePreAlign = do
 --   z is number, class level
 parsePreClass :: Parser PreClass
 parsePreClass = do
-  n <- string "PRECLASS:" >> manyNumbers
+  n <- tag "PRECLASS" >> manyNumbers
   classes <- char ',' >> parseEqual `sepBy` char ','
   return PreClass { passNumber = textToInt n
                   , classRequisites = classes }
@@ -95,7 +95,7 @@ parsePreVar = do
 --   z is ability name, ability type (TYPE.z), or ALL
 parsePreAbility :: Parser PreAbility
 parsePreAbility = do
-  n <- string "PREABILITY:" >> manyNumbers
+  n <- tag "PREABILITY" >> manyNumbers
   category <- string ",CATEGORY=" >> parseWord
   abilities <- char ',' >> parseString `sepBy` char ','
   return PreAbility { abilityNumber = textToInt n

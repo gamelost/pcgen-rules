@@ -5,15 +5,18 @@ import Control.Monad(liftM)
 import qualified Data.Text as T
 import Data.Attoparsec.Text
 import Control.Applicative
+import Modifications
 import Common
 
 -- custom lst types
-import Lst.Skill(SkillMod, parseSkillLine)
-import Lst.WeaponProf(WeaponMod, parseWeaponLine)
-import Lst.ArmorProf(ArmorMod, parseArmorLine)
-import Lst.ShieldProf(ShieldMod, parseShieldLine)
-import Lst.Language(LanguageMod, parseLanguageLine)
-import Lst.Generic(LSTTag, parseGenericLine)
+-- import Lst.Skill(SkillDefinition)
+import Lst.Language(LanguageDefinition)
+import Lst.WeaponProf(WeaponProficency)
+import Lst.ShieldProf(ShieldProficency)
+import Lst.ArmorProf(ArmorProficency)
+
+-- generic, catch-all
+import Lst.Generic(LSTDefinition)
 
 -- structure of a lst file
 data LST a = Source [Header]
@@ -26,23 +29,17 @@ data Header = SourceLong T.Text
             | SourceWeb T.Text
             | SourceDate T.Text deriving Show
 
-parseSource :: String -> Parser T.Text
-parseSource source = tag source >> parseString
-
-parseSourceUrl :: String -> Parser T.Text
-parseSourceUrl source = tag source >> parseUrl
-
 parseSourceWeb :: Parser Header
-parseSourceWeb = liftM SourceWeb $ parseSourceUrl "SOURCEWEB"
+parseSourceWeb = SourceWeb <$> (tag "SOURCEWEB" >> parseUrl)
 
 parseSourceLong :: Parser Header
-parseSourceLong = liftM SourceLong $ parseSource "SOURCELONG"
+parseSourceLong = SourceLong <$> (tag "SOURCELONG" >> parseString)
 
 parseSourceShort :: Parser Header
-parseSourceShort = liftM SourceShort $ parseSource "SOURCESHORT"
+parseSourceShort = SourceShort <$> (tag "SOURCESHORT" >> parseString)
 
 parseSourceDate :: Parser Header
-parseSourceDate = liftM SourceDate $ parseSource "SOURCEDATE"
+parseSourceDate = SourceDate <$> (tag "SOURCEDATE" >> parseString)
 
 parseHeaders :: Parser [Header]
 parseHeaders = many1 (parseSourceLong <|>
@@ -50,33 +47,21 @@ parseHeaders = many1 (parseSourceLong <|>
                       parseSourceWeb <|>
                       parseSourceDate) <* tabs
 
-parseLSTLine :: Parser a -> Parser [LST a]
-parseLSTLine parseDefinition = do
-  -- next line added solely because of saspg_languages.lst, ugh
+parseLSTLines :: Parser a -> Parser [LST a]
+parseLSTLines parseDefinition = do
   _ <- many endOfLine
   many1 $ (liftM Source parseHeaders <|>
            liftM Comment parseCommentLine <|>
            liftM Definition parseDefinition) <* many endOfLine
 
-parseLST :: FilePath -> Parser [LST a] -> IO [LST a]
-parseLST lstName lstParser = do
+parseLST :: Parser (LSTLine a) -> FilePath -> IO [LST (LSTLine a)]
+parseLST lstParser lstName  = do
   contents <- readContents lstName
-  return $ parseResult lstName $ parse lstParser contents
+  return . parseResult lstName $ parse (parseLSTLines lstParser) contents
 
-parseLanguageLST :: FilePath -> IO [LST LanguageMod]
-parseLanguageLST lstName = parseLST lstName $ parseLSTLine parseLanguageLine
-
-parseGenericLST :: FilePath -> IO [LST LSTTag]
-parseGenericLST lstName = parseLST lstName $ parseLSTLine parseGenericLine
-
-parseArmorLST :: FilePath -> IO [LST ArmorMod]
-parseArmorLST lstName = parseLST lstName $ parseLSTLine parseArmorLine
-
-parseShieldLST :: FilePath -> IO [LST ShieldMod]
-parseShieldLST lstName = parseLST lstName $ parseLSTLine parseShieldLine
-
-parseWeaponLST :: FilePath -> IO [LST WeaponMod]
-parseWeaponLST lstName = parseLST lstName $ parseLSTLine parseWeaponLine
-
-parseSkillLST  :: FilePath -> IO [LST SkillMod]
-parseSkillLST lstName = parseLST lstName $ parseLSTLine parseSkillLine
+parseLanguageLST = parseLST (parseLSTLine :: Parser (LSTLine LanguageDefinition))
+parseWeaponLST = parseLST (parseLSTLine :: Parser (LSTLine WeaponProficency))
+parseShieldLST = parseLST (parseLSTLine :: Parser (LSTLine ShieldProficency))
+parseArmorLST = parseLST (parseLSTLine :: Parser (LSTLine ArmorProficency))
+-- parseSkillLST = parseLST (parseLSTLine :: Parser (LSTLine SkillProficency))
+parseGenericLST = parseLST (parseLSTLine :: Parser (LSTLine LSTDefinition))

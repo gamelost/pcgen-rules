@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Lst.ShieldProf where
 
 import qualified Data.Text as T
@@ -5,12 +7,10 @@ import Data.Attoparsec.Text
 import Modifications
 import Common
 
-data ShieldProf = ShieldProf { shieldName :: T.Text } deriving Show
+data ShieldProficency = ShieldProficency { shieldName :: T.Text } deriving Show
 
-type ShieldMod = Modification ShieldProf
+parseShieldProficency :: T.Text -> Parser ShieldProficency
+parseShieldProficency shieldName = return ShieldProficency { .. }
 
-parseShieldLine :: Parser ShieldMod
-parseShieldLine = do
-  name <- parseString
-  return Modification { operation = Add
-                      , record = ShieldProf { shieldName = name } }
+instance LSTObject ShieldProficency where
+  parseLine = parseShieldProficency

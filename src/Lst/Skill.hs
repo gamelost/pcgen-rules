@@ -25,30 +25,33 @@ data Visibility = Always
                 | CSheet
                 deriving Show
 
-data Skill = Skill { name :: T.Text
-                   , armorClassCheck :: ACheck
-                   , classes :: [T.Text]
-                   , exclusive :: Bool
-                   , keyStat :: Maybe T.Text
-                   , useUntrained :: Bool
-                   , sourcePage :: Maybe T.Text
-                   , visibility :: Visibility
-                   , readOnly :: Bool
-                   , restriction :: Maybe Restriction
-                   } deriving Show
+data SkillTag a = SkillSubset String a
 
-defaultSkill = Skill { name = "undefined"
-                     , armorClassCheck = No
-                     , classes = []
-                     , exclusive = False
-                     , keyStat = Nothing
-                     , useUntrained = False
-                     , sourcePage = Nothing
-                     , visibility = Always
-                     , readOnly = False
-                     , restriction = Nothing }
+data SkillDefinition = SkillDefinition { name :: T.Text
+                                       , armorClassCheck :: ACheck
+                                       , classes :: [T.Text]
+                                       , exclusive :: Bool
+                                       , keyStat :: Maybe T.Text
+                                       , useUntrained :: Bool
+                                       , sourcePage :: Maybe T.Text
+                                       , visibility :: Visibility
+                                       , readOnly :: Bool
+                                       , restriction :: Maybe Restriction
+                                       } deriving Show
 
-type SkillMod = Modification Skill
+defaultSkill = SkillDefinition { name = "undefined"
+                               , armorClassCheck = No
+                               , classes = []
+                               , exclusive = False
+                               , keyStat = Nothing
+                               , useUntrained = False
+                               , sourcePage = Nothing
+                               , visibility = Always
+                               , readOnly = False
+                               , restriction = Nothing }
+
+-- TODO
+-- add url link
 parseExclusive :: Parser Bool
 parseExclusive = tag "EXCLUSIVE" >> yesOrNo
 
@@ -76,6 +79,7 @@ parseVisibility = do
   visible <- tag "VISIBLE" >> liftM matchVisibility allCaps
   readonly <- option False (string "|READONLY" >> return True)
   return (visible, readonly) where
+    -- TODO fix, there are fewer actual values than this
     matchVisibility :: T.Text -> Visibility
     matchVisibility "ALWAYS" = Always
     matchVisibility "DISPLAY" = Display
@@ -84,29 +88,20 @@ parseVisibility = do
     matchVisibility "CSHEET" = CSheet
     matchVisibility _ = Always
 
-parseSkillDefinition :: Parser (T.Text, Operation) -> Parser SkillMod
+addSkill :: SkillTag a -> SkillDefinition -> SkillDefinition
+addSkill tag result@SkillDefinition =
+  result { tag = result }
+
+parseSkillTag :: Parser (SkillTag a)
+parseSkillTag = liftM (SkillSubset "keyStat") parseKeyStat <|>
+                liftM (SkillSubset "useUntrained") parseUseUntrained <|>
+                liftM (SkillSubset "armorClassCheck") parseACheck <|>
+                liftM (SkillSubset "exclusive") parseExclusive <|>
+                liftM (SkillSubset "restriction") parseRestriction <|>
+                liftM (SkillSubset "readonly") parseVisibility
+
+parseSkillDefinition :: T.Text -> Parser SkillDefinition
 parseSkillDefinition p = do
   (languageName, op) <- p <* tabs
-  keystat <- optionMaybe parseKeyStat <* tabs
-  untrained <- option False parseUseUntrained <* tabs
-  -- classes <- optionMaybe parseKey <* tabs
-  acheck <- option No parseACheck <* tabs
-  isExclusive <- option False parseExclusive <* tabs
-  languageRestriction <- option Nothing parseRestriction <* tabs
-  (isVisible, readonly) <- option (Always, True) parseVisibility <* tabs
-  page <- optionMaybe parseSourcePage <* tabs
-  return Modification { operation = op
-                      , record = defaultSkill { name = languageName
-                                              , armorClassCheck = acheck
-                                              , classes = []
-                                              , exclusive = isExclusive
-                                              , useUntrained = untrained
-                                              , keyStat = keystat
-                                              , sourcePage = page
-                                              , visibility = isVisible
-                                              , readOnly = readonly
-                                              , restriction = languageRestriction } }
-
-parseSkillLine :: Parser SkillMod
-parseSkillLine = parseSkillDefinition parseMod <|>
-                 parseSkillDefinition parseAdd
+  skillTags <- choice parseSkillTag `sepBy` tabs
+  return foldr addSkill defaultSkill skillTags

@@ -1,9 +1,8 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 
 module Restrictions where
 
 import Prelude hiding (takeWhile, GT, EQ, LT)
-import Control.Monad(liftM)
 import qualified Data.Text as T
 import Data.Attoparsec.Text
 import Control.Applicative
@@ -45,16 +44,16 @@ parsePreAlign = do
   args <- tag "PREALIGN" >> parseWord `sepBy` char ','
   return PreAlign { alignments = map parseAlignment args } where
     parseAlignment :: T.Text -> Alignment
-    parseAlignment x | x == "LG" || x == "0" = LG
-    parseAlignment x | x == "LN" || x == "1" = LN
-    parseAlignment x | x == "LE" || x == "2" = LE
-    parseAlignment x | x == "NG" || x == "3" = NG
-    parseAlignment x | x == "TN" || x == "4" = TN
-    parseAlignment x | x == "NE" || x == "5" = NE
-    parseAlignment x | x == "CG" || x == "6" = CG
-    parseAlignment x | x == "CN" || x == "7" = CN
-    parseAlignment x | x == "CE" || x == "8" = CE
-    parseAlignment x | x == "Deity" || x == "10" = Deity
+    parseAlignment x | x == "LG", x == "0" = LG
+    parseAlignment x | x == "LN", x == "1" = LN
+    parseAlignment x | x == "LE", x == "2" = LE
+    parseAlignment x | x == "NG", x == "3" = NG
+    parseAlignment x | x == "TN", x == "4" = TN
+    parseAlignment x | x == "NE", x == "5" = NE
+    parseAlignment x | x == "CG", x == "6" = CG
+    parseAlignment x | x == "CN", x == "7" = CN
+    parseAlignment x | x == "CE", x == "8" = CE
+    parseAlignment x | x == "Deity", x == "10" = Deity
     parseAlignment _ = None
 
 -- PRECLASS:x,y=z,y=z,y=z...
@@ -64,9 +63,8 @@ parsePreAlign = do
 parsePreClass :: Parser PreClass
 parsePreClass = do
   n <- tag "PRECLASS" >> manyNumbers
-  classes <- char ',' >> parseEqual `sepBy` char ','
-  return PreClass { passNumber = textToInt n
-                  , classRequisites = classes }
+  classRequisites <- char ',' >> parseEqual `sepBy` char ','
+  return PreClass { passNumber = textToInt n, .. }
 
 -- PREVARx:y,z
 --   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
@@ -96,15 +94,13 @@ parsePreVar = do
 parsePreAbility :: Parser PreAbility
 parsePreAbility = do
   n <- tag "PREABILITY" >> manyNumbers
-  category <- string ",CATEGORY=" >> parseWord
+  categoryName <- string ",CATEGORY=" >> parseWord
   abilities <- char ',' >> parseString `sepBy` char ','
-  return PreAbility { abilityNumber = textToInt n
-                    , categoryName = category
-                    , abilities = abilities }
+  return PreAbility { abilityNumber = textToInt n, .. }
 
 -- restriction <- option Nothing parseRestriction <* tabs
 parseRestriction :: Parser (Maybe Restriction)
-parseRestriction = liftM Just (liftM PreClassRestriction parsePreClass <|>
-                               liftM PreVarRestriction parsePreVar <|>
-                               liftM PreAbilityRestriction parsePreAbility <|>
-                               liftM PreAlignRestriction parsePreAlign)
+parseRestriction = Just <$> (PreVarRestriction <$> parsePreVar <|>
+                             PreClassRestriction <$> parsePreClass <|>
+                             PreAbilityRestriction <$> parsePreAbility <|>
+                             PreAlignRestriction <$> parsePreAlign)

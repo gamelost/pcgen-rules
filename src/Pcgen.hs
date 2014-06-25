@@ -58,9 +58,9 @@ main = do
         "WEAPONPROF" -> do
           wFile <- parseWeaponLST inputFilename
           print wFile
-        "SKILL" -> do
-          sFile <- parseSkillLST inputFilename
-          print sFile
+        -- "SKILL" -> do
+        --   sFile <- parseSkillLST inputFilename
+        --   print sFile
         _ -> do
           gFile <- parseGenericLST inputFilename
           print gFile

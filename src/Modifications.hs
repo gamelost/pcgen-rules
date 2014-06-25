@@ -1,37 +1,46 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Modifications where
 
 import qualified Data.Text as T
 import Data.Attoparsec.Text
-import Control.Monad(liftM)
+import Control.Applicative
 import Common
 
-data Operation = Add | Modify | Forget deriving Show
+data Operation = Add | Copy | Modify | Forget deriving Show
 
-data Modification a = Modification { operation :: Operation
-                                   , record :: a } deriving Show
+data LSTLine a = LSTLine { operation :: Operation
+                         , record :: a } deriving Show
+
+class LSTObject a where
+  parseLine :: T.Text -> Parser a
+
+  parseLSTLine :: Parser (LSTLine a)
+  parseLSTLine = do
+    (name, operation) <- parseModify <|>
+                         parseForget <|>
+                         parseCopy <|>
+                         parseAdd <* tabs
+    record <- parseLine name
+    return LSTLine { .. }
 
 parseStartString :: Parser T.Text
 parseStartString = takeWhile1 $ inClass "-A-Za-z0-9 /'()" -- no punctuation
 
-parseModSuffix :: Parser T.Text
-parseModSuffix = do
+parseSuffix :: String -> Parser T.Text
+parseSuffix suffix = do
   what <- parseStartString
-  _ <- string ".MOD"
+  _ <- string $ T.pack suffix
   return what
 
-parseForgetSuffix :: Parser T.Text
-parseForgetSuffix = do
-  what <- parseStartString
-  _ <- string ".FORGET"
-  return what
-
-parseMod :: Parser (T.Text, Operation)
-parseMod = liftM (\x -> (x, Modify)) parseModSuffix
+parseModify :: Parser (T.Text, Operation)
+parseModify = parseSuffix ".MOD" >>= (\name -> return (name, Modify))
 
 parseForget :: Parser (T.Text, Operation)
-parseForget = liftM (\x -> (x, Forget)) parseForgetSuffix
+parseForget = parseSuffix ".FORGET" >>= (\name -> return (name, Forget))
+
+parseCopy :: Parser (T.Text, Operation)
+parseCopy = parseSuffix ".COPY" >>= (\name -> return (name, Copy))
 
 parseAdd :: Parser (T.Text, Operation)
-parseAdd = liftM (\x -> (x, Add)) parseString
+parseAdd = parseStartString >>= (\name -> return (name, Add))

@@ -42,7 +42,7 @@ textToInt t = read (T.unpack t) :: Int
 infixr 2 <||>
 
 restOfLine :: Parser T.Text
-restOfLine = takeTill ((== '\n') <||> (== '\r'))
+restOfLine = takeTill (== ' ') *> takeTill ((== '\n') <||> (== '\r'))
 
 anything :: Parser T.Text
 anything = takeTill ((== '\n') <||> (== '\r') <||> (== '\t'))

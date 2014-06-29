@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 
 module Lst.Skill where
 
@@ -20,12 +20,8 @@ data ACheck = Double
 
 data Visibility = Always
                 | Display
-                | GUI
                 | Export
-                | CSheet
                 deriving Show
-
-data SkillTag a = SkillSubset String a
 
 data SkillDefinition = SkillDefinition { name :: T.Text
                                        , armorClassCheck :: ACheck
@@ -50,58 +46,74 @@ defaultSkill = SkillDefinition { name = "undefined"
                                , readOnly = False
                                , restriction = Nothing }
 
--- TODO
--- add url link
-parseExclusive :: Parser Bool
-parseExclusive = tag "EXCLUSIVE" >> yesOrNo
+-- NB this type is needed for parsing of unordered tags
 
-parseUseUntrained :: Parser Bool
-parseUseUntrained = tag "USEUNTRAINED" >> yesOrNo
+type SkillTag = Parser (SkillDefinition -> SkillDefinition)
 
-parseKeyStat :: Parser T.Text
-parseKeyStat = tag "KEYSTAT" >> parseString
+parseExclusive :: SkillTag
+parseExclusive = do
+  e <- tag "EXCLUSIVE" >> yesOrNo
+  return (\result@SkillDefinition{ .. } -> result { exclusive = e })
 
-parseSourcePage :: Parser T.Text
-parseSourcePage = tag "SOURCEPAGE" >> parseString
+parseUseUntrained :: SkillTag
+parseUseUntrained = do
+  u <- tag "USEUNTRAINED" >> yesOrNo
+  return (\result@SkillDefinition{ .. } -> result { useUntrained = u })
 
-parseACheck :: Parser ACheck
-parseACheck = tag "ACHECK" >> liftM matchACheck allCaps where
-  matchACheck :: T.Text -> ACheck
-  matchACheck "DOUBLE" = Double
-  matchACheck "PROFICIENT" = Proficient
-  matchACheck "NONPROF" = NonProficient
-  matchACheck "WEIGHT" = Weight
-  matchACheck "YES" = Yes
-  matchACheck _ = No
+parseKeyStat :: SkillTag
+parseKeyStat  = do
+  k <- tag "KEYSTAT" >> parseString
+  return (\result@SkillDefinition{ .. } -> result { keyStat = Just k })
 
-parseVisibility :: Parser (Visibility, Bool)
+parseSourcePage :: SkillTag
+parseSourcePage  = do
+  s <- tag "SOURCEPAGE" >> parseString
+  return (\result@SkillDefinition{ .. } -> result { sourcePage = Just s })
+
+parseACheck :: SkillTag
+parseACheck = do
+  a <- tag "ACHECK" >> liftM matchACheck allCaps
+  return (\result@SkillDefinition{ .. } -> result { armorClassCheck = a }) where
+    matchACheck :: T.Text -> ACheck
+    matchACheck "DOUBLE" = Double
+    matchACheck "PROFICIENT" = Proficient
+    matchACheck "NONPROF" = NonProficient
+    matchACheck "WEIGHT" = Weight
+    matchACheck "YES" = Yes
+    matchACheck _ = No
+
+parseVisibility :: SkillTag
 parseVisibility = do
-  visible <- tag "VISIBLE" >> liftM matchVisibility allCaps
-  readonly <- option False (string "|READONLY" >> return True)
-  return (visible, readonly) where
-    -- TODO fix, there are fewer actual values than this
+  v <- tag "VISIBLE" >> liftM matchVisibility allCaps
+  ro <- option False (string "|READONLY" >> return True)
+  return (\result@SkillDefinition{ .. } -> result { visibility = v, readOnly = ro }) where
     matchVisibility :: T.Text -> Visibility
     matchVisibility "ALWAYS" = Always
+    matchVisibility "YES" = Always
+    matchVisibility "GUI" = Display
     matchVisibility "DISPLAY" = Display
-    matchVisibility "GUI" = GUI
     matchVisibility "EXPORT" = Export
-    matchVisibility "CSHEET" = CSheet
+    matchVisibility "CSHEET" = Export
     matchVisibility _ = Always
 
-addSkill :: SkillTag a -> SkillDefinition -> SkillDefinition
-addSkill tag result@SkillDefinition =
-  result { tag = result }
+-- XXX add classes
 
-parseSkillTag :: Parser (SkillTag a)
-parseSkillTag = liftM (SkillSubset "keyStat") parseKeyStat <|>
-                liftM (SkillSubset "useUntrained") parseUseUntrained <|>
-                liftM (SkillSubset "armorClassCheck") parseACheck <|>
-                liftM (SkillSubset "exclusive") parseExclusive <|>
-                liftM (SkillSubset "restriction") parseRestriction <|>
-                liftM (SkillSubset "readonly") parseVisibility
+parseSkillTag :: SkillTag
+parseSkillTag = parseKeyStat <|>
+                parseUseUntrained <|>
+                parseACheck <|>
+                parseExclusive <|>
+                -- parseRestriction <|>
+                parseVisibility
+
+applySkillName :: T.Text -> SkillDefinition -> SkillDefinition
+applySkillName skillName result@SkillDefinition{ .. } = result { name = skillName }
 
 parseSkillDefinition :: T.Text -> Parser SkillDefinition
-parseSkillDefinition p = do
-  (languageName, op) <- p <* tabs
-  skillTags <- choice parseSkillTag `sepBy` tabs
-  return foldr addSkill defaultSkill skillTags
+parseSkillDefinition name = do
+  skillTags <- parseSkillTag `sepBy` tabs
+  let updatedSkillTags = applySkillName name defaultSkill
+  return $ foldr id updatedSkillTags skillTags
+
+instance LSTObject SkillDefinition where
+  parseLine = parseSkillDefinition

@@ -1,7 +1,6 @@
 module Lst where
 
 import Prelude hiding (takeWhile)
-import Control.Monad(liftM)
 import qualified Data.Text as T
 import Data.Attoparsec.Text
 import Control.Applicative
@@ -9,7 +8,7 @@ import Modifications
 import Common
 
 -- custom lst types
--- import Lst.Skill(SkillDefinition)
+import Lst.Skill(SkillDefinition)
 import Lst.Language(LanguageDefinition)
 import Lst.WeaponProf(WeaponProficency)
 import Lst.ShieldProf(ShieldProficency)
@@ -50,18 +49,19 @@ parseHeaders = many1 (parseSourceLong <|>
 parseLSTLines :: Parser a -> Parser [LST a]
 parseLSTLines parseDefinition = do
   _ <- many endOfLine
-  many1 $ (liftM Source parseHeaders <|>
-           liftM Comment parseCommentLine <|>
-           liftM Definition parseDefinition) <* many endOfLine
+  many1 $ (Source <$> parseHeaders <|>
+           Comment <$> parseCommentLine <|>
+           Definition <$> parseDefinition) <* many endOfLine
 
 parseLST :: Parser (LSTLine a) -> FilePath -> IO [LST (LSTLine a)]
 parseLST lstParser lstName  = do
   contents <- readContents lstName
-  return . parseResult lstName $ parse (parseLSTLines lstParser) contents
+  return . parseResult lstName $ parse fullParser contents where
+    fullParser = parseLSTLines lstParser
 
 parseLanguageLST = parseLST (parseLSTLine :: Parser (LSTLine LanguageDefinition))
 parseWeaponLST = parseLST (parseLSTLine :: Parser (LSTLine WeaponProficency))
 parseShieldLST = parseLST (parseLSTLine :: Parser (LSTLine ShieldProficency))
 parseArmorLST = parseLST (parseLSTLine :: Parser (LSTLine ArmorProficency))
--- parseSkillLST = parseLST (parseLSTLine :: Parser (LSTLine SkillProficency))
+parseSkillLST = parseLST (parseLSTLine :: Parser (LSTLine SkillDefinition))
 parseGenericLST = parseLST (parseLSTLine :: Parser (LSTLine LSTDefinition))

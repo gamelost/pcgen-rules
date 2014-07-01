@@ -1,23 +1,28 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Lst.ArmorProf where
 
 import qualified Data.Text as T
 import Control.Applicative
 import Data.Attoparsec.Text
 import Modifications
+import Restrictions
 import Common
 
-data ArmorProficency = ArmorProficency { armorName :: T.Text
-                                       , armorType :: Maybe T.Text } deriving Show
+data ArmorProficency = Name T.Text
+                     | Type T.Text
+                     | Restricted Restriction
+                       deriving Show
 
-parseArmorType :: Parser T.Text
-parseArmorType = tag "TYPE" >> parseWord
+parseArmorType :: Parser ArmorProficency
+parseArmorType = Type <$> (tag "TYPE" >> parseWord)
 
-parseArmorProficency :: T.Text -> Parser ArmorProficency
+parseArmorProficencyTag :: Parser ArmorProficency
+parseArmorProficencyTag = parseArmorType <|>
+                          Restricted <$> parseRestriction
+
+parseArmorProficency :: T.Text -> Parser [ArmorProficency]
 parseArmorProficency armorName = do
-  armorType <- optionMaybe parseArmorType
-  return ArmorProficency {..}
+  armorTags <- parseArmorProficencyTag `sepBy` tabs
+  return $ armorTags ++ [Name armorName]
 
 instance LSTObject ArmorProficency where
   parseLine = parseArmorProficency

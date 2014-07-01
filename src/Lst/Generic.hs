@@ -8,26 +8,29 @@ import qualified Data.Text as T
 import Data.Attoparsec.Text
 import Control.Applicative
 import Modifications
+import Restrictions
 import Common
 
 -- generic lst placeholder while we implement specific lst types
 
-data LSTDefinition = LSTDefinition { name :: T.Text
-                                   , keys :: [(T.Text, T.Text)] } deriving Show
+data LSTDefinition = Name T.Text
+                   | Key (T.Text, T.Text)
+                   | Restricted Restriction
+                     deriving Show
 
 parseName :: Parser T.Text
 parseName = takeWhile1 $ notInClass "\t\n\r"
 
-parseLSTTab :: Parser (T.Text, T.Text)
-parseLSTTab = do
+parseLSTTag :: Parser LSTDefinition
+parseLSTTag = do
   a <- allCaps
   v <- ":" .*> parseName
-  return (a, v)
+  return $ Key (a, v)
 
-parseGenericLSTLine :: T.Text -> Parser LSTDefinition
+parseGenericLSTLine :: T.Text -> Parser [LSTDefinition]
 parseGenericLSTLine name = do
-  keys <- parseLSTTab `sepBy` tabs
-  return LSTDefinition { .. }
+  keys <- parseLSTTag `sepBy` tabs
+  return $ keys ++ [Name name]
 
 instance LSTObject LSTDefinition where
   parseLine = parseGenericLSTLine

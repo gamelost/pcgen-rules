@@ -10,10 +10,10 @@ import Common
 data Operation = Add | Copy | Modify | Forget deriving Show
 
 data LSTLine a = LSTLine { operation :: Operation
-                         , record :: a } deriving Show
+                         , tags :: [a] } deriving Show
 
 class LSTObject a where
-  parseLine :: T.Text -> Parser a
+  parseLine :: T.Text -> Parser [a]
 
   parseLSTLine :: Parser (LSTLine a)
   parseLSTLine = do
@@ -21,7 +21,7 @@ class LSTObject a where
                          parseForget <|>
                          parseCopy <|>
                          parseAdd <* tabs
-    record <- parseLine name
+    tags <- parseLine name
     return LSTLine { .. }
 
 parseStartString :: Parser T.Text

@@ -16,50 +16,54 @@ data LanguageType = Read
                   | Other T.Text
                     deriving Show
 
-data LanguageDefinition = LanguageDefinition { name :: T.Text
-                                             , key :: Maybe T.Text
-                                             , productIdentity :: Bool
-                                             , useUntrained :: Bool
-                                             , languageType :: [LanguageType]
-                                             , keyStat :: Maybe T.Text
-                                             , sourcePage :: Maybe T.Text
-                                             , restriction :: Maybe Restriction
-                                             } deriving Show
+data LanguageDefinition = Name T.Text
+                        | Key T.Text
+                        | ProductIdentity Bool
+                        | UseUntrained Bool
+                        | LanguageTypes [LanguageType]
+                        | KeyStat T.Text
+                        | SourcePage T.Text
+                        | Restricted Restriction
+                          deriving Show
 
-parseProductIdentity :: Parser Bool
-parseProductIdentity = tag "NAMEISPI" >> yesOrNo
+parseProductIdentity :: Parser LanguageDefinition
+parseProductIdentity = ProductIdentity <$> (tag "NAMEISPI" >> yesOrNo)
 
-parseUseUntrained :: Parser Bool
-parseUseUntrained = tag "USEUNTRAINED" >> yesOrNo
+parseUseUntrained :: Parser LanguageDefinition
+parseUseUntrained = UseUntrained <$> (tag "USEUNTRAINED" >> yesOrNo)
 
-parseKeyStat :: Parser T.Text
-parseKeyStat = tag "KEYSTAT" >> parseString
+parseKeyStat :: Parser LanguageDefinition
+parseKeyStat = KeyStat <$> (tag "KEYSTAT" >> parseString)
 
-parseSourcePage :: Parser T.Text
-parseSourcePage = tag "SOURCEPAGE" >> parseString
+parseSourcePage :: Parser LanguageDefinition
+parseSourcePage = SourcePage <$> (tag "SOURCEPAGE" >> parseString)
 
-parseKey :: Parser T.Text
-parseKey = tag "KEY" >> parseString
+parseKey :: Parser LanguageDefinition
+parseKey = Key <$> (tag "KEY" >> parseString)
 
-parseType :: Parser [T.Text]
-parseType = tag "TYPE" >> parseWordAndNumber `sepBy` char '.'
-
-parseLanguageDefinition :: T.Text -> Parser LanguageDefinition
-parseLanguageDefinition name = do
-  key <- optionMaybe parseKey <* tabs
-  productIdentity <- option False parseProductIdentity <* tabs
-  keyStat <- optionMaybe parseKeyStat <* tabs
-  useUntrained <- option False parseUseUntrained <* tabs
-  types <- parseType <* tabs -- required
-  restriction <- option Nothing parseRestriction <* tabs
-  sourcePage <- optionMaybe parseSourcePage <* tabs
-  let languageType = map convertLanguageType types
-  return LanguageDefinition {..} where
+parseTypes :: Parser LanguageDefinition
+parseTypes = do
+  types <- tag "TYPE" >> parseWordAndNumber `sepBy` char '.'
+  return . LanguageTypes $ map convertLanguageType types where
     convertLanguageType :: T.Text -> LanguageType
     convertLanguageType "Read" = Read
     convertLanguageType "Spoken" = Spoken
     convertLanguageType "Written" = Written
     convertLanguageType l = Other l
+
+parseLanguageTag :: Parser LanguageDefinition
+parseLanguageTag = parseKey <|>
+                   parseProductIdentity <|>
+                   parseKeyStat <|>
+                   parseUseUntrained <|>
+                   parseTypes <|>
+                   parseSourcePage <|>
+                   Restricted <$> parseRestriction
+
+parseLanguageDefinition :: T.Text -> Parser [LanguageDefinition]
+parseLanguageDefinition name = do
+  languageTags <- parseLanguageTag `sepBy` tabs
+  return $ languageTags ++ [Name name]
 
 instance LSTObject LanguageDefinition where
   parseLine = parseLanguageDefinition

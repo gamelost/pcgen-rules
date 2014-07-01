@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Lst.WeaponProf where
 
 import qualified Data.Text as T
@@ -7,28 +5,35 @@ import Control.Monad(liftM)
 import Control.Applicative
 import Data.Attoparsec.Text
 import Modifications
+import Restrictions
 import Common
 
-data WeaponProficency = WeaponProficency { weaponName :: T.Text
-                                         , weaponType :: Maybe [T.Text]
-                                         , weaponHands :: Int
-                                         , productIdentity :: Bool } deriving Show
+data WeaponProficency = Name T.Text
+                      | WeaponType [T.Text]
+                      | WeaponHands Int
+                      | ProductIdentity Bool
+                      | Restricted Restriction
+                        deriving Show
 
-parseProductIdentity :: Parser Bool
-parseProductIdentity = tag "NAMEISPI" >> yesOrNo
+parseProductIdentity :: Parser WeaponProficency
+parseProductIdentity = ProductIdentity <$> (tag "NAMEISPI" >> yesOrNo)
 
-parseWeaponType :: Parser [T.Text]
-parseWeaponType = tag "TYPE" >> parseWord `sepBy` char '.'
+parseWeaponType :: Parser WeaponProficency
+parseWeaponType = WeaponType <$> (tag "TYPE" >> parseWord `sepBy` char '.')
 
-parseWeaponHands :: Parser Int
-parseWeaponHands = tag "HANDS" >> liftM textToInt manyNumbers
+parseWeaponHands :: Parser WeaponProficency
+parseWeaponHands = WeaponHands <$> (tag "HANDS" >> liftM textToInt manyNumbers)
 
-parseWeaponProficency :: T.Text -> Parser WeaponProficency
+parseWeaponProficencyTag :: Parser WeaponProficency
+parseWeaponProficencyTag = parseProductIdentity <|>
+                           parseWeaponType <|>
+                           parseWeaponHands <|>
+                           Restricted <$> parseRestriction
+
+parseWeaponProficency :: T.Text -> Parser [WeaponProficency]
 parseWeaponProficency weaponName = do
-  productIdentity <- option False parseProductIdentity <* tabs
-  weaponType <- optionMaybe parseWeaponType <* tabs
-  weaponHands <- option 1 parseWeaponHands
-  return WeaponProficency { .. }
+  weaponTags <- parseWeaponProficencyTag `sepBy` tabs
+  return $ weaponTags ++ [Name weaponName]
 
 instance LSTObject WeaponProficency where
   parseLine = parseWeaponProficency

@@ -107,6 +107,6 @@ parsePossibleRestriction =
   PreAbilityRestriction <$> parsePreAbility <|>
   PreAlignRestriction <$> parsePreAlign
 
-parseRestriction :: Parser (Maybe Restriction)
-parseRestriction = Just <$> (parseInvertedRestriction parsePossibleRestriction <|>
-                                                      parsePossibleRestriction)
+parseRestriction :: Parser Restriction
+parseRestriction = parseInvertedRestriction parsePossibleRestriction <|>
+                                            parsePossibleRestriction

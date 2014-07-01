@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Lst.Skill where
 
@@ -16,64 +16,42 @@ data ACheck = Double
             | Weight
             | Yes
             | No
-            deriving Show
+              deriving Show
 
-data Visibility = Always
-                | Display
-                | Export
-                deriving Show
+data Visible = Always
+             | Display
+             | Export
+               deriving Show
 
-data SkillDefinition = SkillDefinition { name :: T.Text
-                                       , armorClassCheck :: ACheck
-                                       , classes :: [T.Text]
-                                       , exclusive :: Bool
-                                       , keyStat :: Maybe T.Text
-                                       , useUntrained :: Bool
-                                       , sourcePage :: Maybe T.Text
-                                       , visibility :: Visibility
-                                       , readOnly :: Bool
-                                       , restriction :: Maybe Restriction
-                                       } deriving Show
+data SkillDefinition = Name T.Text
+                     | ArmorClassCheck ACheck
+                     | Classes [T.Text]
+                     | Exclusive Bool
+                     | KeyStat T.Text
+                     | UseUntrained Bool
+                     | SourcePage T.Text
+                     | Visibility (Visible, Bool)
+                     | Restricted Restriction
+                       deriving Show
 
-defaultSkill = SkillDefinition { name = "undefined"
-                               , armorClassCheck = No
-                               , classes = []
-                               , exclusive = False
-                               , keyStat = Nothing
-                               , useUntrained = False
-                               , sourcePage = Nothing
-                               , visibility = Always
-                               , readOnly = False
-                               , restriction = Nothing }
-
--- NB this type is needed for parsing of unordered tags
-
-type SkillTag = Parser (SkillDefinition -> SkillDefinition)
+type SkillTag = Parser SkillDefinition
 
 parseExclusive :: SkillTag
-parseExclusive = do
-  e <- tag "EXCLUSIVE" >> yesOrNo
-  return (\result@SkillDefinition{ .. } -> result { exclusive = e })
+parseExclusive = Exclusive <$> (tag "EXCLUSIVE" >> yesOrNo)
 
 parseUseUntrained :: SkillTag
-parseUseUntrained = do
-  u <- tag "USEUNTRAINED" >> yesOrNo
-  return (\result@SkillDefinition{ .. } -> result { useUntrained = u })
+parseUseUntrained = UseUntrained <$> (tag "USEUNTRAINED" >> yesOrNo)
 
 parseKeyStat :: SkillTag
-parseKeyStat  = do
-  k <- tag "KEYSTAT" >> parseString
-  return (\result@SkillDefinition{ .. } -> result { keyStat = Just k })
+parseKeyStat  = KeyStat <$> (tag "KEYSTAT" >> parseString)
 
 parseSourcePage :: SkillTag
-parseSourcePage  = do
-  s <- tag "SOURCEPAGE" >> parseString
-  return (\result@SkillDefinition{ .. } -> result { sourcePage = Just s })
+parseSourcePage  = SourcePage <$> (tag "SOURCEPAGE" >> parseString)
 
 parseACheck :: SkillTag
 parseACheck = do
   a <- tag "ACHECK" >> liftM matchACheck allCaps
-  return (\result@SkillDefinition{ .. } -> result { armorClassCheck = a }) where
+  return $ ArmorClassCheck a where
     matchACheck :: T.Text -> ACheck
     matchACheck "DOUBLE" = Double
     matchACheck "PROFICIENT" = Proficient
@@ -86,8 +64,8 @@ parseVisibility :: SkillTag
 parseVisibility = do
   v <- tag "VISIBLE" >> liftM matchVisibility allCaps
   ro <- option False (string "|READONLY" >> return True)
-  return (\result@SkillDefinition{ .. } -> result { visibility = v, readOnly = ro }) where
-    matchVisibility :: T.Text -> Visibility
+  return $ Visibility (v, ro) where
+    matchVisibility :: T.Text -> Visible
     matchVisibility "ALWAYS" = Always
     matchVisibility "YES" = Always
     matchVisibility "GUI" = Display
@@ -96,24 +74,18 @@ parseVisibility = do
     matchVisibility "CSHEET" = Export
     matchVisibility _ = Always
 
--- XXX add classes
-
 parseSkillTag :: SkillTag
 parseSkillTag = parseKeyStat <|>
                 parseUseUntrained <|>
                 parseACheck <|>
                 parseExclusive <|>
-                -- parseRestriction <|>
-                parseVisibility
+                parseVisibility <|>
+                Restricted <$> parseRestriction
 
-applySkillName :: T.Text -> SkillDefinition -> SkillDefinition
-applySkillName skillName result@SkillDefinition{ .. } = result { name = skillName }
-
-parseSkillDefinition :: T.Text -> Parser SkillDefinition
+parseSkillDefinition :: T.Text -> Parser [SkillDefinition]
 parseSkillDefinition name = do
   skillTags <- parseSkillTag `sepBy` tabs
-  let updatedSkillTags = applySkillName name defaultSkill
-  return $ foldr id updatedSkillTags skillTags
+  return $ skillTags ++ [Name name]
 
 instance LSTObject SkillDefinition where
   parseLine = parseSkillDefinition

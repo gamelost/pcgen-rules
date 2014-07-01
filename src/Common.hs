@@ -73,7 +73,7 @@ parseResult filename result =
     Done left _ ->
       error $ "failed to parse " ++ filename ++
                 " with remaining input: '" ++
-                (take 50 $ T.unpack left) ++ "'"
+                take 50 (T.unpack left) ++ "'"
     Partial c ->
       -- just give the continuation an empty result and try again
       parseResult filename $ c T.empty

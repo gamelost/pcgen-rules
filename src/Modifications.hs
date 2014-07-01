@@ -25,7 +25,7 @@ class LSTObject a where
     return LSTLine { .. }
 
 parseStartString :: Parser T.Text
-parseStartString = takeWhile1 $ inClass "-A-Za-z0-9 /'().:+&" -- no punctuation
+parseStartString = takeWhile1 $ inClass "-A-Za-z0-9 /'().:+&~"
 
 parseSuffix :: String -> Parser T.Text
 parseSuffix suffix = do

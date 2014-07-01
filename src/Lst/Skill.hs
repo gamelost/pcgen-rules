@@ -23,13 +23,19 @@ data Visible = Always
              | Export
                deriving Show
 
+data Class = All
+           | Subset [T.Text]
+             deriving Show
+
 data SkillDefinition = Name T.Text
+                     | Type [T.Text]
                      | ArmorClassCheck ACheck
-                     | Classes [T.Text]
+                     | Classes Class
                      | Exclusive Bool
                      | KeyStat T.Text
                      | UseUntrained Bool
                      | SourcePage T.Text
+                     | TemporaryDescription T.Text
                      | Visibility (Visible, Bool)
                      | Restricted Restriction
                        deriving Show
@@ -47,6 +53,18 @@ parseKeyStat  = KeyStat <$> (tag "KEYSTAT" >> parseString)
 
 parseSourcePage :: SkillTag
 parseSourcePage  = SourcePage <$> (tag "SOURCEPAGE" >> parseString)
+
+parseType :: SkillTag
+parseType = Type <$> (tag "TYPE" >> parseString `sepBy` char '.')
+
+parseClasses :: SkillTag
+parseClasses = Classes <$> (tag "CLASSES" >> parseClass) where
+  parseClass :: Parser Class
+  parseClass = (string "ALL" >> return All) <|>
+               (Subset <$> (parseString `sepBy` char '|'))
+
+parseTemporaryDescription :: SkillTag
+parseTemporaryDescription = TemporaryDescription <$> (tag "TEMPDESC" >> parseString)
 
 parseACheck :: SkillTag
 parseACheck = do
@@ -78,6 +96,10 @@ parseSkillTag :: SkillTag
 parseSkillTag = parseKeyStat <|>
                 parseUseUntrained <|>
                 parseACheck <|>
+                parseType <|>
+                parseClasses <|>
+                parseTemporaryDescription <|>
+                parseSourcePage <|>
                 parseExclusive <|>
                 parseVisibility <|>
                 Restricted <$> parseRestriction

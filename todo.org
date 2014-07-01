@@ -8,8 +8,9 @@
 * pcc [0/2]
 ** TODO implement INCLUDE for lst files
 ** TODO implement EXCLUDE for lst files
-* modifications [0/1]
+* modifications [0/2]
 ** TODO implement CLASS:x.FORGET
+** TODO CLASS:.COPY
 * restrictions [0/3]
 ** TODO pull out per-line restrictions into LSTLine
 ** TODO implement BONUS tags
@@ -17,15 +18,13 @@
 - a couple of different syntax for this, ugh
 ** TODO implement PRE:.CLEAR
 ** TODO PREFEAT is not fully implemented
-* skill [0/2]
-** TODO implement CLASS
-** TODO many, many failures
+* skill [0/4]
+** TODO implement BONUS
+** TODO implement TEMPBONUS
+** TODO implement PRERULE
+** TODO implement CHOOSE
 * language failures [0/1]
 - [ ] data/spycraft/crafty_games/spycraft/spycraft/spycraft_skills_languages.lst (BONUS)
-* weaponprof failures [1/3]
-- [ ] data/pathfinder/paizo/pathfinder_society/pfs_iswg_profs_weapon.lst (PREFEAT)
-- [ ] data/pathfinder/paizo/pathfinder_society/uc_mods_profs_weapon.lst
-- [X] data/pathfinder/paizo/roleplaying_game/advanced_players_guide/apg_profs_weapon.lst
 * questions
 ** when are JEPs used?
 - EVAL()

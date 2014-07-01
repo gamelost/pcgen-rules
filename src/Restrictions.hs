@@ -25,10 +25,18 @@ data PreAbility = PreAbility { abilityNumber :: Int
                              , categoryName :: T.Text
                              , abilities :: [T.Text] } deriving Show
 
+data Feat = FeatName T.Text | FeatType T.Text deriving Show
+
+data PreFeat = PreFeat { featNumber :: Int
+                       , feats :: [Feat]
+                       , countSeparately :: Bool
+                       , cannotHave :: Bool} deriving Show
+
 data Restriction = PreClassRestriction PreClass
                  | PreVarRestriction PreVar
                  | PreAlignRestriction PreAlign
                  | PreAbilityRestriction PreAbility
+                 | PreFeatRestriction PreFeat
                  | Invert Restriction deriving Show
 
 parseInvertedRestriction :: Parser Restriction -> Parser Restriction
@@ -100,11 +108,28 @@ parsePreAbility = do
   abilities <- char ',' >> parseString `sepBy` char ','
   return PreAbility { abilityNumber = textToInt n, .. }
 
+-- PREFEAT:x,y,z,z,..
+--   x is number of required feats
+--   y can be CHECKMULT
+--   z is feat name (or TYPE=type) ([] indicates inversion)
+parsePreFeat :: Parser PreFeat
+parsePreFeat = do
+  n <- tag "PREFEAT" >> manyNumbers
+  _ <- char ','
+  countSeparately <- option False (string "CHECKMULT," >> return True)
+  feats <- parseFeat `sepBy` char ','
+  let cannotHave = False -- not implemented
+  return PreFeat { featNumber = textToInt n, .. } where
+    parseFeat :: Parser Feat
+    parseFeat = FeatType <$> (string "TYPE=" >> parseString) <|>
+                FeatName <$> parseString
+
 parsePossibleRestriction :: Parser Restriction
 parsePossibleRestriction =
   PreVarRestriction <$> parsePreVar <|>
   PreClassRestriction <$> parsePreClass <|>
   PreAbilityRestriction <$> parsePreAbility <|>
+  PreFeatRestriction <$> parsePreFeat <|>
   PreAlignRestriction <$> parsePreAlign
 
 parseRestriction :: Parser Restriction

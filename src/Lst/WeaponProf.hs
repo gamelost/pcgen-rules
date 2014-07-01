@@ -18,8 +18,12 @@ data WeaponProficency = Name T.Text
 parseProductIdentity :: Parser WeaponProficency
 parseProductIdentity = ProductIdentity <$> (tag "NAMEISPI" >> yesOrNo)
 
+-- comma only shows up in one file (apg_profs_weapon.lst). ugh.
+parseWordAndComma :: Parser T.Text
+parseWordAndComma = takeWhile1 $ inClass "-A-Za-z,"
+
 parseWeaponType :: Parser WeaponProficency
-parseWeaponType = WeaponType <$> (tag "TYPE" >> parseWord `sepBy` char '.')
+parseWeaponType = WeaponType <$> (tag "TYPE" >> parseWordAndComma `sepBy` char '.')
 
 parseWeaponHands :: Parser WeaponProficency
 parseWeaponHands = WeaponHands <$> (tag "HANDS" >> liftM textToInt manyNumbers)

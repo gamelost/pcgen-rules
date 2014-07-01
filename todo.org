@@ -1,0 +1,62 @@
+* general [0/5]
+** TODO restructure lst files so that we do not use records
+** TODO get restrictions working again
+** TODO better selection of lst files in verify.sh
+** TODO add catch-all for tags (with optional trace)
+** TODO comment should strip leading/ending whitespace
+** TODO document failures per lst type
+* pcc [0/2]
+** TODO implement INCLUDE for lst files
+** TODO implement EXCLUDE for lst files
+* modifications [0/1]
+** TODO implement CLASS:x.FORGET
+* restrictions [0/3]
+** TODO pull out per-line restrictions into LSTLine
+** TODO implement BONUS tags
+- what other tags imply per-tag restrictions?
+- a couple of different syntax for this, ugh
+** TODO implement PRE:.CLEAR
+* skill [0/1]
+** TODO implement CLASS
+* language [0/2]
+** TODO sourcepage in languages should be Maybe
+** TODO look at data/zen-test/... -- something we can use?
+* questions
+** when are JEPs used?
+- EVAL()
+- SELECT:
+- QTY:
+- LOOKUP:...,
+- STAT:INT=...|
+- BONUS:<category>|<group>|<formula>
+** how many starting pcc files are there?
+* lst types [5/18]
+- [X] LANGUAGE
+- [X] SHIELDPROF
+- [X] WEAPONPROF
+- [X] ARMORPROF
+- [X] SKILL
+- [ ] COMPANION MODIFIER
+- [ ] DEITY (block-based)
+- [ ] DOMAIN
+- [ ] EQUIPMENT MODIFIER
+- [ ] EQUIPMENT
+- [ ] SPELL
+- [ ] FEAT
+- [ ] RACE
+- [ ] KIT (block-based)
+- [ ] TEMPLATE
+- [ ] CLASS (block-based)
+- [ ] ABILITY
+- [ ] ABILITYCATEGORY
+* loading comment from pcgen-dev ml
+The "load" process is - in practice - not much different than the
+process used to compile software. (Preprocessing is the handling of
+the PCC files and recursive calls to PCC:, compilation is handling the
+.COPY, .MOD, and parsing the tokens. The symbol table is effectively
+the data stored in the ReferenceContext, the other parts of the AST
+are effectively the contents of ListContext and ObjectContext). Just
+like a compiler has multiple passes over the internal representation,
+so do we, as we have to resolve references back to the original
+objects. (We effectively have 4 passes if you ignore the recursive PCC
+file resolution)

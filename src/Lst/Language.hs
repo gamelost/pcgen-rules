@@ -62,7 +62,7 @@ parseLanguageTag = parseKey <|>
 
 parseLanguageDefinition :: T.Text -> Parser [LanguageDefinition]
 parseLanguageDefinition name = do
-  languageTags <- parseLanguageTag `sepBy` tabs
+  languageTags <- tabs *> parseLanguageTag `sepBy` tabs
   return $ languageTags ++ [Name name]
 
 instance LSTObject LanguageDefinition where

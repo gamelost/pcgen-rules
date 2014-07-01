@@ -32,7 +32,7 @@ parseWeaponProficencyTag = parseProductIdentity <|>
 
 parseWeaponProficency :: T.Text -> Parser [WeaponProficency]
 parseWeaponProficency weaponName = do
-  weaponTags <- parseWeaponProficencyTag `sepBy` tabs
+  weaponTags <- tabs *> parseWeaponProficencyTag `sepBy` tabs
   return $ weaponTags ++ [Name weaponName]
 
 instance LSTObject WeaponProficency where

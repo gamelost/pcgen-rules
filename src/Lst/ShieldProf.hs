@@ -16,7 +16,7 @@ parseShieldProficencyTag = Restricted <$> parseRestriction
 
 parseShieldProficency :: T.Text -> Parser [ShieldProficency]
 parseShieldProficency shieldName = do
-  shieldTags <- parseShieldProficencyTag `sepBy` tabs
+  shieldTags <- tabs *> parseShieldProficencyTag `sepBy` tabs
   return $ shieldTags ++ [Name shieldName]
 
 instance LSTObject ShieldProficency where

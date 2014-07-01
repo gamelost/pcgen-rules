@@ -8,7 +8,7 @@ import qualified Data.Text as T
 import Data.Text.Encoding(decodeUtf8With)
 import Data.Text.Encoding.Error(lenientDecode)
 import Control.Monad(liftM)
-import Data.Attoparsec.Text
+import Data.Attoparsec.Text hiding (take)
 import Control.Applicative
 
 parseWord :: Parser T.Text
@@ -70,13 +70,15 @@ parseResult filename result =
   case result of
     Done left success | left == T.empty ->
       success
+    Done left _ ->
+      error $ "failed to parse " ++ filename ++
+                " with remaining input: '" ++
+                (take 50 $ T.unpack left) ++ "'"
     Partial c ->
       -- just give the continuation an empty result and try again
       parseResult filename $ c T.empty
     Fail _ _ err ->
       error $ "failed to parse " ++ filename ++ " with error " ++ err
-    _ ->
-      error $ "failed to parse " ++ filename
 
 -- Data.Text.IO.readFile does not do the right thing, sigh. Instead,
 -- read in the contents as a bytestring and then attempt an utf8

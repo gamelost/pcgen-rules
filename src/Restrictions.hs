@@ -28,14 +28,11 @@ data PreAbility = PreAbility { abilityNumber :: Int
 data Restriction = PreClassRestriction PreClass
                  | PreVarRestriction PreVar
                  | PreAlignRestriction PreAlign
-                 | PreAbilityRestriction PreAbility deriving Show
+                 | PreAbilityRestriction PreAbility
+                 | Invert Restriction deriving Show
 
-
-parseEqual :: Parser (T.Text, Int)
-parseEqual = do
-  x <- parseString
-  n <- char '=' >> manyNumbers
-  return (x, textToInt n)
+parseInvertedRestriction :: Parser Restriction -> Parser Restriction
+parseInvertedRestriction p = char '!' >> Invert <$> p
 
 -- PARSEALIGN:x,x...
 --   x is alignment abbreviation or alignment array number
@@ -64,7 +61,12 @@ parsePreClass :: Parser PreClass
 parsePreClass = do
   n <- tag "PRECLASS" >> manyNumbers
   classRequisites <- char ',' >> parseEqual `sepBy` char ','
-  return PreClass { passNumber = textToInt n, .. }
+  return PreClass { passNumber = textToInt n, .. } where
+    parseEqual :: Parser (T.Text, Int)
+    parseEqual = do
+      x <- parseString
+      n <- char '=' >> manyNumbers
+      return (x, textToInt n)
 
 -- PREVARx:y,z
 --   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
@@ -98,9 +100,13 @@ parsePreAbility = do
   abilities <- char ',' >> parseString `sepBy` char ','
   return PreAbility { abilityNumber = textToInt n, .. }
 
--- restriction <- option Nothing parseRestriction <* tabs
+parsePossibleRestriction :: Parser Restriction
+parsePossibleRestriction =
+  PreVarRestriction <$> parsePreVar <|>
+  PreClassRestriction <$> parsePreClass <|>
+  PreAbilityRestriction <$> parsePreAbility <|>
+  PreAlignRestriction <$> parsePreAlign
+
 parseRestriction :: Parser (Maybe Restriction)
-parseRestriction = Just <$> (PreVarRestriction <$> parsePreVar <|>
-                             PreClassRestriction <$> parsePreClass <|>
-                             PreAbilityRestriction <$> parsePreAbility <|>
-                             PreAlignRestriction <$> parsePreAlign)
+parseRestriction = Just <$> (parseInvertedRestriction parsePossibleRestriction <|>
+                                                      parsePossibleRestriction)

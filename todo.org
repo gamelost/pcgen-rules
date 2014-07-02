@@ -19,10 +19,10 @@
 ** TODO implement PRE:.CLEAR
 ** TODO PREFEAT is not fully implemented
 * skill [0/4]
-** TODO implement BONUS
-** TODO implement TEMPBONUS
+** TODO implement BONUS:SKILL
 ** TODO implement PRERULE
-** TODO implement CHOOSE
+** TODO implement TEMPBONUS
+** TODO finish up PREVAR{G,L}TEQ
 * language failures [0/1]
 - [ ] data/spycraft/crafty_games/spycraft/spycraft/spycraft_skills_languages.lst (BONUS)
 * questions

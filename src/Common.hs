@@ -15,7 +15,7 @@ parseWord :: Parser T.Text
 parseWord = takeWhile1 $ inClass "-A-Za-z"
 
 parseString :: Parser T.Text
-parseString = takeWhile1 $ inClass "-A-Za-z0-9_ &+,./:?#'()~" -- do not put in '='
+parseString = takeWhile1 $ inClass "-A-Za-z0-9_ &+,./:?#'()~" -- do not put in '=' or '|'
 
 parseUrl :: Parser T.Text
 parseUrl = takeWhile1 $ inClass "-A-Za-z0-9_ =%&+,./:?#'()"
@@ -73,7 +73,7 @@ parseResult filename result =
     Done left _ ->
       error $ "failed to parse " ++ filename ++
                 " with remaining input: '" ++
-                take 50 (T.unpack left) ++ "'"
+                take 100 (T.unpack left) ++ "'"
     Partial c ->
       -- just give the continuation an empty result and try again
       parseResult filename $ c T.empty

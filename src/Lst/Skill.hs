@@ -10,6 +10,9 @@ import Restrictions
 import Modifications
 import Common
 
+-- testing
+import Bonus
+
 data ACheck = Double
             | Proficient
             | NonProficient
@@ -23,7 +26,7 @@ data Visible = Always
              | Export
                deriving Show
 
-data Class = All
+data Class = AllClasses
            | Subset [T.Text]
              deriving Show
 
@@ -37,6 +40,7 @@ data SkillDefinition = Name T.Text
                      | SourcePage T.Text
                      | TemporaryDescription T.Text
                      | Visibility (Visible, Bool)
+                     | SkillBonus BonusSkill
                      | Restricted Restriction
                        deriving Show
 
@@ -60,7 +64,7 @@ parseType = Type <$> (tag "TYPE" >> parseString `sepBy` char '.')
 parseClasses :: SkillTag
 parseClasses = Classes <$> (tag "CLASSES" >> parseClass) where
   parseClass :: Parser Class
-  parseClass = (string "ALL" >> return All) <|>
+  parseClass = (string "ALL" >> return AllClasses) <|>
                (Subset <$> (parseString `sepBy` char '|'))
 
 parseTemporaryDescription :: SkillTag
@@ -102,6 +106,7 @@ parseSkillTag = parseKeyStat <|>
                 parseSourcePage <|>
                 parseExclusive <|>
                 parseVisibility <|>
+                SkillBonus <$> parseBonusSkill <|>
                 Restricted <$> parseRestriction
 
 parseSkillDefinition :: T.Text -> Parser [SkillDefinition]

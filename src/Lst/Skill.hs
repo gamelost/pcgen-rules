@@ -9,8 +9,6 @@ import Control.Applicative
 import Restrictions
 import Modifications
 import Common
-
--- testing
 import Bonus
 
 data ACheck = Double
@@ -40,7 +38,7 @@ data SkillDefinition = Name T.Text
                      | SourcePage T.Text
                      | TemporaryDescription T.Text
                      | Visibility (Visible, Bool)
-                     | SkillBonus BonusSkill
+                     | SkillBonus Bonus
                      | Restricted Restriction
                        deriving Show
 
@@ -106,7 +104,7 @@ parseSkillTag = parseKeyStat <|>
                 parseSourcePage <|>
                 parseExclusive <|>
                 parseVisibility <|>
-                SkillBonus <$> parseBonusSkill <|>
+                SkillBonus <$> parseBonus <|>
                 Restricted <$> parseRestriction
 
 parseSkillDefinition :: T.Text -> Parser [SkillDefinition]

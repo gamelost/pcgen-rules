@@ -8,6 +8,7 @@ import Control.Applicative
 import Restrictions
 import Modifications
 import Common
+import Bonus
 
 -- we only define the most common language types here
 data LanguageType = Read
@@ -23,6 +24,7 @@ data LanguageDefinition = Name T.Text
                         | LanguageTypes [LanguageType]
                         | KeyStat T.Text
                         | SourcePage T.Text
+                        | LanguageBonus Bonus
                         | Restricted Restriction
                           deriving Show
 
@@ -58,6 +60,7 @@ parseLanguageTag = parseKey <|>
                    parseUseUntrained <|>
                    parseTypes <|>
                    parseSourcePage <|>
+                   LanguageBonus <$> parseBonus <|>
                    Restricted <$> parseRestriction
 
 parseLanguageDefinition :: T.Text -> Parser [LanguageDefinition]

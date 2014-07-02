@@ -29,6 +29,7 @@ data SkillRank = SkillRank { skillRanks :: [BonusToSkillRank]
 
 data Bonus = BonusSkill Skill
            | BonusSkillRank SkillRank
+           | BonusRestrictions [Restriction]
              deriving Show
 
 -- BONUS:SKILL:x,x,...|y
@@ -66,4 +67,5 @@ parseBonusSkillRank = do
 
 parseBonus :: Parser Bonus
 parseBonus = BonusSkill <$> parseBonusSkill <|>
-             BonusSkillRank <$> parseBonusSkillRank
+             BonusSkillRank <$> parseBonusSkillRank <|>
+             BonusRestrictions <$> parseAdditionalRestrictions

@@ -23,6 +23,7 @@
 ** TODO implement PRERULE
 ** TODO implement TEMPBONUS
 ** TODO finish up PREVAR{G,L}TEQ
+** 80 failures
 * questions
 ** when are JEPs used?
 - EVAL()

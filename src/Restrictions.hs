@@ -25,18 +25,26 @@ data PreAbility = PreAbility { abilityNumber :: Int
                              , categoryName :: T.Text
                              , abilities :: [T.Text] } deriving Show
 
-data Feat = FeatName T.Text | FeatType T.Text deriving Show
+data PFeat = FeatName T.Text | FeatType T.Text deriving Show
 
 data PreFeat = PreFeat { featNumber :: Int
-                       , feats :: [Feat]
+                       , feats :: [PFeat]
                        , countSeparately :: Bool
                        , cannotHave :: Bool} deriving Show
+
+data PSkill = PSkillName T.Text
+            | PSkillType T.Text
+              deriving Show
+
+data PreSkill = PreSkill { skillNumber :: Int
+                         , skills :: [(PSkill, Int)]} deriving Show
 
 data Restriction = PreClassRestriction PreClass
                  | PreVarRestriction PreVar
                  | PreAlignRestriction PreAlign
                  | PreAbilityRestriction PreAbility
                  | PreFeatRestriction PreFeat
+                 | PreSkillRestriction PreSkill
                  | Invert Restriction deriving Show
 
 parseInvertedRestriction :: Parser Restriction -> Parser Restriction
@@ -120,9 +128,24 @@ parsePreFeat = do
   feats <- parseFeat `sepBy` char ','
   let cannotHave = False -- not implemented
   return PreFeat { featNumber = textToInt n, .. } where
-    parseFeat :: Parser Feat
     parseFeat = FeatType <$> (string "TYPE=" >> parseString) <|>
                 FeatName <$> parseString
+
+-- PRESKILL:x,y=z,y=z,..
+--   x is number of skills
+--   y is skill name or skill type (TYPE=y)
+--   z is number of skill ranks
+parsePreSkill :: Parser PreSkill
+parsePreSkill = do
+  n <- tag "PRESKILL" >> manyNumbers
+  skills <- parseSkills `sepBy` char ','
+  return PreSkill { skillNumber = textToInt n, .. } where
+    parseSkills = do
+      skill <- parseSkill
+      val <- char '=' *> manyNumbers
+      return (skill, textToInt val)
+    parseSkill = PSkillType <$> (string "TYPE=" >> parseString) <|>
+                 PSkillName <$> parseString
 
 parsePossibleRestriction :: Parser Restriction
 parsePossibleRestriction =
@@ -130,8 +153,13 @@ parsePossibleRestriction =
   PreClassRestriction <$> parsePreClass <|>
   PreAbilityRestriction <$> parsePreAbility <|>
   PreFeatRestriction <$> parsePreFeat <|>
-  PreAlignRestriction <$> parsePreAlign
+  PreAlignRestriction <$> parsePreAlign <|>
+  PreSkillRestriction <$> parsePreSkill
 
 parseRestriction :: Parser Restriction
 parseRestriction = parseInvertedRestriction parsePossibleRestriction <|>
                                             parsePossibleRestriction
+
+-- for chained restrictions (e.g., BONUS tags)
+parseAdditionalRestrictions :: Parser [Restriction]
+parseAdditionalRestrictions = char '|' *> (parseRestriction `sepBy` char '|')

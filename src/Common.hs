@@ -2,7 +2,7 @@
 
 module Common where
 
-import Prelude hiding (takeWhile)
+import Prelude
 import qualified Data.ByteString as B
 import qualified Data.Text as T
 import Data.Text.Encoding(decodeUtf8With)
@@ -71,9 +71,11 @@ parseResult filename result =
     Done left success | left == T.empty ->
       success
     Done left _ ->
+      let nextTag = dropWhile (== '\t') (T.unpack left) in
+      let filterTag = (\x -> x /= '\t' && x /= '\n' && x /= '\r') in
+      let unparsedTag = Prelude.takeWhile filterTag nextTag in
       error $ "failed to parse " ++ filename ++
-                " with remaining input: '" ++
-                take 100 (T.unpack left) ++ "'"
+                " with remaining input: '" ++ unparsedTag ++ "'"
     Partial c ->
       -- just give the continuation an empty result and try again
       parseResult filename $ c T.empty

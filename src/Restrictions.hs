@@ -8,50 +8,36 @@ import Data.Attoparsec.Text
 import Control.Applicative
 import Common
 
-data Operator = EQ | GT | GTEQ | LT | LTEQ | NEQ deriving Show
-
-data Alignment = LG | LN | LE | NG | TN | NE | CG | CN | CE | None | Deity deriving Show
-
-data PreVar = PreVar { operator :: Operator
-                     , definition :: T.Text
-                     , comparator :: Int } deriving Show
-
-data PreAlign = PreAlign { alignments :: [Alignment] } deriving Show
-
-data PreClass = PreClass { passNumber :: Int
-                         , classRequisites :: [(T.Text, Int)] } deriving Show
-
-data PreAbility = PreAbility { abilityNumber :: Int
-                             , categoryName :: T.Text
-                             , abilities :: [T.Text] } deriving Show
-
-data PFeat = FeatName T.Text | FeatType T.Text deriving Show
-
-data PreFeat = PreFeat { featNumber :: Int
-                       , feats :: [PFeat]
-                       , countSeparately :: Bool
-                       , cannotHave :: Bool} deriving Show
-
-data PSkill = PSkillName T.Text
-            | PSkillType T.Text
-              deriving Show
-
-data PreSkill = PreSkill { skillNumber :: Int
-                         , skills :: [(PSkill, Int)]} deriving Show
-
 data Restriction = PreClassRestriction PreClass
                  | PreVarRestriction PreVar
                  | PreAlignRestriction PreAlign
                  | PreAbilityRestriction PreAbility
                  | PreFeatRestriction PreFeat
                  | PreSkillRestriction PreSkill
+                 | PreRuleRestriction PreRule
                  | Invert Restriction deriving Show
 
-parseInvertedRestriction :: Parser Restriction -> Parser Restriction
-parseInvertedRestriction p = char '!' >> Invert <$> p
+-- PREABILITY:x,CATEGORY=y,z,z,z...
+--   x is the number of abilities needed
+--   y is category name or ALL
+--   z is ability name, ability type (TYPE.z), or ALL
+data PreAbility = PreAbility { abilityNumber :: Int
+                             , categoryName :: T.Text
+                             , abilities :: [T.Text] } deriving Show
+
+parsePreAbility :: Parser PreAbility
+parsePreAbility = do
+  n <- tag "PREABILITY" >> manyNumbers
+  categoryName <- string ",CATEGORY=" >> parseWord
+  abilities <- char ',' >> parseString `sepBy` char ','
+  return PreAbility { abilityNumber = textToInt n, .. }
 
 -- PARSEALIGN:x,x...
 --   x is alignment abbreviation or alignment array number
+data Alignment = LG | LN | LE | NG | TN | NE | CG | CN | CE | None | Deity deriving Show
+
+data PreAlign = PreAlign { alignments :: [Alignment] } deriving Show
+
 parsePreAlign :: Parser PreAlign
 parsePreAlign = do
   args <- tag "PREALIGN" >> parseWord `sepBy` char ','
@@ -73,6 +59,9 @@ parsePreAlign = do
 --   x is number of classes to pass
 --   y is class name or class type (TYPE.y) or SPELLCASTER. or SPELLCASTER.y
 --   z is number, class level
+data PreClass = PreClass { passNumber :: Int
+                         , classRequisites :: [(T.Text, Int)] } deriving Show
+
 parsePreClass :: Parser PreClass
 parsePreClass = do
   n <- tag "PRECLASS" >> manyNumbers
@@ -84,10 +73,74 @@ parsePreClass = do
       n <- char '=' >> manyNumbers
       return (x, textToInt n)
 
+-- PREFEAT:x,y,z,z,..
+--   x is number of required feats
+--   y can be CHECKMULT
+--   z is feat name (or TYPE=type) ([] indicates inversion)
+data PFeat = FeatName T.Text | FeatType T.Text deriving Show
+
+data PreFeat = PreFeat { featNumber :: Int
+                       , feats :: [PFeat]
+                       , countSeparately :: Bool
+                       , cannotHave :: Bool} deriving Show
+
+parsePreFeat :: Parser PreFeat
+parsePreFeat = do
+  n <- tag "PREFEAT" >> manyNumbers
+  _ <- char ','
+  countSeparately <- option False (string "CHECKMULT," >> return True)
+  feats <- parseFeat `sepBy` char ','
+  let cannotHave = False -- not implemented
+  return PreFeat { featNumber = textToInt n, .. } where
+    parseFeat = FeatType <$> (string "TYPE=" >> parseString) <|>
+                FeatName <$> parseString
+
+-- PRERULE:x,y
+--   x is number of rules required
+--   y is rule name
+data PreRule = PreRule { ruleNumber :: Int
+                       , ruleName :: T.Text } deriving Show
+
+parsePreRule :: Parser PreRule
+parsePreRule = do
+  n <- tag "PRERULE" >> manyNumbers
+  _ <- char ','
+  ruleName <- parseString -- not correct but will do for now
+  return PreRule { ruleNumber = textToInt n, .. }
+
+-- PRESKILL:x,y=z,y=z,..
+--   x is number of skills
+--   y is skill name or skill type (TYPE=y)
+--   z is number of skill ranks
+data PSkill = PSkillName T.Text
+            | PSkillType T.Text
+              deriving Show
+
+data PreSkill = PreSkill { skillNumber :: Int
+                         , skills :: [(PSkill, Int)]} deriving Show
+
+parsePreSkill :: Parser PreSkill
+parsePreSkill = do
+  n <- tag "PRESKILL" >> manyNumbers
+  skills <- parseSkills `sepBy` char ','
+  return PreSkill { skillNumber = textToInt n, .. } where
+    parseSkills = do
+      skill <- parseSkill
+      val <- char '=' *> manyNumbers
+      return (skill, textToInt val)
+    parseSkill = PSkillType <$> (string "TYPE=" >> parseString) <|>
+                 PSkillName <$> parseString
+
 -- PREVARx:y,z
 --   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
 --   y is text (must be in DEFINE: or BONUS:VAR)
 --   z is number to be compared to
+data Operator = EQ | GT | GTEQ | LT | LTEQ | NEQ deriving Show
+
+data PreVar = PreVar { operator :: Operator
+                     , definition :: T.Text
+                     , comparator :: Int } deriving Show
+
 parsePreVar :: Parser PreVar
 parsePreVar = do
   op <- string "PREVAR" >> choice ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"]
@@ -105,60 +158,20 @@ parsePreVar = do
     convertOperator "NEQ" = NEQ
     convertOperator _ = error "invalid PREVAR operator"
 
--- PREABILITY:x,CATEGORY=y,z,z,z...
---   x is the number of abilities needed
---   y is category name or ALL
---   z is ability name, ability type (TYPE.z), or ALL
-parsePreAbility :: Parser PreAbility
-parsePreAbility = do
-  n <- tag "PREABILITY" >> manyNumbers
-  categoryName <- string ",CATEGORY=" >> parseWord
-  abilities <- char ',' >> parseString `sepBy` char ','
-  return PreAbility { abilityNumber = textToInt n, .. }
-
--- PREFEAT:x,y,z,z,..
---   x is number of required feats
---   y can be CHECKMULT
---   z is feat name (or TYPE=type) ([] indicates inversion)
-parsePreFeat :: Parser PreFeat
-parsePreFeat = do
-  n <- tag "PREFEAT" >> manyNumbers
-  _ <- char ','
-  countSeparately <- option False (string "CHECKMULT," >> return True)
-  feats <- parseFeat `sepBy` char ','
-  let cannotHave = False -- not implemented
-  return PreFeat { featNumber = textToInt n, .. } where
-    parseFeat = FeatType <$> (string "TYPE=" >> parseString) <|>
-                FeatName <$> parseString
-
--- PRESKILL:x,y=z,y=z,..
---   x is number of skills
---   y is skill name or skill type (TYPE=y)
---   z is number of skill ranks
-parsePreSkill :: Parser PreSkill
-parsePreSkill = do
-  n <- tag "PRESKILL" >> manyNumbers
-  skills <- parseSkills `sepBy` char ','
-  return PreSkill { skillNumber = textToInt n, .. } where
-    parseSkills = do
-      skill <- parseSkill
-      val <- char '=' *> manyNumbers
-      return (skill, textToInt val)
-    parseSkill = PSkillType <$> (string "TYPE=" >> parseString) <|>
-                 PSkillName <$> parseString
-
 parsePossibleRestriction :: Parser Restriction
 parsePossibleRestriction =
   PreVarRestriction <$> parsePreVar <|>
   PreClassRestriction <$> parsePreClass <|>
   PreAbilityRestriction <$> parsePreAbility <|>
   PreFeatRestriction <$> parsePreFeat <|>
+  PreRuleRestriction <$> parsePreRule <|>
   PreAlignRestriction <$> parsePreAlign <|>
   PreSkillRestriction <$> parsePreSkill
 
 parseRestriction :: Parser Restriction
 parseRestriction = parseInvertedRestriction parsePossibleRestriction <|>
-                                            parsePossibleRestriction
+                                            parsePossibleRestriction where
+  parseInvertedRestriction p = char '!' >> Invert <$> p
 
 -- for chained restrictions (e.g., BONUS tags)
 parseAdditionalRestrictions :: Parser [Restriction]

@@ -28,6 +28,7 @@ data SkillRank = SkillRank { skillRanks :: [BonusToSkillRank]
                            , skillRankFormula :: Formula } deriving Show
 
 data Bonus = BonusSkill Skill
+           | BonusSkillStack (Skill, T.Text)
            | BonusSkillRank SkillRank
            | BonusRestrictions [Restriction]
              deriving Show
@@ -52,6 +53,13 @@ parseBonusSkill = do
     parseStatName = string "STAT." >> (StatName <$> parseString)
     parseSkillName = SkillName <$> parseString
 
+parseBonusSkillWithStack :: Parser (Skill, T.Text)
+parseBonusSkillWithStack = do
+  skill <- parseBonusSkill
+  what <- string "|TYPE=" *> parseWord
+  _ <- string ".STACK"
+  return (skill, what)
+
 -- BONUS:SKILLRANK:x,x,...|y
 --   x is skill name, skill type (TYPE=x)
 --   y is number, variable, formula
@@ -66,6 +74,7 @@ parseBonusSkillRank = do
     parseSkillName = SkillRankName <$> parseString
 
 parseBonus :: Parser Bonus
-parseBonus = BonusSkill <$> parseBonusSkill <|>
+parseBonus = BonusSkillStack <$> parseBonusSkillWithStack <|>
              BonusSkillRank <$> parseBonusSkillRank <|>
+             BonusSkill <$> parseBonusSkill <|>
              BonusRestrictions <$> parseAdditionalRestrictions

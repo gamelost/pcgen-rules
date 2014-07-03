@@ -12,14 +12,19 @@ data Formula = Variable T.Text
              | Number Int
                deriving Show
 
-sign :: Parser (Int -> Int)
-sign = (char '-' >> return negate) <|> (optional (char '+') >> return id)
-
-anyNumber :: Parser Int
-anyNumber = sign <*> (textToInt <$> manyNumbers)
+-- since we don't have variables parsed yet, add some to get past the
+-- parser verification process
+listOfVars :: [String]
+listOfVars = ["SynergyBonus"]
 
 parseNumber :: Parser Formula
-parseNumber = Number <$> anyNumber
+parseNumber = Number <$> parseSignedNumber where
+  parseSignedNumber = sign <*> (textToInt <$> manyNumbers)
+  sign = (char '-' >> return negate) <|> (optional (char '+') >> return id)
+
+parseVariable :: Parser Formula
+parseVariable = Variable <$> choice varParsers where
+  varParsers = map (string . T.pack) listOfVars
 
 parseFormula :: Parser Formula
-parseFormula = parseNumber
+parseFormula = parseNumber <|> parseVariable

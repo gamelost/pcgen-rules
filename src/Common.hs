@@ -15,15 +15,10 @@ parseWord :: Parser T.Text
 parseWord = takeWhile1 $ inClass "-A-Za-z"
 
 parseString :: Parser T.Text
-parseString = takeWhile1 $ inClass "-A-Za-z0-9_ &+,./:?#'()~" -- do not put in '=' or '|'
+parseString = takeWhile1 $ inClass "-A-Za-z0-9_ &+,./:?!#'()~" -- do not put in '=' or '|'
 
-parseUrl :: Parser T.Text
-parseUrl = takeWhile1 $ inClass "-A-Za-z0-9_ =%&+,./:?#'()"
-
--- ! is negation, which really should be separated out in its own
--- parser. there might be other operators, too. but for now...
 allCaps :: Parser T.Text
-allCaps = takeWhile1 $ inClass "A-Z!"
+allCaps = takeWhile1 $ inClass "A-Z"
 
 manyNumbers :: Parser T.Text
 manyNumbers = takeWhile1 $ inClass "0-9"
@@ -44,11 +39,11 @@ infixr 2 <||>
 restOfLine :: Parser T.Text
 restOfLine = takeTill (== ' ') *> takeTill ((== '\n') <||> (== '\r'))
 
-anything :: Parser T.Text
-anything = takeTill ((== '\n') <||> (== '\r') <||> (== '\t'))
+restOfTag :: Parser T.Text
+restOfTag = takeTill ((== '\n') <||> (== '\r') <||> (== '\t'))
 
 parseTabs :: Parser [T.Text]
-parseTabs = anything `sepBy` tabs
+parseTabs = restOfTag `sepBy` tabs
 
 parseCommentLine :: Parser T.Text
 parseCommentLine = "#" .*> restOfLine

@@ -54,14 +54,14 @@ parseTypes = do
     convertLanguageType l = Other l
 
 parseLanguageTag :: Parser LanguageDefinition
-parseLanguageTag = parseKey <|>
-                   parseProductIdentity <|>
-                   parseKeyStat <|>
-                   parseUseUntrained <|>
-                   parseTypes <|>
-                   parseSourcePage <|>
-                   LanguageBonus <$> parseBonus <|>
-                   Restricted <$> parseRestriction
+parseLanguageTag = parseKey
+               <|> parseProductIdentity
+               <|> parseKeyStat
+               <|> parseUseUntrained
+               <|> parseTypes
+               <|> parseSourcePage
+               <|> LanguageBonus <$> parseBonus
+               <|> Restricted <$> parseRestriction
 
 parseLanguageDefinition :: T.Text -> Parser [LanguageDefinition]
 parseLanguageDefinition name = do

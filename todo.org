@@ -1,6 +1,7 @@
-* general [0/5]
+* general [0/7]
 ** TODO better selection of lst files in verify.sh
 ** TODO add catch-all for tags (with optional trace)
+** TODO narrow down parseString: too general
 ** TODO comment should strip leading/ending whitespace
 ** TODO better pretty print, please~
 ** TODO look at data/zen-test/... -- something we can use?
@@ -11,7 +12,7 @@
 * modifications [0/2]
 ** TODO implement CLASS:x.FORGET
 ** TODO CLASS:.COPY
-* restrictions [0/4]
+* restrictions [0/6]
 ** TODO pull out per-line restrictions into LSTLine
 ** TODO implement BONUS tags
 - what other tags imply per-tag restrictions?
@@ -19,12 +20,13 @@
 ** TODO implement PRE:.CLEAR
 ** TODO PREFEAT is not fully implemented
 ** TODO PRERULE should be matching against known rules, not accepting any string
+** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
 * skill [0/4]
 ** TODO implement BONUS:SKILL
 ** TODO implement PRERULE
 ** TODO implement TEMPBONUS
 ** TODO finish up PREVAR{G,L}TEQ
-** 80 failures
+** 69 failures
 * questions
 ** when are JEPs used?
 - EVAL()

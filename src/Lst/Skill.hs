@@ -6,18 +6,18 @@ import qualified Data.Text as T
 import Control.Monad(liftM)
 import Data.Attoparsec.Text
 import Control.Applicative
-import Restrictions
+import Restrictions(Restriction, parseRestriction)
 import Modifications
 import Common
 import Bonus
 
-data ACheck = Double
-            | Proficient
-            | NonProficient
-            | Weight
-            | Yes
-            | No
-              deriving Show
+data ArmorCheck = Double
+                | Proficient
+                | NonProficient
+                | Weight
+                | Yes
+                | No
+                  deriving Show
 
 data Visible = Always
              | Display
@@ -30,9 +30,10 @@ data Class = AllClasses
 
 data SkillDefinition = Name T.Text
                      | Type [T.Text]
-                     | ArmorClassCheck ACheck
+                     | ArmorClassCheck ArmorCheck
                      | Classes Class
                      | Exclusive Bool
+                     | UniqueKey T.Text
                      | KeyStat T.Text
                      | UseUntrained Bool
                      | SourcePage T.Text
@@ -53,6 +54,9 @@ parseUseUntrained = UseUntrained <$> (tag "USEUNTRAINED" >> yesOrNo)
 parseKeyStat :: SkillTag
 parseKeyStat  = KeyStat <$> (tag "KEYSTAT" >> parseString)
 
+parseUniqueKey :: SkillTag
+parseUniqueKey  = UniqueKey <$> (tag "KEY" >> parseString)
+
 parseSourcePage :: SkillTag
 parseSourcePage  = SourcePage <$> (tag "SOURCEPAGE" >> parseString)
 
@@ -68,17 +72,17 @@ parseClasses = Classes <$> (tag "CLASSES" >> parseClass) where
 parseTemporaryDescription :: SkillTag
 parseTemporaryDescription = TemporaryDescription <$> (tag "TEMPDESC" >> parseString)
 
-parseACheck :: SkillTag
-parseACheck = do
-  a <- tag "ACHECK" >> liftM matchACheck allCaps
+parseArmorCheck :: SkillTag
+parseArmorCheck = do
+  a <- tag "ACHECK" >> liftM matchArmorCheck allCaps
   return $ ArmorClassCheck a where
-    matchACheck :: T.Text -> ACheck
-    matchACheck "DOUBLE" = Double
-    matchACheck "PROFICIENT" = Proficient
-    matchACheck "NONPROF" = NonProficient
-    matchACheck "WEIGHT" = Weight
-    matchACheck "YES" = Yes
-    matchACheck _ = No
+    matchArmorCheck :: T.Text -> ArmorCheck
+    matchArmorCheck "DOUBLE" = Double
+    matchArmorCheck "PROFICIENT" = Proficient
+    matchArmorCheck "NONPROF" = NonProficient
+    matchArmorCheck "WEIGHT" = Weight
+    matchArmorCheck "YES" = Yes
+    matchArmorCheck _ = No
 
 parseVisibility :: SkillTag
 parseVisibility = do
@@ -95,17 +99,18 @@ parseVisibility = do
     matchVisibility _ = Always
 
 parseSkillTag :: SkillTag
-parseSkillTag = parseKeyStat <|>
-                parseUseUntrained <|>
-                parseACheck <|>
-                parseType <|>
-                parseClasses <|>
-                parseTemporaryDescription <|>
-                parseSourcePage <|>
-                parseExclusive <|>
-                parseVisibility <|>
-                SkillBonus <$> parseBonus <|>
-                Restricted <$> parseRestriction
+parseSkillTag = parseKeyStat
+            <|> parseUseUntrained
+            <|> parseArmorCheck
+            <|> parseType
+            <|> parseClasses
+            <|> parseTemporaryDescription
+            <|> parseSourcePage
+            <|> parseExclusive
+            <|> parseVisibility
+            <|> parseUniqueKey
+            <|> SkillBonus <$> parseBonus
+            <|> Restricted <$> parseRestriction
 
 parseSkillDefinition :: T.Text -> Parser [SkillDefinition]
 parseSkillDefinition name = do

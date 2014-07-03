@@ -44,9 +44,10 @@ parseBodyTag = do
                                filename = v }
 
 parsePCCLine :: Parser PCCTags
-parsePCCLine = many $ (parseBodyTag <|>
-                       parseDataTag <|>
-                       parseComment) <* many endOfLine
+parsePCCLine = many $ parseLine <* many endOfLine where
+  parseLine = parseBodyTag
+          <|> parseDataTag
+          <|> parseComment
 
 parsePCC :: FilePath -> IO PCCTags
 parsePCC pccName = do

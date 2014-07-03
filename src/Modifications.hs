@@ -17,12 +17,13 @@ class LSTObject a where
 
   parseLSTLine :: Parser (LSTLine a)
   parseLSTLine = do
-    (name, operation) <- parseModify <|>
-                         parseForget <|>
-                         parseCopy <|>
-                         parseAdd <* tabs
+    (name, operation) <- parseStart <* tabs
     tags <- parseLine name
-    return LSTLine { .. }
+    return LSTLine { .. } where
+      parseStart = parseModify
+               <|> parseForget
+               <|> parseCopy
+               <|> parseAdd
 
 parseStartString :: Parser T.Text
 parseStartString = takeWhile1 $ inClass "-A-Za-z0-9 /'().:+&~"

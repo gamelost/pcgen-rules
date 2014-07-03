@@ -14,6 +14,7 @@ data Restriction = PreClassRestriction PreClass
                  | PreAbilityRestriction PreAbility
                  | PreFeatRestriction PreFeat
                  | PreSkillRestriction PreSkill
+                 | PreSkillTotalRestriction PreSkillTot
                  | PreRuleRestriction PreRule
                  | Invert Restriction deriving Show
 
@@ -28,9 +29,10 @@ data PreAbility = PreAbility { abilityNumber :: Int
 parsePreAbility :: Parser PreAbility
 parsePreAbility = do
   n <- tag "PREABILITY" >> manyNumbers
-  categoryName <- string ",CATEGORY=" >> parseWord
+  categoryName <- string ",CATEGORY=" >> parseWordWithSpaces
   abilities <- char ',' >> parseString `sepBy` char ','
-  return PreAbility { abilityNumber = textToInt n, .. }
+  return PreAbility { abilityNumber = textToInt n, .. } where
+    parseWordWithSpaces = takeWhile1 $ inClass "-A-Za-z "
 
 -- PARSEALIGN:x,x...
 --   x is alignment abbreviation or alignment array number
@@ -77,10 +79,10 @@ parsePreClass = do
 --   x is number of required feats
 --   y can be CHECKMULT
 --   z is feat name (or TYPE=type) ([] indicates inversion)
-data PFeat = FeatName T.Text | FeatType T.Text deriving Show
+data Feat = FeatName T.Text | FeatType T.Text deriving Show
 
 data PreFeat = PreFeat { featNumber :: Int
-                       , feats :: [PFeat]
+                       , feats :: [Feat]
                        , countSeparately :: Bool
                        , cannotHave :: Bool} deriving Show
 
@@ -92,8 +94,8 @@ parsePreFeat = do
   feats <- parseFeat `sepBy` char ','
   let cannotHave = False -- not implemented
   return PreFeat { featNumber = textToInt n, .. } where
-    parseFeat = FeatType <$> (string "TYPE=" >> parseString) <|>
-                FeatName <$> parseString
+    parseFeat = FeatType <$> (string "TYPE=" >> parseString)
+            <|> FeatName <$> parseString
 
 -- PRERULE:x,y
 --   x is number of rules required
@@ -112,12 +114,12 @@ parsePreRule = do
 --   x is number of skills
 --   y is skill name or skill type (TYPE=y)
 --   z is number of skill ranks
-data PSkill = PSkillName T.Text
-            | PSkillType T.Text
-              deriving Show
+data Skill = SkillName T.Text
+           | SkillType T.Text
+             deriving Show
 
 data PreSkill = PreSkill { skillNumber :: Int
-                         , skills :: [(PSkill, Int)]} deriving Show
+                         , skills :: [(Skill, Int)]} deriving Show
 
 parsePreSkill :: Parser PreSkill
 parsePreSkill = do
@@ -128,8 +130,23 @@ parsePreSkill = do
       skill <- parseSkill
       val <- char '=' *> manyNumbers
       return (skill, textToInt val)
-    parseSkill = PSkillType <$> (string "TYPE=" >> parseString) <|>
-                 PSkillName <$> parseString
+    parseSkill = SkillType <$> (string "TYPE=" >> parseString)
+             <|> SkillName <$> parseString
+
+-- PRESKILLTOT:x,x,...=y
+--   x is skill name ($ skill type (TYPE=x)
+--   y is total non-bonus skill ranks required
+data PreSkillTot = PreSkillTot { skillTotals :: [Skill]
+                               , skillTotalNeeded :: Int } deriving Show
+
+parsePreSkillTotal :: Parser PreSkillTot
+parsePreSkillTotal = do
+  _ <- tag "PRESKILLTOT"
+  skillTotals <- parseSkills `sepBy` char ','
+  n <- char '=' *> manyNumbers
+  return PreSkillTot { skillTotalNeeded = textToInt n, .. } where
+    parseSkills = SkillType <$> (string "TYPE=" >> parseString)
+              <|> SkillName <$> parseString
 
 -- PREVARx:y,z
 --   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
@@ -159,18 +176,18 @@ parsePreVar = do
     convertOperator _ = error "invalid PREVAR operator"
 
 parsePossibleRestriction :: Parser Restriction
-parsePossibleRestriction =
-  PreVarRestriction <$> parsePreVar <|>
-  PreClassRestriction <$> parsePreClass <|>
-  PreAbilityRestriction <$> parsePreAbility <|>
-  PreFeatRestriction <$> parsePreFeat <|>
-  PreRuleRestriction <$> parsePreRule <|>
-  PreAlignRestriction <$> parsePreAlign <|>
-  PreSkillRestriction <$> parsePreSkill
+parsePossibleRestriction = PreVarRestriction <$> parsePreVar
+                       <|> PreClassRestriction <$> parsePreClass
+                       <|> PreAbilityRestriction <$> parsePreAbility
+                       <|> PreFeatRestriction <$> parsePreFeat
+                       <|> PreRuleRestriction <$> parsePreRule
+                       <|> PreAlignRestriction <$> parsePreAlign
+                       <|> PreSkillTotalRestriction <$> parsePreSkillTotal
+                       <|> PreSkillRestriction <$> parsePreSkill
 
 parseRestriction :: Parser Restriction
-parseRestriction = parseInvertedRestriction parsePossibleRestriction <|>
-                                            parsePossibleRestriction where
+parseRestriction = parseInvertedRestriction parsePossibleRestriction
+                                        <|> parsePossibleRestriction where
   parseInvertedRestriction p = char '!' >> Invert <$> p
 
 -- for chained restrictions (e.g., BONUS tags)

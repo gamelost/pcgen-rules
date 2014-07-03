@@ -29,10 +29,10 @@ parseWeaponHands :: Parser WeaponProficency
 parseWeaponHands = WeaponHands <$> (tag "HANDS" >> liftM textToInt manyNumbers)
 
 parseWeaponProficencyTag :: Parser WeaponProficency
-parseWeaponProficencyTag = parseProductIdentity <|>
-                           parseWeaponType <|>
-                           parseWeaponHands <|>
-                           Restricted <$> parseRestriction
+parseWeaponProficencyTag = parseProductIdentity
+                       <|> parseWeaponType
+                       <|> parseWeaponHands
+                       <|> Restricted <$> parseRestriction
 
 parseWeaponProficency :: T.Text -> Parser [WeaponProficency]
 parseWeaponProficency weaponName = do

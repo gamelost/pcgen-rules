@@ -7,7 +7,7 @@ import Control.Monad(liftM)
 import Data.Attoparsec.Text
 import Control.Applicative
 import JEPFormula
-import Restrictions
+import Restrictions(Restriction, parseAdditionalRestrictions)
 import Common
 
 data BonusToSkill = List
@@ -28,7 +28,7 @@ data SkillRank = SkillRank { skillRanks :: [BonusToSkillRank]
                            , skillRankFormula :: Formula } deriving Show
 
 data Bonus = BonusSkill Skill
-           | BonusSkillStack (Skill, T.Text)
+           | BonusSkillStack (Skill, T.Text, [Restriction])
            | BonusSkillRank SkillRank
            | BonusRestrictions [Restriction]
              deriving Show
@@ -42,23 +42,29 @@ parseBonusSkill = do
   skills <- parseBonusSkills `sepBy` char ','
   skillFormula <- char '|' *> parseFormula
   return Skill { .. } where
-    parseBonusSkills = parseList <|>
-                       parseAll <|>
-                       parseSkillType <|>
-                       parseStatName <|>
-                       parseSkillName
+    parseBonusSkills = parseList
+                   <|> parseAll
+                   <|> parseSkillType
+                   <|> parseStatName
+                   <|> parseSkillName
     parseList = string "LIST" >> return List
     parseAll = string "ALL" >> return All
     parseSkillType = string "TYPE=" >> (SkillType <$> parseString)
     parseStatName = string "STAT." >> (StatName <$> parseString)
     parseSkillName = SkillName <$> parseString
 
-parseBonusSkillWithStack :: Parser (Skill, T.Text)
+-- this one is kind of ugly, because you can have:
+-- BONUS:SKILL|...|...<restrictions>|TYPE=foo.STACK
+-- or
+-- BONUS:SKILL|...|TYPE=foo.STACK|...<restrictions>
+-- so we have to account for both cases. ugh.
+parseBonusSkillWithStack :: Parser (Skill, T.Text, [Restriction])
 parseBonusSkillWithStack = do
   skill <- parseBonusSkill
+  restrictions <- option [] parseAdditionalRestrictions
   what <- string "|TYPE=" *> parseWord
   _ <- string ".STACK"
-  return (skill, what)
+  return (skill, what, restrictions)
 
 -- BONUS:SKILLRANK:x,x,...|y
 --   x is skill name, skill type (TYPE=x)
@@ -74,7 +80,7 @@ parseBonusSkillRank = do
     parseSkillName = SkillRankName <$> parseString
 
 parseBonus :: Parser Bonus
-parseBonus = BonusSkillStack <$> parseBonusSkillWithStack <|>
-             BonusSkillRank <$> parseBonusSkillRank <|>
-             BonusSkill <$> parseBonusSkill <|>
-             BonusRestrictions <$> parseAdditionalRestrictions
+parseBonus = BonusSkillStack <$> parseBonusSkillWithStack
+         <|> BonusSkillRank <$> parseBonusSkillRank
+         <|> BonusSkill <$> parseBonusSkill
+         <|> BonusRestrictions <$> parseAdditionalRestrictions

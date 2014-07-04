@@ -27,7 +27,7 @@
 ** TODO finish up PREVAR{G,L}TEQ
 ** 71 failures
 * weaponprof
-** TODO fix remaining failures (broken when forcing per-line parsing)
+** TODO TYPE:.CLEAR in bloodandblades_weaponprofs.lst
 * questions
 ** when are JEPs used?
 - EVAL()

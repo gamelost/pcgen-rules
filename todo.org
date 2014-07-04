@@ -1,8 +1,7 @@
-* general [0/7]
+* general [0/6]
 ** TODO better selection of lst files in verify.sh
 ** TODO add catch-all for tags (with optional trace)
 ** TODO narrow down parseString: too general
-** TODO comment should strip leading/ending whitespace
 ** TODO better pretty print, please~
 ** TODO look at data/zen-test/... -- something we can use?
 ** TODO our own testing framework
@@ -26,7 +25,9 @@
 ** TODO implement PRERULE
 ** TODO implement TEMPBONUS
 ** TODO finish up PREVAR{G,L}TEQ
-** 69 failures
+** 71 failures
+* weaponprof
+** TODO fix remaining failures (broken when forcing per-line parsing)
 * questions
 ** when are JEPs used?
 - EVAL()

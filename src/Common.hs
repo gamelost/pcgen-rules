@@ -68,7 +68,7 @@ parseResult filename result =
       success
     Done left r ->
       let nextTag = dropWhile (== '\t') (T.unpack left) in
-      let filterTag = (\x -> x /= '\t' && x /= '\n' && x /= '\r') in
+      let filterTag = (\x -> x /= '\n' && x /= '\r') in
       let unparsedTag = Prelude.takeWhile filterTag nextTag in
       trace (show r)
       error $ "failed to parse " ++ filename ++

@@ -19,6 +19,7 @@ class LSTObject a where
   parseLSTLine = do
     (name, operation) <- parseStart <* tabs
     tags <- parseLine name
+    _ <- endOfLine <|> endOfInput
     return LSTLine { .. } where
       parseStart = parseModify
                <|> parseForget

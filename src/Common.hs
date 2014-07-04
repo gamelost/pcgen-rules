@@ -10,6 +10,7 @@ import Data.Text.Encoding.Error(lenientDecode)
 import Control.Monad(liftM)
 import Data.Attoparsec.Text hiding (take)
 import Control.Applicative
+import Debug.Trace(trace)
 
 parseWord :: Parser T.Text
 parseWord = takeWhile1 $ inClass "-A-Za-z"
@@ -37,7 +38,7 @@ textToInt t = read (T.unpack t) :: Int
 infixr 2 <||>
 
 restOfLine :: Parser T.Text
-restOfLine = takeTill (== ' ') *> takeTill ((== '\n') <||> (== '\r'))
+restOfLine = takeTill ((== '\n') <||> (== '\r'))
 
 restOfTag :: Parser T.Text
 restOfTag = takeTill ((== '\n') <||> (== '\r') <||> (== '\t'))
@@ -46,7 +47,7 @@ parseTabs :: Parser [T.Text]
 parseTabs = restOfTag `sepBy` tabs
 
 parseCommentLine :: Parser T.Text
-parseCommentLine = "#" .*> restOfLine
+parseCommentLine = char '#' >> skipWhile (== ' ') >> restOfLine
 
 parseWordAndNumber :: Parser T.Text
 parseWordAndNumber = takeWhile1 $ inClass "-A-Za-z0-9"
@@ -60,15 +61,16 @@ optionMaybe x = option Nothing $ liftM Just x
 -- do not use parseOnly: it does not fail if there is any leftover
 -- input. If our parser does not consume everything, we want instant
 -- failure.
-parseResult :: FilePath -> IResult T.Text t -> t
+parseResult :: Show t => FilePath -> IResult T.Text t -> t
 parseResult filename result =
   case result of
     Done left success | left == T.empty ->
       success
-    Done left _ ->
+    Done left r ->
       let nextTag = dropWhile (== '\t') (T.unpack left) in
       let filterTag = (\x -> x /= '\t' && x /= '\n' && x /= '\r') in
       let unparsedTag = Prelude.takeWhile filterTag nextTag in
+      trace (show r)
       error $ "failed to parse " ++ filename ++
                 " with remaining input: '" ++ unparsedTag ++ "'"
     Partial c ->

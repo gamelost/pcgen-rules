@@ -55,7 +55,7 @@ parseLSTLines parseDefinition = do
           <|> Comment <$> parseCommentLine
           <|> Definition <$> parseDefinition
 
-parseLST :: Parser (LSTLine a) -> FilePath -> IO [LST (LSTLine a)]
+parseLST :: Show a => Parser (LSTLine a) -> FilePath -> IO [LST (LSTLine a)]
 parseLST lstParser lstName  = do
   contents <- readContents lstName
   return . parseResult lstName $ parse fullParser contents where

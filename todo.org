@@ -1,10 +1,8 @@
-* general [0/6]
+* general [0/4]
 ** TODO better selection of lst files in verify.sh
 ** TODO add catch-all for tags (with optional trace)
 ** TODO narrow down parseString: too general
-** TODO better pretty print, please~
 ** TODO look at data/zen-test/... -- something we can use?
-** TODO our own testing framework
 * pcc [0/2]
 ** TODO implement INCLUDE for lst files
 ** TODO implement EXCLUDE for lst files

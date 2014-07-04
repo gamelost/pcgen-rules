@@ -69,7 +69,7 @@ parseResult filename result =
       success
     Done left r ->
       let nextTag = dropWhile (== '\t') (T.unpack left) in
-      let filterTag = (\x -> x /= '\n' && x /= '\r') in
+      let filterTag x = x /= '\n' && x /= '\r' in
       let unparsedTag = Prelude.takeWhile filterTag nextTag in
       trace (Pretty.ppShow r)
       error $ "failed to parse " ++ filename ++

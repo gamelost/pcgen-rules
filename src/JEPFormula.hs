@@ -2,6 +2,7 @@
 
 module JEPFormula ( Formula(..)
                   , Operand(..)
+                  , SkillType(..)
                   , parseFormula
                   ) where
 
@@ -18,8 +19,17 @@ data Operand = BuiltIn T.Text
              | Add
                deriving (Show, Eq)
 
+data SkillType = RANK
+               | TOTALRANK
+               | MODIFIER
+               | STAT
+               | MISC
+               | TOTAL
+                 deriving (Show, Eq)
+
 data Formula = Variable T.Text
              | LookupVariable T.Text
+             | LookupSkill (SkillType, T.Text)
              | Number Int
              | Function Operand [Formula]
                deriving (Show, Eq)
@@ -50,6 +60,22 @@ parseVariable = Variable <$> choice varParsers where
 parseVarFunction :: Parser Formula
 parseVarFunction = LookupVariable <$> (string "var(\"" >> parseString <* string "\")")
 
+-- treat the skillinfo() function specially
+parseSkillInfoFunction :: Parser Formula
+parseSkillInfoFunction = do
+  prop <- string "skillinfo(" *> parseQuotes
+  _ <- char ',' >> many space
+  var <- parseQuotes <* char ')'
+  return $ LookupSkill (parseProperty prop, var) where
+    parseProperty "RANK" = RANK
+    parseProperty "TOTALRANK" = TOTALRANK
+    parseProperty "MODIFIER" = MODIFIER
+    parseProperty "STAT" = STAT
+    parseProperty "MISC" = MISC
+    parseProperty "TOTAL" = TOTAL
+    parseProperty _ = error "No such skillinfo property"
+    parseQuotes = char '"' *> parseString <* char '"'
+
 parseInfixFunction :: Parser Formula
 parseInfixFunction = do
   -- only support infix 2 for now
@@ -75,6 +101,7 @@ parseFormula :: Parser Formula
 parseFormula = parseFunction
            <|> parseInfixFunction
            <|> parseVarFunction
+           <|> parseSkillInfoFunction
            <|> parseNumber
            <|> parseVariable
 -- parseFormula = traceFormula

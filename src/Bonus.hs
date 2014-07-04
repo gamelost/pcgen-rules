@@ -9,23 +9,6 @@ import JEPFormula
 import Restrictions(Restriction, parseAdditionalRestrictions)
 import Common
 
-data BonusToSkill = List
-                  | All
-                  | SkillName T.Text
-                  | SkillType T.Text
-                  | StatName T.Text
-                    deriving Show
-
-data BonusToSkillRank = SkillRankName T.Text
-                      | SkillRankType T.Text
-                        deriving Show
-
-data Skill = Skill { skills :: [BonusToSkill]
-                   , skillFormula :: Formula } deriving Show
-
-data SkillRank = SkillRank { skillRanks :: [BonusToSkillRank]
-                           , skillRankFormula :: Formula } deriving Show
-
 data Bonus = BonusSkill Skill
            | BonusSkillStack (Skill, T.Text, [Restriction])
            | BonusSkillRank SkillRank
@@ -36,6 +19,16 @@ data Bonus = BonusSkill Skill
 -- BONUS:SKILL:x,x,...|y
 --   x is LIST, ALL, skill name, stat name (STAT.x), skill type (TYPE=x)
 --   y is number, variable, formula
+data BonusToSkill = List
+                  | All
+                  | SkillName T.Text
+                  | SkillType T.Text
+                  | StatName T.Text
+                    deriving Show
+
+data Skill = Skill { skills :: [BonusToSkill]
+                   , skillFormula :: Formula } deriving Show
+
 parseBonusSkill :: Parser Skill
 parseBonusSkill = do
   _ <- string "BONUS:SKILL|"
@@ -69,11 +62,20 @@ parseBonusSkillWithStack = do
 -- BONUS:SKILLRANK:x,x,...|y
 --   x is skill name, skill type (TYPE=x)
 --   y is number, variable, formula
+data BonusToSkillRank = SkillRankName T.Text
+                      | SkillRankType T.Text
+                        deriving Show
+
+data SkillRank = SkillRank { skillRanks :: [BonusToSkillRank]
+                           , skillRankFormula :: Formula
+                           , skillRankType :: Maybe T.Text } deriving Show
+
 parseBonusSkillRank :: Parser SkillRank
 parseBonusSkillRank = do
   _ <- string "BONUS:SKILLRANK|"
   skillRanks <- parseBonusSkillRanks `sepBy` char ','
   skillRankFormula <- char '|' *> parseFormula
+  skillRankType <- option Nothing $ Just <$> (string "|TYPE=" >> parseString)
   return SkillRank { .. } where
     parseBonusSkillRanks = parseSkillType <|> parseSkillName
     parseSkillType = string "TYPE=" >> (SkillRankType <$> parseString)

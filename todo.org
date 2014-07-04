@@ -18,22 +18,21 @@
 ** TODO PREFEAT is not fully implemented
 ** TODO PRERULE should be matching against known rules, not accepting any string
 ** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
-* skill [0/4]
-** TODO implement BONUS:SKILL
-** TODO implement PRERULE
+* skill [0/2]
 ** TODO implement TEMPBONUS
 ** TODO finish up PREVAR{G,L}TEQ
-** 69 failures
+** 63 failures
+* JEP
 * weaponprof
 ** TODO TYPE:.CLEAR in bloodandblades_weaponprofs.lst
 * questions
 ** when are JEPs used?
-- EVAL()
-- SELECT:
-- QTY:
-- LOOKUP:...,
-- STAT:INT=...|
-- BONUS:<category>|<group>|<formula>
+- [ ] EVAL()
+- [ ] SELECT:
+- [ ] QTY:
+- [ ] LOOKUP:...,
+- [ ] STAT:INT=...|
+- [X] BONUS:<category>|<group>|<formula>
 ** how many starting pcc files are there?
 * lst types [5/18]
 - [X] LANGUAGE

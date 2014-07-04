@@ -21,8 +21,10 @@
 * skill [0/2]
 ** TODO implement TEMPBONUS
 ** TODO finish up PREVAR{G,L}TEQ
-** 62 failures
+** 55 failures
 * JEP
+** TODO allow for plain strings?
+- SkillFormulaType/PreVarType are hacks
 * weaponprof
 ** TODO TYPE:.CLEAR in bloodandblades_weaponprofs.lst
 * questions

@@ -27,7 +27,7 @@ class LSTObject a where
                <|> parseAdd
 
 parseStartString :: Parser T.Text
-parseStartString = takeWhile1 $ inClass "-A-Za-z0-9 /'().:+&~"
+parseStartString = takeWhile1 $ inClass "-A-Za-z0-9 /'():+&~"
 
 parseSuffix :: String -> Parser T.Text
 parseSuffix suffix = do

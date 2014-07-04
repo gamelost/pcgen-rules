@@ -26,8 +26,12 @@ data BonusToSkill = List
                   | StatName T.Text
                     deriving Show
 
+data SkillFormulaType = SkillFormula Formula
+                      | SkillText T.Text
+                        deriving Show
+
 data Skill = Skill { skills :: [BonusToSkill]
-                   , skillFormula :: Formula
+                   , skillFormula :: SkillFormulaType
                    , skillType :: Maybe T.Text
                    , skillStack :: Maybe T.Text } deriving Show
 
@@ -35,7 +39,7 @@ parseBonusSkill :: Parser Skill
 parseBonusSkill = do
   _ <- string "BONUS:SKILL|"
   skills <- parseBonusSkills `sepBy` char ','
-  skillFormula <- char '|' *> parseFormula
+  skillFormula <- char '|' *> parseSkillFormulaType
   skillType <- option Nothing $ Just <$> (string "|TYPE=" >> parseString)
   skillStack <- return Nothing
   return Skill { .. } where
@@ -49,6 +53,8 @@ parseBonusSkill = do
     parseSkillType = string "TYPE=" >> (SkillType <$> parseString)
     parseStatName = string "STAT." >> (StatName <$> parseString)
     parseSkillName = SkillName <$> parseString
+    parseSkillFormulaType = SkillFormula <$> parseFormula
+                        <|> SkillText <$> parseString
 
 -- this one is kind of ugly, because you can have:
 -- BONUS:SKILL|...|...<restrictions>|TYPE=foo.STACK

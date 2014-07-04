@@ -10,7 +10,7 @@ import Restrictions(Restriction, parseAdditionalRestrictions)
 import Common
 
 data Bonus = BonusSkill Skill
-           | BonusSkillStack (Skill, T.Text, [Restriction])
+           | BonusSkillStack (Skill, [Restriction])
            | BonusSkillRank SkillRank
            | BonusDescription T.Text
            | BonusRestrictions [Restriction]
@@ -27,13 +27,17 @@ data BonusToSkill = List
                     deriving Show
 
 data Skill = Skill { skills :: [BonusToSkill]
-                   , skillFormula :: Formula } deriving Show
+                   , skillFormula :: Formula
+                   , skillType :: Maybe T.Text
+                   , skillStack :: Maybe T.Text } deriving Show
 
 parseBonusSkill :: Parser Skill
 parseBonusSkill = do
   _ <- string "BONUS:SKILL|"
   skills <- parseBonusSkills `sepBy` char ','
   skillFormula <- char '|' *> parseFormula
+  skillType <- option Nothing $ Just <$> (string "|TYPE=" >> parseString)
+  skillStack <- return Nothing
   return Skill { .. } where
     parseBonusSkills = parseList
                    <|> parseAll
@@ -51,13 +55,14 @@ parseBonusSkill = do
 -- or
 -- BONUS:SKILL|...|TYPE=foo.STACK|...<restrictions>
 -- so we have to account for both cases. ugh.
-parseBonusSkillWithStack :: Parser (Skill, T.Text, [Restriction])
+parseBonusSkillWithStack :: Parser (Skill, [Restriction])
 parseBonusSkillWithStack = do
   skill <- parseBonusSkill
   restrictions <- option [] parseAdditionalRestrictions
   what <- string "|TYPE=" *> parseWord
   _ <- string ".STACK"
-  return (skill, what, restrictions)
+  let newSkill = skill { skillStack=Just what }
+  return (newSkill, restrictions)
 
 -- BONUS:SKILLRANK:x,x,...|y
 --   x is skill name, skill type (TYPE=x)

@@ -21,7 +21,7 @@
 * skill [0/2]
 ** TODO implement TEMPBONUS
 ** TODO finish up PREVAR{G,L}TEQ
-** 63 failures
+** 62 failures
 * JEP
 * weaponprof
 ** TODO TYPE:.CLEAR in bloodandblades_weaponprofs.lst

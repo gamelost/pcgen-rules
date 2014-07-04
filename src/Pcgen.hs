@@ -5,6 +5,7 @@ module Main where
 import System.Environment(getArgs)
 import qualified Data.Map as M
 import qualified Data.Text as T
+import qualified Text.Show.Pretty as Pretty
 import Data.Maybe(mapMaybe)
 import System.FilePath(splitExtension)
 import Pcc
@@ -48,22 +49,22 @@ main = do
       case T.pack $ args !! 1 of
         "LANGUAGE" -> do
           lFile <- parseLanguageLST inputFilename
-          print lFile
+          putStrLn $ Pretty.ppShow lFile
         "ARMORPROF" -> do
           aFile <- parseArmorLST inputFilename
-          print aFile
+          putStrLn $ Pretty.ppShow aFile
         "SHIELDPROF" -> do
           sFile <- parseShieldLST inputFilename
-          print sFile
+          putStrLn $ Pretty.ppShow sFile
         "WEAPONPROF" -> do
           wFile <- parseWeaponLST inputFilename
-          print wFile
+          putStrLn $ Pretty.ppShow wFile
         "SKILL" -> do
           sFile <- parseSkillLST inputFilename
-          print sFile
+          putStrLn $ Pretty.ppShow sFile
         _ -> do
           gFile <- parseGenericLST inputFilename
-          print gFile
+          putStrLn $ Pretty.ppShow gFile
     d | d == ".pcc" -> do
       firstPcc <- parsePCC inputFilename
       results <- constructPCC firstPcc

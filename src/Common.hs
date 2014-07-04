@@ -10,6 +10,7 @@ import Data.Text.Encoding.Error(lenientDecode)
 import Control.Monad(liftM)
 import Data.Attoparsec.Text hiding (take)
 import Control.Applicative
+import qualified Text.Show.Pretty as Pretty
 import Debug.Trace(trace)
 
 parseWord :: Parser T.Text
@@ -70,7 +71,7 @@ parseResult filename result =
       let nextTag = dropWhile (== '\t') (T.unpack left) in
       let filterTag = (\x -> x /= '\n' && x /= '\r') in
       let unparsedTag = Prelude.takeWhile filterTag nextTag in
-      trace (show r)
+      trace (Pretty.ppShow r)
       error $ "failed to parse " ++ filename ++
                 " with remaining input: '" ++ unparsedTag ++ "'"
     Partial c ->

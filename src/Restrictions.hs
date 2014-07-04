@@ -10,6 +10,7 @@ import JEPFormula
 import Common
 
 data Restriction = PreClassRestriction PreClass
+                 | PreClassSkillRestriction PreClassSkill
                  | PreVarNeqRestriction PreVarNeq
                  | PreVarRestriction PreVar
                  | PreAlignRestriction PreAlign
@@ -112,6 +113,24 @@ parsePreRule = do
   ruleName <- parseString -- not correct but will do for now
   return PreRule { ruleNumber = textToInt n, .. }
 
+-- PRECSKILL:x,y
+--   x is number of class skills
+--   y is skill name or skill type (TYPE=y)
+data ClassSkill = ClassSkillName T.Text
+                | ClassSkillType T.Text
+                  deriving Show
+
+data PreClassSkill = PreClassSkill { classSkillNumber :: Int
+                                   , classSkill :: ClassSkill } deriving Show
+
+parsePreClassSkill :: Parser PreClassSkill
+parsePreClassSkill = do
+  n <- tag "PRECSKILL" >> manyNumbers
+  classSkill <- char ',' >> parseClassSkill
+  return PreClassSkill { classSkillNumber = textToInt n, .. } where
+    parseClassSkill = ClassSkillType <$> (string "TYPE=" >> parseString)
+                  <|> ClassSkillName <$> parseString
+
 -- PRESKILL:x,y=z,y=z,..
 --   x is number of skills
 --   y is skill name or skill type (TYPE=y)
@@ -126,7 +145,7 @@ data PreSkill = PreSkill { skillNumber :: Int
 parsePreSkill :: Parser PreSkill
 parsePreSkill = do
   n <- tag "PRESKILL" >> manyNumbers
-  skills <- parseSkills `sepBy` char ','
+  skills <- char ',' >> parseSkills `sepBy` char ','
   return PreSkill { skillNumber = textToInt n, .. } where
     parseSkills = do
       skill <- parseSkill
@@ -195,6 +214,7 @@ parsePreVarNeq = do
 parsePossibleRestriction :: Parser Restriction
 parsePossibleRestriction = PreVarNeqRestriction <$> parsePreVarNeq
                        <|> PreVarRestriction <$> parsePreVar
+                       <|> PreClassSkillRestriction <$> parsePreClassSkill
                        <|> PreClassRestriction <$> parsePreClass
                        <|> PreAbilityRestriction <$> parsePreAbility
                        <|> PreFeatRestriction <$> parsePreFeat

@@ -18,11 +18,14 @@ testInt = parseJEP "2" @?=
 testSignedInt = parseJEP "-4" @?=
                 Number (-4)
 
-testVarFunc = parseJEP "floor(SynergyBonus/2)" @?=
-              Function (BuiltIn "floor") [Function Divide [Variable "SynergyBonus", Number 2]]
+testFuncWithVar = parseJEP "floor(SynergyBonus/2)" @?=
+                  Function (BuiltIn "floor") [Function Divide [Variable "SynergyBonus", Number 2]]
 
 testNestedInfixFunc = parseJEP "max(0,Reputation-INT)" @?=
                       Function (BuiltIn "max") [Number 0, Function Subtract [Variable "Reputation", Variable "INT"]]
+
+testVarFunc = parseJEP "var(\"SKILL.Perception (Dim Light).MISC\")" @?=
+              LookupVariable "SKILL.Perception (Dim Light).MISC"
 
 -- max(0,floor((var("SKILLRANK=Tumble")-5)/20))*SynergyBonus
 -- max(0,floor((var("SKILLRANK=Concentration")-5)/20))*SynergyBonus
@@ -30,6 +33,7 @@ testNestedInfixFunc = parseJEP "max(0,Reputation-INT)" @?=
 tests :: Test
 tests = TestList [ "parse integer" ~: testInt
                  , "parse unsigned integer" ~: testSignedInt
-                 , "parse function with variable" ~: testVarFunc
+                 , "parse var(...) function" ~: testVarFunc
+                 , "parse function with variable" ~: testFuncWithVar
                  , "parse function with nested infix function" ~: testNestedInfixFunc
                  ]

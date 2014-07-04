@@ -6,9 +6,11 @@ import Prelude hiding (takeWhile, GT, EQ, LT)
 import qualified Data.Text as T
 import Data.Attoparsec.Text
 import Control.Applicative
+import JEPFormula
 import Common
 
 data Restriction = PreClassRestriction PreClass
+                 | PreVarNeqRestriction PreVarNeq
                  | PreVarRestriction PreVar
                  | PreAlignRestriction PreAlign
                  | PreAbilityRestriction PreAbility
@@ -175,8 +177,18 @@ parsePreVar = do
     convertOperator "NEQ" = NEQ
     convertOperator _ = error "invalid PREVAR operator"
 
+-- not documented, so this is a best-guess
+data PreVarNeq = PreVarNeq { variables :: [Formula] } deriving Show
+
+parsePreVarNeq :: Parser PreVarNeq
+parsePreVarNeq = do
+  _ <- tag "PREVARNEQ" -- may very well be other operators, but for now...
+  variables <- parseFormula `sepBy` char ','
+  return PreVarNeq { .. }
+
 parsePossibleRestriction :: Parser Restriction
-parsePossibleRestriction = PreVarRestriction <$> parsePreVar
+parsePossibleRestriction = PreVarNeqRestriction <$> parsePreVarNeq
+                       <|> PreVarRestriction <$> parsePreVar
                        <|> PreClassRestriction <$> parsePreClass
                        <|> PreAbilityRestriction <$> parsePreAbility
                        <|> PreFeatRestriction <$> parsePreFeat

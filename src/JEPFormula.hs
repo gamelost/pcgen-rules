@@ -19,6 +19,7 @@ data Operand = BuiltIn T.Text
                deriving (Show, Eq)
 
 data Formula = Variable T.Text
+             | LookupVariable T.Text
              | Number Int
              | Function Operand [Formula]
                deriving (Show, Eq)
@@ -34,7 +35,6 @@ listOfVars = [ "SynergyBonus"
 listOfFunctions :: [String]
 listOfFunctions = [ "floor"
                   , "max"
-                  , "var"
                   ]
 
 parseNumber :: Parser Formula
@@ -45,6 +45,10 @@ parseNumber = Number <$> parseSignedNumber where
 parseVariable :: Parser Formula
 parseVariable = Variable <$> choice varParsers where
   varParsers = map (string . T.pack) listOfVars
+
+-- treat the var() function specially
+parseVarFunction :: Parser Formula
+parseVarFunction = LookupVariable <$> (string "var(\"" >> parseString <* string "\")")
 
 parseInfixFunction :: Parser Formula
 parseInfixFunction = do
@@ -70,6 +74,7 @@ parseFunction = do
 parseFormula :: Parser Formula
 parseFormula = parseFunction
            <|> parseInfixFunction
+           <|> parseVarFunction
            <|> parseNumber
            <|> parseVariable
 -- parseFormula = traceFormula

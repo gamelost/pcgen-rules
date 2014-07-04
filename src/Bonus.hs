@@ -29,6 +29,7 @@ data SkillRank = SkillRank { skillRanks :: [BonusToSkillRank]
 data Bonus = BonusSkill Skill
            | BonusSkillStack (Skill, T.Text, [Restriction])
            | BonusSkillRank SkillRank
+           | BonusDescription T.Text
            | BonusRestrictions [Restriction]
              deriving Show
 
@@ -78,8 +79,14 @@ parseBonusSkillRank = do
     parseSkillType = string "TYPE=" >> (SkillRankType <$> parseString)
     parseSkillName = SkillRankName <$> parseString
 
+-- TEMPDESC:x
+--   x is text to display in the temporary bonus sub-tab
+parseBonusDescription :: Parser T.Text
+parseBonusDescription = tag "TEMPDESC" >> restOfTag
+
 parseBonus :: Parser Bonus
 parseBonus = BonusSkillStack <$> parseBonusSkillWithStack
          <|> BonusSkillRank <$> parseBonusSkillRank
          <|> BonusSkill <$> parseBonusSkill
+         <|> BonusDescription <$> parseBonusDescription
          <|> BonusRestrictions <$> parseAdditionalRestrictions

@@ -23,7 +23,7 @@
 ** TODO implement PRERULE
 ** TODO implement TEMPBONUS
 ** TODO finish up PREVAR{G,L}TEQ
-** 71 failures
+** 69 failures
 * weaponprof
 ** TODO TYPE:.CLEAR in bloodandblades_weaponprofs.lst
 * questions

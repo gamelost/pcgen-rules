@@ -3,7 +3,6 @@
 module Bonus where
 
 import qualified Data.Text as T
-import Control.Monad(liftM)
 import Data.Attoparsec.Text
 import Control.Applicative
 import JEPFormula

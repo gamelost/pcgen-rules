@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module JEPFormula ( Formula(..)
+                  , Operand(..)
                   , parseFormula
                   ) where
 
@@ -10,24 +11,31 @@ import Control.Applicative
 import Common
 import Debug.Trace(trace)
 
--- simplistic, for now
-data Formula = Variable T.Text
-             | Number Int
+data Operand = BuiltIn T.Text
+             | Divide
+             | Multiply
+             | Subtract
+             | Add
                deriving (Show, Eq)
 
--- since we don't have variables parsed yet, add some to get past the
+data Formula = Variable T.Text
+             | Number Int
+             | Function Operand [Formula]
+               deriving (Show, Eq)
+
+-- since we don't have variables yet, hard-code some to get past the
 -- parser verification process
 listOfVars :: [String]
 listOfVars = [ "SynergyBonus"
-             , "Reputation" ]
+             , "Reputation"
+             , "INT" -- should this be an attribute instead?
+             ]
 
 listOfFunctions :: [String]
 listOfFunctions = [ "floor"
                   , "max"
-                  , "var" ]
-
-listOfAttributes :: [String]
-listOfAttributes = [ "INT", "DEX", "CHA", "CON", "WIS", "STR" ]
+                  , "var"
+                  ]
 
 parseNumber :: Parser Formula
 parseNumber = Number <$> parseSignedNumber where
@@ -38,8 +46,32 @@ parseVariable :: Parser Formula
 parseVariable = Variable <$> choice varParsers where
   varParsers = map (string . T.pack) listOfVars
 
+parseInfixFunction :: Parser Formula
+parseInfixFunction = do
+  -- only support infix 2 for now
+  first <- parseVariable <|> parseNumber
+  op <- choice $ map char ['/', '*', '-', '+']
+  second <- parseVariable <|> parseNumber
+  return $ Function (operandMap op) [first, second] where
+    operandMap :: Char -> Operand
+    operandMap '/' = Divide
+    operandMap '*' = Multiply
+    operandMap '-' = Subtract
+    operandMap '+' = Add
+    operandMap _ = error "No such infix function"
+
+parseFunction :: Parser Formula
+parseFunction = do
+  f <- BuiltIn <$> choice funcParsers
+  args <- char '(' >> parseFormula `sepBy` char ',' <* char ')'
+  return $ Function f args where
+    funcParsers = map (string . T.pack) listOfFunctions
+
 parseFormula :: Parser Formula
-parseFormula = parseNumber <|> parseVariable
+parseFormula = parseFunction
+           <|> parseInfixFunction
+           <|> parseNumber
+           <|> parseVariable
 -- parseFormula = traceFormula
 
 traceFormula :: Parser Formula

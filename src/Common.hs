@@ -17,7 +17,7 @@ parseWord :: Parser T.Text
 parseWord = takeWhile1 $ inClass "-A-Za-z"
 
 parseString :: Parser T.Text
-parseString = takeWhile1 $ inClass "-A-Za-z0-9_ &+,./:?!#'()~" -- do not put in '=' or '|'
+parseString = takeWhile1 $ inClass "-A-Za-z0-9_ &+,./:?!#'()[]~" -- do not put in '=' or '|'
 
 allCaps :: Parser T.Text
 allCaps = takeWhile1 $ inClass "A-Z"

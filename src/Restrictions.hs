@@ -16,6 +16,7 @@ data Restriction = PreClassRestriction PreClass
                  | PreAlignRestriction PreAlign
                  | PreAbilityRestriction PreAbility
                  | PreFeatRestriction PreFeat
+                 | PreMoveRestriction PreMove
                  | PreSkillRestriction PreSkill
                  | PreSkillTotalRestriction PreSkillTot
                  | PreRuleRestriction PreRule
@@ -78,41 +79,6 @@ parsePreClass = do
       n <- char '=' >> manyNumbers
       return (x, textToInt n)
 
--- PREFEAT:x,y,z,z,..
---   x is number of required feats
---   y can be CHECKMULT
---   z is feat name (or TYPE=type) ([] indicates inversion)
-data Feat = FeatName T.Text | FeatType T.Text deriving Show
-
-data PreFeat = PreFeat { featNumber :: Int
-                       , feats :: [Feat]
-                       , countSeparately :: Bool
-                       , cannotHave :: Bool} deriving Show
-
-parsePreFeat :: Parser PreFeat
-parsePreFeat = do
-  n <- tag "PREFEAT" >> manyNumbers
-  _ <- char ','
-  countSeparately <- option False (string "CHECKMULT," >> return True)
-  feats <- parseFeat `sepBy` char ','
-  let cannotHave = False -- not implemented
-  return PreFeat { featNumber = textToInt n, .. } where
-    parseFeat = FeatType <$> (string "TYPE=" >> parseString)
-            <|> FeatName <$> parseString
-
--- PRERULE:x,y
---   x is number of rules required
---   y is rule name
-data PreRule = PreRule { ruleNumber :: Int
-                       , ruleName :: T.Text } deriving Show
-
-parsePreRule :: Parser PreRule
-parsePreRule = do
-  n <- tag "PRERULE" >> manyNumbers
-  _ <- char ','
-  ruleName <- parseString -- not correct but will do for now
-  return PreRule { ruleNumber = textToInt n, .. }
-
 -- PRECSKILL:x,y
 --   x is number of class skills
 --   y is skill name or skill type (TYPE=y)
@@ -130,6 +96,60 @@ parsePreClassSkill = do
   return PreClassSkill { classSkillNumber = textToInt n, .. } where
     parseClassSkill = ClassSkillType <$> (string "TYPE=" >> parseString)
                   <|> ClassSkillName <$> parseString
+
+-- PREFEAT:x,y,z,z,..
+--   x is number of required feats
+--   y can be CHECKMULT
+--   z is feat name (or TYPE=type) ([] indicates inversion)
+data Feat = FeatName T.Text
+          | FeatType T.Text
+            deriving Show
+
+data PreFeat = PreFeat { featNumber :: Int
+                       , feats :: [Feat]
+                       , countSeparately :: Bool
+                       , cannotHave :: Bool} deriving Show
+
+parsePreFeat :: Parser PreFeat
+parsePreFeat = do
+  n <- tag "PREFEAT" >> manyNumbers
+  _ <- char ','
+  countSeparately <- option False (string "CHECKMULT," >> return True)
+  feats <- parseFeat `sepBy` char ','
+  let cannotHave = False -- not implemented
+  return PreFeat { featNumber = textToInt n, .. } where
+    parseFeat = FeatType <$> (string "TYPE=" >> parseString)
+            <|> FeatName <$> parseString
+
+-- PREMOVE:x,y=z,y=z...
+--   x is minimum number movement types to pass
+--   y is name of movement type
+--   z is minimum number for the given movement type
+data PreMove = PreMove { moveNumber :: Int
+                       , moves :: [(T.Text, Int)] } deriving Show
+
+parsePreMove :: Parser PreMove
+parsePreMove = do
+  n <- tag "PREMOVE" >> manyNumbers
+  moves <- char ',' >> parseMoves `sepBy` char ','
+  return PreMove { moveNumber = textToInt n, .. } where
+    parseMoves = do
+      moveType <- parseString
+      moveMinimum <- char '=' >> manyNumbers
+      return (moveType, textToInt moveMinimum)
+
+-- PRERULE:x,y
+--   x is number of rules required
+--   y is rule name
+data PreRule = PreRule { ruleNumber :: Int
+                       , ruleName :: T.Text } deriving Show
+
+parsePreRule :: Parser PreRule
+parsePreRule = do
+  n <- tag "PRERULE" >> manyNumbers
+  _ <- char ','
+  ruleName <- parseString -- not correct but will do for now
+  return PreRule { ruleNumber = textToInt n, .. }
 
 -- PRESKILL:x,y=z,y=z,..
 --   x is number of skills
@@ -218,6 +238,7 @@ parsePossibleRestriction = PreVarNeqRestriction <$> parsePreVarNeq
                        <|> PreClassRestriction <$> parsePreClass
                        <|> PreAbilityRestriction <$> parsePreAbility
                        <|> PreFeatRestriction <$> parsePreFeat
+                       <|> PreMoveRestriction <$> parsePreMove
                        <|> PreRuleRestriction <$> parsePreRule
                        <|> PreAlignRestriction <$> parsePreAlign
                        <|> PreSkillTotalRestriction <$> parsePreSkillTotal

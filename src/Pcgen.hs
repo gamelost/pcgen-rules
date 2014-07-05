@@ -68,6 +68,6 @@ main = do
     d | d == ".pcc" -> do
       firstPcc <- parsePCC inputFilename
       results <- constructPCC firstPcc
-      print results
+      putStrLn $ Pretty.ppShow results
     _ ->
       error "Error: no valid filename supplied"

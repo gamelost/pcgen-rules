@@ -5,6 +5,8 @@ module Bonus where
 import qualified Data.Text as T
 import Data.Attoparsec.Text
 import Control.Applicative
+import Control.Exception
+import Data.Maybe
 import JEPFormula
 import Restrictions(Restriction, parseAdditionalRestrictions)
 import Common
@@ -33,7 +35,7 @@ data SkillFormulaType = SkillFormula Formula
 data Skill = Skill { skills :: [BonusToSkill]
                    , skillFormula :: SkillFormulaType
                    , skillType :: Maybe T.Text
-                   , skillStack :: Maybe T.Text } deriving Show
+                   , skillStack :: Bool } deriving Show
 
 parseBonusSkill :: Parser Skill
 parseBonusSkill = do
@@ -41,7 +43,7 @@ parseBonusSkill = do
   skills <- parseBonusSkills `sepBy` char ','
   skillFormula <- char '|' *> parseSkillFormulaType
   skillType <- option Nothing $ Just <$> (string "|TYPE=" >> parseString)
-  skillStack <- return Nothing
+  let skillStack = False
   return Skill { .. } where
     parseBonusSkills = parseList
                    <|> parseAll
@@ -66,8 +68,11 @@ parseBonusSkillWithStack = do
   skill <- parseBonusSkill
   restrictions <- option [] parseAdditionalRestrictions
   what <- string "|TYPE=" *> parseWord
-  _ <- string ".STACK"
-  let newSkill = skill { skillStack=Just what }
+  isStack <- optional $ string ".STACK"
+  -- make sure we don't override a previously set type, this is most likely a bug
+  let _ = assert (isNothing $ skillType skill)
+  let newSkill = skill { skillType=Just what
+                       , skillStack=isJust isStack }
   return (newSkill, restrictions)
 
 -- BONUS:SKILLRANK:x,x,...|y

@@ -17,7 +17,9 @@ data Lookup = Lookup { location :: Location
 -- PCC tags (raw).
 data PCCTag = PCCDataTag T.Text T.Text
             | PCCBodyTag Lookup
-            | PCCComment T.Text deriving Show
+            | PCCComment T.Text
+            | PCCInvert PCCTag
+              deriving Show
 
 type PCCTags = [PCCTag]
 
@@ -27,7 +29,8 @@ parseComment = liftM PCCComment parseCommentLine
 parseDataTag :: Parser PCCTag
 parseDataTag = do
   k <- allCaps
-  v <- ":" .*> restOfLine
+  _ <- char ':'
+  v <- restOfLine
   return $ PCCDataTag k v
 
 linkLocation :: Char -> Location
@@ -37,16 +40,20 @@ linkLocation _ = Any
 
 parseBodyTag :: Parser PCCTag
 parseBodyTag = do
-  _ <- "PCC:"
+  _ <- string "PCC:"
   l <- satisfy $ inClass "@&*"
   v <- restOfLine
   return $ PCCBodyTag Lookup { location = linkLocation l,
                                filename = v }
 
+parseInversion :: Parser PCCTag
+parseInversion = PCCInvert <$> (char '!' >> parseDataTag)
+
 parsePCCLine :: Parser PCCTags
 parsePCCLine = many $ parseLine <* many endOfLine where
   parseLine = parseBodyTag
           <|> parseDataTag
+          <|> parseInversion
           <|> parseComment
 
 parsePCC :: FilePath -> IO PCCTags

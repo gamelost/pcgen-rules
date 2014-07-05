@@ -27,10 +27,11 @@ data SkillType = RANK
                | TOTAL
                  deriving (Show, Eq)
 
-data Formula = Variable T.Text
+data Formula = Number Int
+             | Variable T.Text
              | LookupVariable T.Text
              | LookupSkill (SkillType, T.Text)
-             | Number Int
+             | Group Formula
              | Function Operand [Formula]
                deriving (Show, Eq)
 
@@ -56,16 +57,24 @@ parseVariable :: Parser Formula
 parseVariable = Variable <$> choice varParsers where
   varParsers = map (string . T.pack) listOfVars
 
+parseGroup :: Parser Formula
+parseGroup = do
+  Group <$> (char '(' >> parseFormula <* char ')')
+
+-- may want to make sure there are no unterminated quotes!
+parseQuotedString :: Parser T.Text
+parseQuotedString = char '"' *> takeTill (== '"') <* char '"'
+
 -- treat the var() function specially
 parseVarFunction :: Parser Formula
-parseVarFunction = LookupVariable <$> (string "var(\"" >> parseString <* string "\")")
+parseVarFunction = LookupVariable <$> (string "var(" >> parseQuotedString <* string ")")
 
 -- treat the skillinfo() function specially
 parseSkillInfoFunction :: Parser Formula
 parseSkillInfoFunction = do
-  prop <- string "skillinfo(" *> parseQuotes
+  prop <- string "skillinfo(" *> parseQuotedString
   _ <- char ',' >> many space
-  var <- parseQuotes <* char ')'
+  var <- parseQuotedString <* char ')'
   return $ LookupSkill (parseProperty prop, var) where
     parseProperty "RANK" = RANK
     parseProperty "TOTALRANK" = TOTALRANK
@@ -74,13 +83,12 @@ parseSkillInfoFunction = do
     parseProperty "MISC" = MISC
     parseProperty "TOTAL" = TOTAL
     parseProperty _ = error "No such skillinfo property"
-    parseQuotes = char '"' *> parseString <* char '"'
 
 parseInfixFunction :: Parser Formula
 parseInfixFunction = do
   -- only support infix 2 for now
-  first <- parseVariable <|> parseNumber
-  op <- choice $ map char ['/', '*', '-', '+']
+  first <- parseVariable <|> parseNumber <|> parseVarFunction <|> parseFunction <|> parseGroup
+  op <- many space >> choice (map char "/*-+") <* many space
   second <- parseVariable <|> parseNumber
   return $ Function (operandMap op) [first, second] where
     operandMap :: Char -> Operand
@@ -98,8 +106,9 @@ parseFunction = do
     funcParsers = map (string . T.pack) listOfFunctions
 
 parseFormula :: Parser Formula
-parseFormula = parseFunction
-           <|> parseInfixFunction
+parseFormula = parseInfixFunction
+           <|> parseFunction
+           <|> parseGroup
            <|> parseVarFunction
            <|> parseSkillInfoFunction
            <|> parseNumber
@@ -108,6 +117,6 @@ parseFormula = parseFunction
 
 traceFormula :: Parser Formula
 traceFormula = do
-  v <- takeTill (== '|')
+  v <- takeTill (\x -> x == '|' || x == '\t' || x == '\r' || x == '\n')
   _ <- trace ("** Formula was " ++ T.unpack v) $ return ()
   return $ Variable v

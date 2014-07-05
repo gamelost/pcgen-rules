@@ -3,10 +3,8 @@
 module Lst.Generic where
 
 import Prelude hiding (takeWhile)
-import Control.Monad(liftM)
 import qualified Data.Text as T
 import Data.Attoparsec.Text
-import Control.Applicative
 import Modifications
 import Restrictions
 import Common

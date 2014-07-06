@@ -27,6 +27,8 @@
 - SkillFormulaType/PreVarType are hacks
 * weaponprof
 ** TODO TYPE:.CLEAR in bloodandblades_weaponprofs.lst
+** 14 failures
+most of them are from '.'s in the start string
 * questions
 ** when are JEPs used?
 - [ ] EVAL()

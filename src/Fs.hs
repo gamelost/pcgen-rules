@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Fs (getFullPath, Location(Data, Vendor, Any)) where
+module Fs (getFullPath, Location(..)) where
 
 import Control.Monad (forM, msum)
 import System.Directory (doesDirectoryExist, getDirectoryContents)
@@ -18,7 +18,7 @@ getFullPath x = do
   fullPath <- findFile "." $ takeFileName x
   case fullPath of
     Just f -> return f
-    Nothing -> error "referenced file could not be found"
+    Nothing -> error $ "referenced file " ++ show x ++ " could not be found"
 
 findFile :: FilePath -> FilePath -> IO (Maybe FilePath)
 findFile location target = do

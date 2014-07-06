@@ -43,7 +43,7 @@ constructPCC result = do
 main :: IO ()
 main = do
   args <- getArgs
-  let inputFilename = head args
+  inputFilename <- getFullPath $ head args
   case snd $ splitExtension inputFilename of
     d | d == ".lst" ->
       case T.pack $ args !! 1 of

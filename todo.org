@@ -21,7 +21,7 @@
 * skill [0/2]
 ** TODO implement TEMPBONUS
 ** TODO finish up PREVAR{G,L}TEQ
-** 50 failures
+** 56 failures
 * JEP
 ** TODO allow for plain strings?
 - SkillFormulaType/PreVarType are hacks

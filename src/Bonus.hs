@@ -12,38 +12,40 @@ import Restrictions(Restriction, parseAdditionalRestrictions)
 import Common
 
 data Bonus = BonusSkill Skill
-           | BonusSkillStack (Skill, [Restriction])
            | BonusSkillRank SkillRank
            | BonusDescription T.Text
-           | BonusRestrictions [Restriction]
            | TemporaryBonus TempBonus
-             deriving Show
+             deriving (Show, Eq)
 
 -- BONUS:SKILL:x,x,...|y
 --   x is LIST, ALL, skill name, stat name (STAT.x), skill type (TYPE=x)
 --   y is number, variable, formula
 data BonusToSkill = List
                   | All
-                  | SkillName T.Text
-                  | SkillType T.Text
+                  | BonusSkillName T.Text
+                  | BonusSkillType T.Text
                   | StatName T.Text
-                    deriving Show
+                    deriving (Show, Eq)
 
 data SkillFormulaType = SkillFormula Formula
                       | SkillText T.Text
-                        deriving Show
+                        deriving (Show, Eq)
 
-data Skill = Skill { skills :: [BonusToSkill]
+data Skill = Skill { bonusToSkills :: [BonusToSkill]
                    , skillFormula :: SkillFormulaType
                    , skillType :: Maybe T.Text
-                   , skillStack :: Bool } deriving Show
+                   , skillStack :: Bool
+                   , skillRestrictions :: [Restriction] }
+             deriving (Show, Eq)
 
 parseBonusSkill :: Parser Skill
 parseBonusSkill = do
-  _ <- string "BONUS:SKILL|"
-  skills <- parseBonusSkills `sepBy` char ','
+  _ <- string "SKILL|"
+  bonusToSkills <- parseBonusSkills `sepBy` char ','
   skillFormula <- char '|' *> parseSkillFormulaType
-  skillType <- optionMaybe (string "|TYPE=" >> parseString)
+  skillType <- optional $ string "|TYPE=" >> parseString
+  restrictions <- optional parseAdditionalRestrictions
+  let skillRestrictions = fromMaybe [] restrictions
   let skillStack = False
   return Skill { .. } where
     parseBonusSkills = parseList
@@ -53,9 +55,9 @@ parseBonusSkill = do
                    <|> parseSkillName
     parseList = string "LIST" >> return List
     parseAll = string "ALL" >> return All
-    parseSkillType = string "TYPE=" >> (SkillType <$> parseString)
+    parseSkillType = string "TYPE=" >> (BonusSkillType <$> parseString)
     parseStatName = string "STAT." >> (StatName <$> parseString)
-    parseSkillName = SkillName <$> parseString
+    parseSkillName = BonusSkillName <$> parseString
     parseSkillFormulaType = SkillFormula <$> parseFormula
                         <|> SkillText <$> parseString
 
@@ -64,35 +66,37 @@ parseBonusSkill = do
 -- or
 -- BONUS:SKILL|...|TYPE=foo.STACK|...<restrictions>
 -- so we have to account for both cases. ugh.
-parseBonusSkillWithStack :: Parser (Skill, [Restriction])
+parseBonusSkillWithStack :: Parser Skill
 parseBonusSkillWithStack = do
   skill <- parseBonusSkill
-  restrictions <- option [] parseAdditionalRestrictions
   what <- string "|TYPE=" *> parseWord
   isStack <- optional $ string ".STACK"
   -- make sure we don't override a previously set type, this is most likely a bug
   let _ = assert (isNothing $ skillType skill)
   let newSkill = skill { skillType=Just what
                        , skillStack=isJust isStack }
-  return (newSkill, restrictions)
+  return newSkill
 
 -- BONUS:SKILLRANK:x,x,...|y
 --   x is skill name, skill type (TYPE=x)
 --   y is number, variable, formula
 data BonusToSkillRank = SkillRankName T.Text
                       | SkillRankType T.Text
-                        deriving Show
+                        deriving (Show, Eq)
 
 data SkillRank = SkillRank { skillRanks :: [BonusToSkillRank]
                            , skillRankFormula :: Formula
-                           , skillRankType :: Maybe T.Text } deriving Show
+                           , skillRankType :: Maybe T.Text
+                           , skillRankRestrictions :: [Restriction] }
+                 deriving (Show, Eq)
 
 parseBonusSkillRank :: Parser SkillRank
 parseBonusSkillRank = do
-  _ <- string "BONUS:SKILLRANK|"
+  _ <- string "SKILLRANK|"
   skillRanks <- parseBonusSkillRanks `sepBy` char ','
   skillRankFormula <- char '|' *> parseFormula
-  skillRankType <- optionMaybe (string "|TYPE=" >> parseString)
+  skillRankType <- optional $ string "|TYPE=" >> parseString
+  skillRankRestrictions <- parseAdditionalRestrictions
   return SkillRank { .. } where
     parseBonusSkillRanks = parseSkillType <|> parseSkillName
     parseSkillType = string "TYPE=" >> (SkillRankType <$> parseString)
@@ -102,23 +106,21 @@ parseBonusSkillRank = do
 --   x is PC, ANYPC, or EQ
 --   y is equipment type (only when x==EQ)
 --   z is bonus subtoken
-data Target = PC | ANYPC | EQUIPMENT deriving Show
+data Target = PC | ANYPC | EQUIPMENT
+              deriving (Show, Eq)
 
 data TempBonus = TempBonus { target :: Target
                            , equipmentType :: Maybe T.Text
                            , additionalBonuses :: [Bonus]
-                           , additionalRestrictions :: [Restriction] } deriving Show
-
--- does not work. examples:
--- TEMPBONUS:PC|SKILL|Craft (Fletcher)|-2|TYPE=Circumstance|!PREITEM:1,TYPE=WeaponsmithingTools
--- TEMPBONUS:PC|SKILL|Disguise|SynergyBonus|PRESKILL:1,Bluff=5|TYPE=TempSynergy'
+                           , additionalRestrictions :: [Restriction] }
+                 deriving (Show, Eq)
 
 parseTemporaryBonus :: Parser TempBonus
 parseTemporaryBonus = do
   _ <- tag "TEMPBONUS"
   target <- parseTarget
-  equipmentType <- optionMaybe $ parseEquipmentType target
-  additionalBonuses <- char '|' >> parseBonus `sepBy` char '|'
+  equipmentType <- optional $ parseEquipmentType target
+  additionalBonuses <- char '|' >> parseAnyBonus `sepBy` char '|'
   additionalRestrictions <- option [] parseAdditionalRestrictions
   return TempBonus { .. } where
     parseTarget :: Parser Target
@@ -133,10 +135,12 @@ parseTemporaryBonus = do
 parseBonusDescription :: Parser T.Text
 parseBonusDescription = tag "TEMPDESC" >> restOfTag
 
+parseAnyBonus :: Parser Bonus
+parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
+            <|> BonusSkill <$> parseBonusSkillWithStack
+            <|> BonusSkill <$> parseBonusSkill
+
 parseBonus :: Parser Bonus
-parseBonus = BonusSkillStack <$> parseBonusSkillWithStack
-         <|> BonusSkillRank <$> parseBonusSkillRank
-         <|> BonusSkill <$> parseBonusSkill
-         <|> BonusDescription <$> parseBonusDescription
+parseBonus = (tag "BONUS" *> parseAnyBonus)
          <|> TemporaryBonus <$> parseTemporaryBonus
-         <|> BonusRestrictions <$> parseAdditionalRestrictions
+         <|> BonusDescription <$> parseBonusDescription

@@ -1,5 +1,4 @@
-* general [0/4]
-** TODO better selection of lst files in verify.sh
+* general [0/3]
 ** TODO add catch-all for tags (with optional trace)
 ** TODO narrow down parseString: too general
 ** TODO look at data/zen-test/... -- something we can use?
@@ -18,10 +17,9 @@
 ** TODO PREFEAT is not fully implemented
 ** TODO PRERULE should be matching against known rules, not accepting any string
 ** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
-* skill [0/2]
-** TODO implement TEMPBONUS
+* skill [0/1]
 ** TODO finish up PREVAR{G,L}TEQ
-** 56 failures
+** 41 failures
 * JEP
 ** TODO allow for plain strings?
 - SkillFormulaType/PreVarType are hacks

@@ -16,11 +16,13 @@ data Restriction = PreClassRestriction PreClass
                  | PreAlignRestriction PreAlign
                  | PreAbilityRestriction PreAbility
                  | PreFeatRestriction PreFeat
+                 | PreItemRestriction PreItem
                  | PreMoveRestriction PreMove
                  | PreSkillRestriction PreSkill
                  | PreSkillTotalRestriction PreSkillTot
                  | PreRuleRestriction PreRule
-                 | Invert Restriction deriving Show
+                 | Invert Restriction
+                   deriving (Show, Eq)
 
 -- PREABILITY:x,CATEGORY=y,z,z,z...
 --   x is the number of abilities needed
@@ -28,7 +30,8 @@ data Restriction = PreClassRestriction PreClass
 --   z is ability name, ability type (TYPE.z), or ALL
 data PreAbility = PreAbility { abilityNumber :: Int
                              , categoryName :: T.Text
-                             , abilities :: [T.Text] } deriving Show
+                             , abilities :: [T.Text] }
+                  deriving (Show, Eq)
 
 parsePreAbility :: Parser PreAbility
 parsePreAbility = do
@@ -40,9 +43,11 @@ parsePreAbility = do
 
 -- PARSEALIGN:x,x...
 --   x is alignment abbreviation or alignment array number
-data Alignment = LG | LN | LE | NG | TN | NE | CG | CN | CE | None | Deity deriving Show
+data Alignment = LG | LN | LE | NG | TN | NE | CG | CN | CE | None | Deity
+                 deriving (Show, Eq)
 
-data PreAlign = PreAlign { alignments :: [Alignment] } deriving Show
+data PreAlign = PreAlign { alignments :: [Alignment] }
+                deriving (Show, Eq)
 
 parsePreAlign :: Parser PreAlign
 parsePreAlign = do
@@ -66,7 +71,8 @@ parsePreAlign = do
 --   y is class name or class type (TYPE.y) or SPELLCASTER. or SPELLCASTER.y
 --   z is number, class level
 data PreClass = PreClass { passNumber :: Int
-                         , classRequisites :: [(T.Text, Int)] } deriving Show
+                         , classRequisites :: [(T.Text, Int)] }
+                deriving (Show, Eq)
 
 parsePreClass :: Parser PreClass
 parsePreClass = do
@@ -84,10 +90,11 @@ parsePreClass = do
 --   y is skill name or skill type (TYPE=y)
 data ClassSkill = ClassSkillName T.Text
                 | ClassSkillType T.Text
-                  deriving Show
+                  deriving (Show, Eq)
 
 data PreClassSkill = PreClassSkill { classSkillNumber :: Int
-                                   , classSkill :: ClassSkill } deriving Show
+                                   , classSkill :: ClassSkill }
+                     deriving (Show, Eq)
 
 parsePreClassSkill :: Parser PreClassSkill
 parsePreClassSkill = do
@@ -103,12 +110,13 @@ parsePreClassSkill = do
 --   z is feat name (or TYPE=type) ([] indicates inversion)
 data Feat = FeatName T.Text
           | FeatType T.Text
-            deriving Show
+            deriving (Show, Eq)
 
 data PreFeat = PreFeat { featNumber :: Int
                        , feats :: [Feat]
                        , countSeparately :: Bool
-                       , cannotHave :: Bool} deriving Show
+                       , cannotHave :: Bool}
+               deriving (Show, Eq)
 
 parsePreFeat :: Parser PreFeat
 parsePreFeat = do
@@ -121,12 +129,34 @@ parsePreFeat = do
     parseFeat = FeatType <$> (string "TYPE=" >> parseString)
             <|> FeatName <$> parseString
 
+-- PREITEM:x,y,y,...
+--   x is number of items a character must possess
+--   y is text, type, or wildcard (%)
+data Item = ItemName T.Text
+          | ItemType T.Text
+          | AnyItem
+            deriving (Show, Eq)
+
+data PreItem = PreItem { itemNumber :: Int
+                       , items :: [Item] }
+             deriving (Show, Eq)
+
+parsePreItem :: Parser PreItem
+parsePreItem = do
+  n <- tag "PREITEM" >> manyNumbers
+  items <- char ',' >> parseItems `sepBy` char ','
+  return PreItem { itemNumber = textToInt n, .. } where
+    parseItems = ItemType <$> (string "TYPE=" >> parseString)
+             <|> (char '%' >> return AnyItem)
+             <|> ItemType <$> parseString
+
 -- PREMOVE:x,y=z,y=z...
 --   x is minimum number movement types to pass
 --   y is name of movement type
 --   z is minimum number for the given movement type
 data PreMove = PreMove { moveNumber :: Int
-                       , moves :: [(T.Text, Int)] } deriving Show
+                       , moves :: [(T.Text, Int)] }
+               deriving (Show, Eq)
 
 parsePreMove :: Parser PreMove
 parsePreMove = do
@@ -142,7 +172,8 @@ parsePreMove = do
 --   x is number of rules required
 --   y is rule name
 data PreRule = PreRule { ruleNumber :: Int
-                       , ruleName :: T.Text } deriving Show
+                       , ruleName :: T.Text }
+               deriving (Show, Eq)
 
 parsePreRule :: Parser PreRule
 parsePreRule = do
@@ -157,10 +188,11 @@ parsePreRule = do
 --   z is number of skill ranks
 data Skill = SkillName T.Text
            | SkillType T.Text
-             deriving Show
+             deriving (Show, Eq)
 
 data PreSkill = PreSkill { skillNumber :: Int
-                         , skills :: [(Skill, Int)]} deriving Show
+                         , skills :: [(Skill, Int)]}
+                deriving (Show, Eq)
 
 parsePreSkill :: Parser PreSkill
 parsePreSkill = do
@@ -178,7 +210,8 @@ parsePreSkill = do
 --   x is skill name ($ skill type (TYPE=x)
 --   y is total non-bonus skill ranks required
 data PreSkillTot = PreSkillTot { skillTotals :: [Skill]
-                               , skillTotalNeeded :: Int } deriving Show
+                               , skillTotalNeeded :: Int }
+                   deriving (Show, Eq)
 
 parsePreSkillTotal :: Parser PreSkillTot
 parsePreSkillTotal = do
@@ -193,11 +226,13 @@ parsePreSkillTotal = do
 --   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
 --   y is text (must be in DEFINE: or BONUS:VAR)
 --   z is number to be compared to
-data Operator = EQ | GT | GTEQ | LT | LTEQ | NEQ deriving Show
+data Operator = EQ | GT | GTEQ | LT | LTEQ | NEQ
+                deriving (Show, Eq)
 
 data PreVar = PreVar { operator :: Operator
                      , definition :: T.Text
-                     , comparator :: Int } deriving Show
+                     , comparator :: Int }
+              deriving (Show, Eq)
 
 parsePreVar :: Parser PreVar
 parsePreVar = do
@@ -219,9 +254,9 @@ parsePreVar = do
 -- not documented, so this is a best-guess
 data PreVarType = PreVarFormula Formula
                 | PreVarText T.Text
-                  deriving Show
+                  deriving (Show, Eq)
 
-data PreVarNeq = PreVarNeq { variables :: [PreVarType] } deriving Show
+data PreVarNeq = PreVarNeq { variables :: [PreVarType] } deriving (Show, Eq)
 
 parsePreVarNeq :: Parser PreVarNeq
 parsePreVarNeq = do
@@ -238,6 +273,7 @@ parsePossibleRestriction = PreVarNeqRestriction <$> parsePreVarNeq
                        <|> PreClassRestriction <$> parsePreClass
                        <|> PreAbilityRestriction <$> parsePreAbility
                        <|> PreFeatRestriction <$> parsePreFeat
+                       <|> PreItemRestriction <$> parsePreItem
                        <|> PreMoveRestriction <$> parsePreMove
                        <|> PreRuleRestriction <$> parsePreRule
                        <|> PreAlignRestriction <$> parsePreAlign

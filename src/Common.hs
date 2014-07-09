@@ -56,9 +56,6 @@ parseWordAndNumber = takeWhile1 $ inClass "-A-Za-z0-9"
 yesOrNo :: Parser Bool
 yesOrNo = liftM (== "YES") allCaps
 
-optionMaybe :: Parser a -> Parser (Maybe a)
-optionMaybe x = option Nothing $ liftM Just x
-
 -- do not use parseOnly: it does not fail if there is any leftover
 -- input. If our parser does not consume everything, we want instant
 -- failure.

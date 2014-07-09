@@ -34,10 +34,10 @@ testVarFunc = parseJEP "var(\"SKILL.Perception (Dim Light).MISC\")" @?=
               LookupVariable "SKILL.Perception (Dim Light).MISC"
 
 testSkillInfoFunc = do
-  (parseJEP "skillinfo(\"TOTALRANK\", \"Perception\")" @?=
-   LookupSkill (TOTALRANK, "Perception"))
-  (parseJEP "skillinfo(\"TOTAL\",\"Martial Arts\")" @?=
-   LookupSkill (TOTAL, "Martial Arts"))
+  parseJEP "skillinfo(\"TOTALRANK\", \"Perception\")" @?=
+    LookupSkill (TOTALRANK, "Perception")
+  parseJEP "skillinfo(\"TOTAL\",\"Martial Arts\")" @?=
+    LookupSkill (TOTAL, "Martial Arts")
 
 testNestedFunc = parseJEP "floor((var(\"MOVE[Walk]\")-30)/10)*4" @?=
                  Function Multiply [
@@ -60,13 +60,13 @@ testNestedFunc2 = parseJEP "max(floor((var(\"SKILLRANK=Concentration\")-5)/20))*
                           , Number 20 ] ] ]
                     , Variable "SynergyBonus"]
 
-tests :: Test
-tests = TestList ["parse integer" ~: testInt
-                 , "parse unsigned integer" ~: testSignedInt
-                 , "parse var(...) function" ~: testVarFunc
-                 , "parse skillinfo(...) function" ~: testSkillInfoFunc
-                 , "parse function with variable" ~: testFuncWithVar
-                 , "parse function with nested groups" ~: testNestedFunc
-                 , "parse function with more nested groups" ~: testNestedFunc2
-                 , "parse function with nested infix function" ~: testNestedInfixFunc
-                 ]
+formulaTests :: Test
+formulaTests = TestList [ "parse integer" ~: testInt
+                        , "parse unsigned integer" ~: testSignedInt
+                        , "parse var(...) function" ~: testVarFunc
+                        , "parse skillinfo(...) function" ~: testSkillInfoFunc
+                        , "parse function with variable" ~: testFuncWithVar
+                        , "parse function with nested groups" ~: testNestedFunc
+                        , "parse function with more nested groups" ~: testNestedFunc2
+                        , "parse function with nested infix function" ~: testNestedInfixFunc
+                        ]

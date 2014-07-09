@@ -58,8 +58,7 @@ parseVariable = Variable <$> choice varParsers where
   varParsers = map (string . T.pack) listOfVars
 
 parseGroup :: Parser Formula
-parseGroup = do
-  Group <$> (char '(' >> parseFormula <* char ')')
+parseGroup = Group <$> (char '(' >> parseFormula <* char ')')
 
 -- may want to make sure there are no unterminated quotes!
 parseQuotedString :: Parser T.Text

@@ -39,6 +39,7 @@ data SkillDefinition = Name T.Text
                      | SourcePage T.Text
                      | ProductIdentity Bool
                      | TemporaryDescription T.Text
+                     | OutputName T.Text
                      | Visibility (Visible, Bool)
                      | SkillBonus Bonus
                      | Restricted Restriction
@@ -54,6 +55,9 @@ parseExclusive = Exclusive <$> (tag "EXCLUSIVE" >> yesOrNo)
 
 parseUseUntrained :: SkillTag
 parseUseUntrained = UseUntrained <$> (tag "USEUNTRAINED" >> yesOrNo)
+
+parseOutputName :: SkillTag
+parseOutputName = OutputName <$> (tag "OUTPUTNAME" >> parseString)
 
 parseKeyStat :: SkillTag
 parseKeyStat  = KeyStat <$> (tag "KEYSTAT" >> parseString)
@@ -113,6 +117,7 @@ parseSkillTag = parseKeyStat
             <|> parseExclusive
             <|> parseVisibility
             <|> parseProductIdentity
+            <|> parseOutputName
             <|> parseUniqueKey
             <|> SkillBonus <$> parseBonus
             <|> Restricted <$> parseRestriction

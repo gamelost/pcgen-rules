@@ -112,10 +112,10 @@ parseFormula = parseInfixFunction
            <|> parseSkillInfoFunction
            <|> parseNumber
            <|> parseVariable
--- parseFormula = traceFormula
+-- parseFormula = _traceFormula
 
-traceFormula :: Parser Formula
-traceFormula = do
+_traceFormula :: Parser Formula
+_traceFormula = do
   v <- takeTill (\x -> x == '|' || x == '\t' || x == '\r' || x == '\n')
   _ <- trace ("** Formula was " ++ T.unpack v) $ return ()
   return $ Variable v

@@ -39,6 +39,8 @@ data SkillDefinition = Name T.Text
                      | SourcePage T.Text
                      | ProductIdentity Bool
                      | TemporaryDescription T.Text
+                     | AutoLanguageTag AutoLanguage
+                     | ChooseLanguageTag [ChooseLanguage]
                      | OutputName T.Text
                      | Visibility (Visible, Bool)
                      | SkillBonus Bonus
@@ -46,6 +48,36 @@ data SkillDefinition = Name T.Text
                        deriving Show
 
 type SkillTag = Parser SkillDefinition
+
+-- AUTO:LANG|x|x...
+--   x is language, language type, ALL, LIST, CLEAR.
+data AutoLanguage = Language T.Text
+                  | LanguageType T.Text
+                  | AllLanguages
+                  | ListLanguages
+                  | ClearLanguages
+                  | Invert AutoLanguage
+                    deriving (Show, Eq)
+
+parseAutoLanguage :: SkillTag
+parseAutoLanguage = string "AUTO:LANG|" >> (AutoLanguageTag <$> parseLanguages) where
+  parseLanguages = LanguageType <$> (string "TYPE=" *> parseString)
+               <|> (string "ALL" >> return AllLanguages)
+               <|> (string "%LIST" >> return ListLanguages)
+               <|> (string "CLEAR" >> return ClearLanguages)
+               <|> Invert <$> (char '!' >> parseLanguages)
+               <|> Language <$> parseString
+
+-- not fully implemented
+data ChooseLanguage = ChoiceLanguage T.Text
+                    | ChoiceLanguageType T.Text
+                      deriving (Show, Eq)
+
+parseChooseLanguage :: SkillTag
+parseChooseLanguage =
+  string "CHOOSE:LANG|" >> (ChooseLanguageTag <$> parseChoice `sepBy` char ',') where
+    parseChoice = ChoiceLanguageType <$> (string "TYPE=" *> parseString)
+              <|> ChoiceLanguage <$> parseString
 
 parseProductIdentity :: SkillTag
 parseProductIdentity = ProductIdentity <$> (tag "NAMEISPI" >> yesOrNo)
@@ -117,6 +149,8 @@ parseSkillTag = parseKeyStat
             <|> parseExclusive
             <|> parseVisibility
             <|> parseProductIdentity
+            <|> parseAutoLanguage
+            <|> parseChooseLanguage
             <|> parseOutputName
             <|> parseUniqueKey
             <|> SkillBonus <$> parseBonus

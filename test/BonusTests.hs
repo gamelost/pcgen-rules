@@ -75,6 +75,29 @@ testSkillRankBonus =
             ]
         }
 
+testVariableBonus = do
+  parseBonusString bonusVar1 @?= bonusVarResult1
+  parseBonusString bonusVar2 @?= bonusVarResult2 where
+    bonusVar1 = "BONUS:VAR|MartialArtsSkillTotal|skillinfo(\"TOTAL\",\"Martial Arts\")|TYPE=MartialArts"
+    bonusVarResult1 =
+      BonusVariable BonusVar
+        { bonusVariables = [ "MartialArtsSkillTotal" ]
+        , adjustBy = LookupSkill ( TOTAL , "Martial Arts" )
+        , bonusVarType = Just "MartialArts"
+        , bonusVarRestrictions = [ ]
+        }
+    bonusVar2 = "BONUS:VAR|AlchemyFeat|3|PRESKILLTOT:Alchemy=9|TYPE=NoStack"
+    bonusVarResult2 =
+      BonusVariable BonusVar
+        { bonusVariables = [ "AlchemyFeat" ]
+        , adjustBy = Number 3
+        , bonusVarType = Just "NoStack"
+        , bonusVarRestrictions =
+            [ PreSkillTotalRestriction
+                PreSkillTot { skillTotals = [ SkillName "Alchemy" ] , skillTotalNeeded = 9 }
+            ]
+        }
+
 testTempBonus = do
   parseBonusString tempBonus1 @?= tempResult1
   parseBonusString tempBonus2 @?= tempResult2 where
@@ -124,4 +147,5 @@ bonusTests :: Test
 bonusTests = TestList [ "parse skill bonuses" ~: testSkillBonus
                       , "parse skill rank bonuses" ~: testSkillRankBonus
                       , "parse temporary bonuses" ~: testTempBonus
+                      , "parse variable bonuses" ~: testVariableBonus
                       ]

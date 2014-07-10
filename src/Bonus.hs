@@ -13,6 +13,7 @@ import Common
 
 data Bonus = BonusSkill Skill
            | BonusSkillRank SkillRank
+           | BonusVariable BonusVar
            | BonusDescription T.Text
            | TemporaryBonus TempBonus
              deriving (Show, Eq)
@@ -43,10 +44,15 @@ parseBonusSkill = do
   _ <- string "SKILL|"
   bonusToSkills <- parseBonusSkills `sepBy` char ','
   skillFormula <- char '|' *> parseSkillFormulaType
-  skillType <- optional $ string "|TYPE=" >> parseString
+  skillType1 <- optional $ string "|TYPE=" >> parseWord
   restrictions <- optional parseAdditionalRestrictions
+  -- attempt to parse the type again (ugh)
+  skillType2 <- optional $ string "|TYPE=" >> parseWord
+  isStack <- optional $ string ".STACK"
+  let _ = assert (isJust skillType1 && isJust skillType2) -- illegal!
+  let skillType = skillType1 <|> skillType2
   let skillRestrictions = fromMaybe [] restrictions
-  let skillStack = False
+  let skillStack = isJust isStack
   return Skill { .. } where
     parseBonusSkills = parseList
                    <|> parseAll
@@ -60,22 +66,6 @@ parseBonusSkill = do
     parseSkillName = BonusSkillName <$> parseString
     parseSkillFormulaType = SkillFormula <$> parseFormula
                         <|> SkillText <$> parseString
-
--- this one is kind of ugly, because you can have:
--- BONUS:SKILL|...|...<restrictions>|TYPE=foo.STACK
--- or
--- BONUS:SKILL|...|TYPE=foo.STACK|...<restrictions>
--- so we have to account for both cases. ugh.
-parseBonusSkillWithStack :: Parser Skill
-parseBonusSkillWithStack = do
-  skill <- parseBonusSkill
-  what <- string "|TYPE=" *> parseWord
-  isStack <- optional $ string ".STACK"
-  -- make sure we don't override a previously set type, this is most likely a bug
-  let _ = assert (isNothing $ skillType skill)
-  let newSkill = skill { skillType=Just what
-                       , skillStack=isJust isStack }
-  return newSkill
 
 -- BONUS:SKILLRANK:x,x,...|y
 --   x is skill name, skill type (TYPE=x)
@@ -101,6 +91,29 @@ parseBonusSkillRank = do
     parseBonusSkillRanks = parseSkillType <|> parseSkillName
     parseSkillType = string "TYPE=" >> (SkillRankType <$> parseString)
     parseSkillName = SkillRankName <$> parseString
+
+-- BONUS:VAR|x,x,...|y
+--   x is variable name
+--   y is number, variable, or formula to adjust variable by
+data BonusVar = BonusVar { bonusVariables :: [T.Text]
+                         , adjustBy :: Formula
+                         , bonusVarType :: Maybe T.Text
+                         , bonusVarRestrictions :: [Restriction] }
+              deriving (Show, Eq)
+
+parseBonusVariable :: Parser BonusVar
+parseBonusVariable = do
+  _ <- string "VAR|"
+  bonusVariables <- parseString `sepBy` char ','
+  adjustBy <- char '|' *> parseFormula
+  varType1 <- optional $ string "|TYPE=" *> parseString
+  restrictions <- optional parseAdditionalRestrictions
+  -- attempt to parse the type again (ugh)
+  varType2 <- optional $ string "|TYPE=" *> parseString
+  let _ = assert (isJust varType1 && isJust varType2) -- illegal!
+  let bonusVarType = varType1 <|> varType2
+  let bonusVarRestrictions = fromMaybe [] restrictions
+  return BonusVar { .. }
 
 -- TEMPBONUS:x,x,...|y|z
 --   x is PC, ANYPC, or EQ
@@ -137,7 +150,7 @@ parseBonusDescription = tag "TEMPDESC" >> restOfTag
 
 parseAnyBonus :: Parser Bonus
 parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
-            <|> BonusSkill <$> parseBonusSkillWithStack
+            <|> BonusVariable <$> parseBonusVariable
             <|> BonusSkill <$> parseBonusSkill
 
 parseBonus :: Parser Bonus

@@ -37,6 +37,7 @@ data SkillDefinition = Name T.Text
                      | KeyStat T.Text
                      | UseUntrained Bool
                      | SourcePage T.Text
+                     | ProductIdentity Bool
                      | TemporaryDescription T.Text
                      | Visibility (Visible, Bool)
                      | SkillBonus Bonus
@@ -44,6 +45,9 @@ data SkillDefinition = Name T.Text
                        deriving Show
 
 type SkillTag = Parser SkillDefinition
+
+parseProductIdentity :: SkillTag
+parseProductIdentity = ProductIdentity <$> (tag "NAMEISPI" >> yesOrNo)
 
 parseExclusive :: SkillTag
 parseExclusive = Exclusive <$> (tag "EXCLUSIVE" >> yesOrNo)
@@ -108,6 +112,7 @@ parseSkillTag = parseKeyStat
             <|> parseSourcePage
             <|> parseExclusive
             <|> parseVisibility
+            <|> parseProductIdentity
             <|> parseUniqueKey
             <|> SkillBonus <$> parseBonus
             <|> Restricted <$> parseRestriction

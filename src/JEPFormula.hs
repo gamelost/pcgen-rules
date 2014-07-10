@@ -40,12 +40,19 @@ data Formula = Number Int
 listOfVars :: [String]
 listOfVars = [ "SynergyBonus"
              , "Reputation"
-             , "INT" -- should this be an attribute instead?
+             , "INT" -- should these be attributes instead?
+             , "DEX"
+             , "STR"
+             , "CON"
+             , "WIS"
+             , "CHA"
              ]
 
 listOfFunctions :: [String]
 listOfFunctions = [ "floor"
                   , "max"
+                  , "min"
+                  , "ceil"
                   ]
 
 parseNumber :: Parser Formula

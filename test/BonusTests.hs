@@ -17,14 +17,14 @@ parseBonusString contents = parseResult "parseBonus" $ parse parseBonus contents
 testSkillBonus = do
   parseBonusString skillBonus1 @?= skillResult1
   parseBonusString skillBonus2 @?= skillResult2
-  parseBonusString skillBonus3 @?= skillResult3 where
+  parseBonusString skillBonus3 @?= skillResult3
+  parseBonusString skillBonus4 @?= skillResult4 where
     skillBonus1 = "BONUS:SKILL|Climb|8|PREMOVE:1,Climb=1|TYPE=Racial"
     skillResult1 =
       BonusSkill Skill
         { bonusToSkills = [ BonusSkillName "Climb" ]
         , skillFormula = SkillFormula ( Number 8 )
-        , skillType = Just "Racial"
-        , skillStack = False
+        , skillType = Just ("Racial", False)
         , skillRestrictions =
             [ PreMoveRestriction
                 PreMove { moveNumber = 1 , moves = [ ( "Climb" , 1 ) ] }
@@ -38,8 +38,7 @@ testSkillBonus = do
       BonusSkill Skill
         { bonusToSkills = [ BonusSkillName "Craft (Gunsmith)" ]
         , skillFormula = SkillFormula ( Variable "SynergyBonus" )
-        , skillType = Just "Synergy"
-        , skillStack = True
+        , skillType = Just ("Synergy", True)
         , skillRestrictions =
             [ PreSkillRestriction
                 PreSkill { skillNumber = 1
@@ -54,8 +53,19 @@ testSkillBonus = do
         { bonusToSkills = [ BonusSkillName "Deception (Act in character)" ]
         , skillFormula = SkillText "SKILL.Deception.MISC"
         , skillType = Nothing
-        , skillStack = False
         , skillRestrictions = [ ]
+        }
+    skillBonus4 = "BONUS:SKILL|Sleight of Hand,Diplomacy,Intimidate|SynergyBonus|TYPE=Synergy.STACK|PRESKILL:1,Bluff=5"
+    skillResult4 =
+      BonusSkill Skill
+        { bonusToSkills = [ BonusSkillName "Sleight of Hand,Diplomacy,Intimidate" ]
+        , skillFormula = SkillFormula (Variable "SynergyBonus")
+        , skillType = Just ("Synergy", True)
+        , skillRestrictions =
+            [ PreSkillRestriction
+                PreSkill { skillNumber = 1
+                         , skills = [ ( SkillName "Bluff", 5 ) ] }
+            ]
         }
 
 testSkillRankBonus =
@@ -67,7 +77,7 @@ testSkillRankBonus =
       BonusSkillRank SkillRank
         { skillRanks = [ SkillRankName "Acrobatics (On ship)" ]
         , skillRankFormula = LookupSkill ( TOTALRANK, "Acrobatics" )
-        , skillRankType = Just "SkillGranted"
+        , skillRankType = Just ("SkillGranted", False)
         , skillRankRestrictions =
             [ PreVarNeqRestriction
                 PreVarNeq { variables = [ PreVarFormula ( LookupVariable "SKILL.Acrobatics (On ship).MISC" )
@@ -83,7 +93,7 @@ testVariableBonus = do
       BonusVariable BonusVar
         { bonusVariables = [ "MartialArtsSkillTotal" ]
         , adjustBy = LookupSkill ( TOTAL , "Martial Arts" )
-        , bonusVarType = Just "MartialArts"
+        , bonusVarType = Just ("MartialArts", False)
         , bonusVarRestrictions = [ ]
         }
     bonusVar2 = "BONUS:VAR|AlchemyFeat|3|PRESKILLTOT:Alchemy=9|TYPE=NoStack"
@@ -91,7 +101,7 @@ testVariableBonus = do
       BonusVariable BonusVar
         { bonusVariables = [ "AlchemyFeat" ]
         , adjustBy = Number 3
-        , bonusVarType = Just "NoStack"
+        , bonusVarType = Just ("NoStack", False)
         , bonusVarRestrictions =
             [ PreSkillTotalRestriction
                 PreSkillTot { skillTotals = [ SkillName "Alchemy" ] , skillTotalNeeded = 9 }
@@ -112,8 +122,7 @@ testTempBonus = do
                 Skill
                   { bonusToSkills = [ BonusSkillName "Craft (Fletcher)" ]
                   , skillFormula = SkillFormula (Number (-2))
-                  , skillType = Just "Circumstance"
-                  , skillStack = False
+                  , skillType = Just ("Circumstance", False)
                   , skillRestrictions = []
                   }
             ]
@@ -135,8 +144,7 @@ testTempBonus = do
                 Skill
                   { bonusToSkills = [ BonusSkillName "Disguise" ]
                   , skillFormula = SkillFormula ( Variable "SynergyBonus" )
-                  , skillType = Just "Circumstance"
-                  , skillStack = False
+                  , skillType = Just ("Circumstance", False)
                   , skillRestrictions = []
                   }
             ]

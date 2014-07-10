@@ -34,25 +34,35 @@ data SkillFormulaType = SkillFormula Formula
 
 data Skill = Skill { bonusToSkills :: [BonusToSkill]
                    , skillFormula :: SkillFormulaType
-                   , skillType :: Maybe T.Text
-                   , skillStack :: Bool
+                   , skillType :: Maybe (T.Text, Bool)
                    , skillRestrictions :: [Restriction] }
              deriving (Show, Eq)
+
+-- we have far more bonus types, but for now, stick with a simple (Text, Bool)
+parseBonusType :: Parser (T.Text, Bool)
+parseBonusType = do
+  bonusType <- string "|TYPE=" *> parseString
+  let testForStack = T.stripSuffix ".STACK" bonusType
+  return (fromMaybe bonusType testForStack, isJust testForStack)
+
+-- bonus types can be found either before or after restrictions
+parseBonusRestrictionsAndType :: Parser ([Restriction], Maybe (T.Text, Bool))
+parseBonusRestrictionsAndType = do
+  type1 <- optional parseBonusType
+  restrictions <- optional parseAdditionalRestrictions
+  type2 <- optional parseBonusType
+  -- make sure we didn't parse bonus TYPEs both times!
+  let _ = assert (isJust type1 && isJust type2)
+  let bonusType = type1 <|> type2
+  let bonusRestrictions = fromMaybe [] restrictions
+  return (bonusRestrictions, bonusType)
 
 parseBonusSkill :: Parser Skill
 parseBonusSkill = do
   _ <- string "SKILL|"
   bonusToSkills <- parseBonusSkills `sepBy` char ','
   skillFormula <- char '|' *> parseSkillFormulaType
-  skillType1 <- optional $ string "|TYPE=" >> parseWord
-  restrictions <- optional parseAdditionalRestrictions
-  -- attempt to parse the type again (ugh)
-  skillType2 <- optional $ string "|TYPE=" >> parseWord
-  isStack <- optional $ string ".STACK"
-  let _ = assert (isJust skillType1 && isJust skillType2) -- illegal!
-  let skillType = skillType1 <|> skillType2
-  let skillRestrictions = fromMaybe [] restrictions
-  let skillStack = isJust isStack
+  (skillRestrictions, skillType) <- parseBonusRestrictionsAndType
   return Skill { .. } where
     parseBonusSkills = parseList
                    <|> parseAll
@@ -76,7 +86,7 @@ data BonusToSkillRank = SkillRankName T.Text
 
 data SkillRank = SkillRank { skillRanks :: [BonusToSkillRank]
                            , skillRankFormula :: Formula
-                           , skillRankType :: Maybe T.Text
+                           , skillRankType :: Maybe (T.Text, Bool)
                            , skillRankRestrictions :: [Restriction] }
                  deriving (Show, Eq)
 
@@ -85,8 +95,7 @@ parseBonusSkillRank = do
   _ <- string "SKILLRANK|"
   skillRanks <- parseBonusSkillRanks `sepBy` char ','
   skillRankFormula <- char '|' *> parseFormula
-  skillRankType <- optional $ string "|TYPE=" >> parseString
-  skillRankRestrictions <- parseAdditionalRestrictions
+  (skillRankRestrictions, skillRankType) <- parseBonusRestrictionsAndType
   return SkillRank { .. } where
     parseBonusSkillRanks = parseSkillType <|> parseSkillName
     parseSkillType = string "TYPE=" >> (SkillRankType <$> parseString)
@@ -97,7 +106,7 @@ parseBonusSkillRank = do
 --   y is number, variable, or formula to adjust variable by
 data BonusVar = BonusVar { bonusVariables :: [T.Text]
                          , adjustBy :: Formula
-                         , bonusVarType :: Maybe T.Text
+                         , bonusVarType :: Maybe (T.Text, Bool)
                          , bonusVarRestrictions :: [Restriction] }
               deriving (Show, Eq)
 
@@ -106,13 +115,7 @@ parseBonusVariable = do
   _ <- string "VAR|"
   bonusVariables <- parseString `sepBy` char ','
   adjustBy <- char '|' *> parseFormula
-  varType1 <- optional $ string "|TYPE=" *> parseString
-  restrictions <- optional parseAdditionalRestrictions
-  -- attempt to parse the type again (ugh)
-  varType2 <- optional $ string "|TYPE=" *> parseString
-  let _ = assert (isJust varType1 && isJust varType2) -- illegal!
-  let bonusVarType = varType1 <|> varType2
-  let bonusVarRestrictions = fromMaybe [] restrictions
+  (bonusVarRestrictions, bonusVarType) <- parseBonusRestrictionsAndType
   return BonusVar { .. }
 
 -- TEMPBONUS:x,x,...|y|z

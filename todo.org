@@ -20,7 +20,7 @@
 ** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
 * skill [0/1]
 ** TODO finish up PREVAR{G,L}TEQ
-** 39 failures
+** 38 failures
 * JEP [0/1]
 ** TODO allow for plain strings?
 - SkillFormulaType/PreVarType are hacks

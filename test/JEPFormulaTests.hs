@@ -60,6 +60,13 @@ testNestedFunc2 = parseJEP "max(floor((var(\"SKILLRANK=Concentration\")-5)/20))*
                           , Number 20 ] ] ]
                     , Variable "SynergyBonus"]
 
+testMisc = parseJEP "(1+skillinfo(\"TOTAL\",\"Martial Arts\"))/2" @?=
+           Function Divide
+             [ Group (Function Add
+                 [ Number 1
+                 , LookupSkill ( TOTAL, "Martial Arts" ) ] )
+             , Number 2 ]
+
 formulaTests :: Test
 formulaTests = TestList [ "parse integer" ~: testInt
                         , "parse unsigned integer" ~: testSignedInt
@@ -69,4 +76,5 @@ formulaTests = TestList [ "parse integer" ~: testInt
                         , "parse function with nested groups" ~: testNestedFunc
                         , "parse function with more nested groups" ~: testNestedFunc2
                         , "parse function with nested infix function" ~: testNestedInfixFunc
+                        , "parse miscellaneous formulas" ~: testMisc
                         ]

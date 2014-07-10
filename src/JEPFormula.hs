@@ -95,7 +95,7 @@ parseInfixFunction = do
   -- only support infix 2 for now
   first <- parseVariable <|> parseNumber <|> parseVarFunction <|> parseFunction <|> parseGroup
   op <- many space >> choice (map char "/*-+") <* many space
-  second <- parseVariable <|> parseNumber
+  second <- parseVariable <|> parseNumber <|> parseSkillInfoFunction
   return $ Function (operandMap op) [first, second] where
     operandMap :: Char -> Operand
     operandMap '/' = Divide

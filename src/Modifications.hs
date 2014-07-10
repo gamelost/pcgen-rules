@@ -28,7 +28,7 @@ parseStart :: Parser (T.Text, Operation)
 parseStart = do
   what <- parseString
   return . fromJust $ matchSuffixes what where
-    matchSuffixes str = (\x -> (x, Modify)) <$> T.stripSuffix str ".MOD"
-                    <|> (\x -> (x, Forget)) <$> T.stripSuffix str ".FORGET"
-                    <|> (\x -> (x, Copy)) <$> T.stripSuffix str ".COPY"
+    matchSuffixes str = (\x -> (x, Modify)) <$> T.stripSuffix ".MOD" str
+                    <|> (\x -> (x, Forget)) <$> T.stripSuffix ".FORGET" str
+                    <|> (\x -> (x, Copy)) <$> T.stripSuffix ".COPY" str
                     <|> return (str, Add)

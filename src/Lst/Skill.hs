@@ -8,6 +8,7 @@ import Data.Attoparsec.Text
 import Control.Applicative
 import Restrictions(Restriction, parseRestriction)
 import Modifications
+import Lst.Global
 import Common
 import Bonus
 
@@ -34,71 +35,20 @@ data SkillDefinition = Name T.Text
                      | Classes Class
                      | Exclusive Bool
                      | UniqueKey T.Text
-                     | KeyStat T.Text
-                     | UseUntrained Bool
-                     | SourcePage T.Text
-                     | ProductIdentity Bool
-                     | TemporaryDescription T.Text
-                     | AutoLanguageTag AutoLanguage
-                     | ChooseLanguageTag [ChooseLanguage]
-                     | OutputName T.Text
                      | Visibility (Visible, Bool)
+                     -- shared tags
+                     | Global GlobalTag
                      | SkillBonus Bonus
                      | Restricted Restriction
                        deriving Show
 
 type SkillTag = Parser SkillDefinition
 
--- AUTO:LANG|x|x...
---   x is language, language type, ALL, LIST, CLEAR.
-data AutoLanguage = Language T.Text
-                  | LanguageType T.Text
-                  | AllLanguages
-                  | ListLanguages
-                  | ClearLanguages
-                  | Invert AutoLanguage
-                    deriving (Show, Eq)
-
-parseAutoLanguage :: SkillTag
-parseAutoLanguage = string "AUTO:LANG|" >> (AutoLanguageTag <$> parseLanguages) where
-  parseLanguages = LanguageType <$> (string "TYPE=" *> parseString)
-               <|> (string "ALL" >> return AllLanguages)
-               <|> (string "%LIST" >> return ListLanguages)
-               <|> (string "CLEAR" >> return ClearLanguages)
-               <|> Invert <$> (char '!' >> parseLanguages)
-               <|> Language <$> parseString
-
--- not fully implemented
-data ChooseLanguage = ChoiceLanguage T.Text
-                    | ChoiceLanguageType T.Text
-                      deriving (Show, Eq)
-
-parseChooseLanguage :: SkillTag
-parseChooseLanguage =
-  string "CHOOSE:LANG|" >> (ChooseLanguageTag <$> parseChoice `sepBy` char ',') where
-    parseChoice = ChoiceLanguageType <$> (string "TYPE=" *> parseString)
-              <|> ChoiceLanguage <$> parseString
-
-parseProductIdentity :: SkillTag
-parseProductIdentity = ProductIdentity <$> (tag "NAMEISPI" >> yesOrNo)
-
 parseExclusive :: SkillTag
 parseExclusive = Exclusive <$> (tag "EXCLUSIVE" >> yesOrNo)
 
-parseUseUntrained :: SkillTag
-parseUseUntrained = UseUntrained <$> (tag "USEUNTRAINED" >> yesOrNo)
-
-parseOutputName :: SkillTag
-parseOutputName = OutputName <$> (tag "OUTPUTNAME" >> parseString)
-
-parseKeyStat :: SkillTag
-parseKeyStat  = KeyStat <$> (tag "KEYSTAT" >> parseString)
-
 parseUniqueKey :: SkillTag
 parseUniqueKey  = UniqueKey <$> (tag "KEY" >> parseString)
-
-parseSourcePage :: SkillTag
-parseSourcePage  = SourcePage <$> (tag "SOURCEPAGE" >> parseString)
 
 parseType :: SkillTag
 parseType = Type <$> (tag "TYPE" >> parseString `sepBy` char '.')
@@ -108,9 +58,6 @@ parseClasses = Classes <$> (tag "CLASSES" >> parseClass) where
   parseClass :: Parser Class
   parseClass = (string "ALL" >> return AllClasses) <|>
                (Subset <$> (parseString `sepBy` char '|'))
-
-parseTemporaryDescription :: SkillTag
-parseTemporaryDescription = TemporaryDescription <$> (tag "TEMPDESC" >> parseString)
 
 parseArmorCheck :: SkillTag
 parseArmorCheck = do
@@ -139,20 +86,13 @@ parseVisibility = do
     matchVisibility _ = Always
 
 parseSkillTag :: SkillTag
-parseSkillTag = parseKeyStat
-            <|> parseUseUntrained
-            <|> parseArmorCheck
+parseSkillTag = parseArmorCheck
             <|> parseType
             <|> parseClasses
-            <|> parseTemporaryDescription
-            <|> parseSourcePage
             <|> parseExclusive
             <|> parseVisibility
-            <|> parseProductIdentity
-            <|> parseAutoLanguage
-            <|> parseChooseLanguage
-            <|> parseOutputName
             <|> parseUniqueKey
+            <|> Global <$> parseGlobalTags
             <|> SkillBonus <$> parseBonus
             <|> Restricted <$> parseRestriction
 

@@ -7,6 +7,7 @@ import Data.Attoparsec.Text
 import Control.Applicative
 import Restrictions
 import Modifications
+import Lst.Global
 import Common
 import Bonus
 
@@ -19,26 +20,12 @@ data LanguageType = Read
 
 data LanguageDefinition = Name T.Text
                         | Key T.Text
-                        | ProductIdentity Bool
-                        | UseUntrained Bool
                         | LanguageTypes [LanguageType]
-                        | KeyStat T.Text
-                        | SourcePage T.Text
                         | LanguageBonus Bonus
+                        -- shared tags
+                        | Global GlobalTag
                         | Restricted Restriction
                           deriving Show
-
-parseProductIdentity :: Parser LanguageDefinition
-parseProductIdentity = ProductIdentity <$> (tag "NAMEISPI" >> yesOrNo)
-
-parseUseUntrained :: Parser LanguageDefinition
-parseUseUntrained = UseUntrained <$> (tag "USEUNTRAINED" >> yesOrNo)
-
-parseKeyStat :: Parser LanguageDefinition
-parseKeyStat = KeyStat <$> (tag "KEYSTAT" >> parseString)
-
-parseSourcePage :: Parser LanguageDefinition
-parseSourcePage = SourcePage <$> (tag "SOURCEPAGE" >> parseString)
 
 parseKey :: Parser LanguageDefinition
 parseKey = Key <$> (tag "KEY" >> parseString)
@@ -55,11 +42,8 @@ parseTypes = do
 
 parseLanguageTag :: Parser LanguageDefinition
 parseLanguageTag = parseKey
-               <|> parseProductIdentity
-               <|> parseKeyStat
-               <|> parseUseUntrained
                <|> parseTypes
-               <|> parseSourcePage
+               <|> Global <$> parseGlobalTags
                <|> LanguageBonus <$> parseBonus
                <|> Restricted <$> parseRestriction
 

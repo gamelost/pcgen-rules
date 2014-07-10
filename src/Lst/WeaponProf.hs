@@ -6,37 +6,29 @@ import Control.Applicative
 import Data.Attoparsec.Text
 import Modifications
 import Restrictions
+import Lst.Global
 import Common
 
 data WeaponProficency = Name T.Text
                       | WeaponType [T.Text]
                       | WeaponHands Int
-                      | OutputName T.Text
-                      | ProductIdentity Bool
+                      -- shared tags
+                      | Global GlobalTag
                       | Restricted Restriction
                         deriving Show
 
-parseProductIdentity :: Parser WeaponProficency
-parseProductIdentity = ProductIdentity <$> (tag "NAMEISPI" >> yesOrNo)
-
--- comma only shows up in one file (apg_profs_weapon.lst). ugh.
-parseWordAndComma :: Parser T.Text
-parseWordAndComma = takeWhile1 $ inClass "-A-Za-z, "
-
 parseWeaponType :: Parser WeaponProficency
-parseWeaponType = WeaponType <$> (tag "TYPE" >> parseWordAndComma `sepBy` char '.')
+parseWeaponType = WeaponType <$> (tag "TYPE" >> parseWordAndComma `sepBy` char '.') where
+  -- comma only shows up in one file (apg_profs_weapon.lst). ugh.
+  parseWordAndComma = takeWhile1 $ inClass "-A-Za-z, "
 
 parseWeaponHands :: Parser WeaponProficency
 parseWeaponHands = WeaponHands <$> (tag "HANDS" >> liftM textToInt manyNumbers)
 
-parseOutputName :: Parser WeaponProficency
-parseOutputName = OutputName <$> (tag "OUTPUTNAME" >> parseWordAndComma)
-
 parseWeaponProficencyTag :: Parser WeaponProficency
-parseWeaponProficencyTag = parseProductIdentity
-                       <|> parseWeaponType
+parseWeaponProficencyTag = parseWeaponType
                        <|> parseWeaponHands
-                       <|> parseOutputName
+                       <|> Global <$> parseGlobalTags
                        <|> Restricted <$> parseRestriction
 
 parseWeaponProficency :: T.Text -> Parser [WeaponProficency]

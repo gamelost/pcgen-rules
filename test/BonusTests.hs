@@ -18,7 +18,8 @@ testSkillBonus = do
   parseBonusString skillBonus1 @?= skillResult1
   parseBonusString skillBonus2 @?= skillResult2
   parseBonusString skillBonus3 @?= skillResult3
-  parseBonusString skillBonus4 @?= skillResult4 where
+  parseBonusString skillBonus4 @?= skillResult4
+  parseBonusString skillBonus5 @?= skillResult5 where
     skillBonus1 = "BONUS:SKILL|Climb|8|PREMOVE:1,Climb=1|TYPE=Racial"
     skillResult1 =
       BonusSkill Skill
@@ -65,6 +66,17 @@ testSkillBonus = do
             [ PreSkillRestriction
                 PreSkill { skillNumber = 1
                          , skills = [ ( SkillName "Bluff", 5 ) ] }
+            ]
+        }
+    skillBonus5 = "BONUS:SKILL|Knowledge (Reverie)|2|PRERACE:1,Elf%"
+    skillResult5 =
+      BonusSkill Skill
+        { bonusToSkills = [ BonusSkillName "Knowledge (Reverie)" ]
+        , skillFormula = SkillFormula (Number 2)
+        , skillType = Nothing
+        , skillRestrictions =
+            [ PreRaceRestriction
+                PreRace { raceNumber = 1 , races = [ RaceName "Elf%" ] }
             ]
         }
 

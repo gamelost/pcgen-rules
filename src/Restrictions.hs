@@ -17,6 +17,7 @@ data Restriction = PreClassRestriction PreClass
                  | PreAbilityRestriction PreAbility
                  | PreFeatRestriction PreFeat
                  | PreItemRestriction PreItem
+                 | PreRaceRestriction PreRace
                  | PreMoveRestriction PreMove
                  | PreSkillRestriction PreSkill
                  | PreSkillTotalRestriction PreSkillTot
@@ -168,6 +169,29 @@ parsePreMove = do
       moveMinimum <- char '=' >> manyNumbers
       return (moveType, textToInt moveMinimum)
 
+-- PRERACE:x,y,y...
+--   x is number of racial properties
+--   y is name of race, type, racetype, racesubtype
+data Race = RaceName T.Text
+          | RaceType T.Text
+          | RaceTypeType T.Text
+          | RaceSubType T.Text
+            deriving (Show, Eq)
+
+data PreRace = PreRace { raceNumber :: Int
+                       , races :: [Race ] }
+             deriving (Show, Eq)
+
+parsePreRace :: Parser PreRace
+parsePreRace = do
+  n <- tag "PRERACE" >> manyNumbers
+  races <- char ',' >> parseRaces `sepBy` char ','
+  return PreRace { raceNumber = textToInt n, .. } where
+    parseRaces = RaceSubType <$> (string "RACESUBTYPE=" *> parseString)
+             <|> RaceTypeType <$> (string "RACETYPE=" *> parseString)
+             <|> RaceType <$> (string "TYPE=" *> parseString)
+             <|> RaceName <$> parseString
+
 -- PRERULE:x,y
 --   x is number of rules required
 --   y is rule name
@@ -274,6 +298,7 @@ parsePossibleRestriction = PreVarNeqRestriction <$> parsePreVarNeq
                        <|> PreAbilityRestriction <$> parsePreAbility
                        <|> PreFeatRestriction <$> parsePreFeat
                        <|> PreItemRestriction <$> parsePreItem
+                       <|> PreRaceRestriction <$> parsePreRace
                        <|> PreMoveRestriction <$> parsePreMove
                        <|> PreRuleRestriction <$> parsePreRule
                        <|> PreAlignRestriction <$> parsePreAlign

@@ -3,6 +3,7 @@
 ** TODO narrow down parseString: too general
 ** TODO look at data/zen-test/... -- something we can use?
 ** TODO separate out common tags such as NAMEISPI
+** TODO CHOOSE/AUTO
 * pcc [0/2]
 ** TODO implement INCLUDE for lst files
 ** TODO implement EXCLUDE for lst files
@@ -20,7 +21,7 @@
 ** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
 * skill [0/1]
 ** TODO finish up PREVAR{G,L}TEQ
-** 38 failures
+** 35 failures
 * JEP [0/1]
 ** TODO allow for plain strings?
 - SkillFormulaType/PreVarType are hacks

@@ -19,7 +19,8 @@ testSkillBonus = do
   parseBonusString skillBonus2 @?= skillResult2
   parseBonusString skillBonus3 @?= skillResult3
   parseBonusString skillBonus4 @?= skillResult4
-  parseBonusString skillBonus5 @?= skillResult5 where
+  parseBonusString skillBonus5 @?= skillResult5
+  parseBonusString skillBonus6 @?= skillResult6 where
     skillBonus1 = "BONUS:SKILL|Climb|8|PREMOVE:1,Climb=1|TYPE=Racial"
     skillResult1 =
       BonusSkill Skill
@@ -79,9 +80,17 @@ testSkillBonus = do
                 PreRace { raceNumber = 1 , races = [ RaceName "Elf%" ] }
             ]
         }
+    skillBonus6 = "BONUS:SKILL|Intimidate (Charisma),Intimidate (Strength)|SKILL.Intimidate.MISC"
+    skillResult6 =
+      BonusSkill Skill
+        { bonusToSkills = [ BonusSkillName "Intimidate (Charisma), Intimidate (Strength)"]
+        , skillFormula = SkillFormula (Number 2) -- should be Nothing
+        , skillType = Just ("Intimidate.MISC", False)
+        , skillRestrictions = []}
 
-testSkillRankBonus =
-  parseBonusString skillRankBonus1 @?= skillRankResult1 where
+testSkillRankBonus = do
+  parseBonusString skillRankBonus1 @?= skillRankResult1
+  parseBonusString skillRankBonus2 @?= skillRankResult2 where
     skillRankBonus1 = "BONUS:SKILLRANK|Acrobatics (On ship)|\
                        \skillinfo(\"TOTALRANK\", \"Acrobatics\")|TYPE=SkillGranted|\
                        \PREVARNEQ:var(\"SKILL.Acrobatics (On ship).MISC\"),SKILL.Acrobatics.MISC"
@@ -95,6 +104,14 @@ testSkillRankBonus =
                 PreVarNeq { variables = [ PreVarFormula ( LookupVariable "SKILL.Acrobatics (On ship).MISC" )
                                         , PreVarText "SKILL.Acrobatics.MISC" ] }
             ]
+        }
+    skillRankBonus2 = "BONUS:SKILLRANK|Intimidate (Charisma),Intimidate (Strength)|SKILLRANK=Intimidate"
+    skillRankResult2 =
+      BonusSkillRank SkillRank
+        { skillRanks = [ SkillRankName "Intimidate (Charisma),Intimidate (Strength)" ]
+        , skillRankFormula = LookupSkill ( TOTALRANK, "Acrobatics" ) -- should be Nothing
+        , skillRankType = Just ("Intimidate", False)
+        , skillRankRestrictions = []
         }
 
 testVariableBonus = do

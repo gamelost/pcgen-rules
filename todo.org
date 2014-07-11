@@ -10,16 +10,22 @@
 ** TODO CLASS:.COPY
 * restrictions [0/6]
 ** TODO pull out per-line restrictions into LSTLine
-** TODO implement BONUS tags
-- what other tags imply per-tag restrictions?
-- a couple of different syntax for this, ugh
 ** TODO implement PRE:.CLEAR
 ** TODO PREFEAT is not fully implemented
 ** TODO PRERULE should be matching against known rules, not accepting any string
 ** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
+** TODO consolidate PREVAR tags, may need to implement DEFINE vars for this
 * skill [0/1]
-** TODO finish up PREVAR{G,L}TEQ
-** 20 failures
+** 19 failures
+- PREMULT: 4
+- BONUS:ABILITYPOOL 4
+- DEFINE: 4
+- AUTO:EQUIP 1
+- BONUS:WEAPONPROF 1
+- PRE:.CLEAR 1
+- SELECT: 1
+- CSKILL: 1
+** TODO fix test failures in BonusTests
 * JEP [0/1]
 ** TODO allow for plain strings?
 - SkillFormulaType/PreVarType are hacks
@@ -38,25 +44,25 @@
 - [ ] STAT:INT=...|
 - [X] BONUS:<category>|<group>|<formula>
 ** how many starting pcc files are there?
-* lst types [5/18]
-- [X] LANGUAGE
-- [X] SHIELDPROF
-- [X] WEAPONPROF
-- [X] ARMORPROF
-- [X] SKILL
-- [ ] COMPANION MODIFIER
-- [ ] DEITY (block-based)
-- [ ] DOMAIN
-- [ ] EQUIPMENT MODIFIER
-- [ ] EQUIPMENT
-- [ ] SPELL
-- [ ] FEAT
-- [ ] RACE
-- [ ] KIT (block-based)
-- [ ] TEMPLATE
-- [ ] CLASS (block-based)
-- [ ] ABILITY
-- [ ] ABILITYCATEGORY
+* parsing lst types [5/18]
+- [X] LANGUAGE (87/87)
+- [X] SHIELDPROF (32/32)
+- [X] WEAPONPROF (147/152)
+- [X] ARMORPROF (55/55)
+- [X] SKILL (143/163)
+- [ ] COMPANION MODIFIER (0/54)
+- [ ] DEITY (block-based) (0/71)
+- [ ] DOMAIN (0/60)
+- [ ] EQUIPMENT MODIFIER (0/135)
+- [ ] EQUIPMENT (0/850)
+- [ ] SPELL (0/235)
+- [ ] FEAT (0/392)
+- [ ] RACE (0/331)
+- [ ] KIT (block-based) (0/349)
+- [ ] TEMPLATE (0/216)
+- [ ] CLASS (block-based) (0/346)
+- [ ] ABILITY (0/483)
+- [ ] ABILITYCATEGORY (0/193)
 * loading comment from pcgen-dev ml
 The "load" process is - in practice - not much different than the
 process used to compile software. (Preprocessing is the handling of

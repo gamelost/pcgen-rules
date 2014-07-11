@@ -93,9 +93,9 @@ parseSkillInfoFunction = do
 parseInfixFunction :: Parser Formula
 parseInfixFunction = do
   -- only support infix 2 for now
-  first <- parseVariable <|> parseNumber <|> parseVarFunction <|> parseFunction <|> parseGroup
+  first <- parsers
   op <- many space >> choice (map char "/*-+") <* many space
-  second <- parseVariable <|> parseNumber <|> parseSkillInfoFunction
+  second <- parsers
   return $ Function (operandMap op) [first, second] where
     operandMap :: Char -> Operand
     operandMap '/' = Divide
@@ -103,6 +103,12 @@ parseInfixFunction = do
     operandMap '-' = Subtract
     operandMap '+' = Add
     operandMap _ = error "No such infix function"
+    parsers = parseVariable
+          <|> parseNumber
+          <|> parseVarFunction
+          <|> parseSkillInfoFunction
+          <|> parseFunction
+          <|> parseGroup
 
 parseFunction :: Parser Formula
 parseFunction = do

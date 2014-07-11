@@ -276,22 +276,24 @@ parsePreVar = do
     convertOperator _ = error "invalid PREVAR operator"
 
 -- not documented, so this is a best-guess
+-- TODO: consolidate, as soon as we figure out the exact properties
+--       seems like PREVAR:formula1,formula2?
 data PreVarType = PreVarFormula Formula
                 | PreVarText T.Text
                   deriving (Show, Eq)
 
 data PreVarNeq = PreVarNeq { variables :: [PreVarType] } deriving (Show, Eq)
 
-parsePreVarNeq :: Parser PreVarNeq
-parsePreVarNeq = do
-  _ <- tag "PREVARNEQ" -- may very well be other operators, but for now...
+parsePreVarNEq :: Parser PreVarNeq
+parsePreVarNEq = do
+  _ <- tag "PREVARNEQ" <|> tag "PREVARLTEQ"
   variables <- parsePreVarType `sepBy` char ','
   return PreVarNeq { .. } where
     parsePreVarType = PreVarFormula <$> parseFormula
                   <|> PreVarText <$> parseString
 
 parsePossibleRestriction :: Parser Restriction
-parsePossibleRestriction = PreVarNeqRestriction <$> parsePreVarNeq
+parsePossibleRestriction = PreVarNeqRestriction <$> parsePreVarNEq
                        <|> PreVarRestriction <$> parsePreVar
                        <|> PreClassSkillRestriction <$> parsePreClassSkill
                        <|> PreClassRestriction <$> parsePreClass

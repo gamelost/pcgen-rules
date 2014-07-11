@@ -61,6 +61,14 @@ parseLST lstParser lstName  = do
   return . parseResult lstName $ parse fullParser contents where
     fullParser = parseLSTLines lstParser
 
+-- inhibit annoying warnings for now: this part is not yet finished
+parseLanguageLST :: FilePath -> IO [LST (LSTLine LanguageDefinition)]
+parseWeaponLST :: FilePath -> IO [LST (LSTLine WeaponProficency)]
+parseShieldLST :: FilePath -> IO [LST (LSTLine ShieldProficency)]
+parseArmorLST :: FilePath -> IO [LST (LSTLine ArmorProficency)]
+parseSkillLST :: FilePath -> IO [LST (LSTLine SkillDefinition)]
+parseGenericLST :: FilePath -> IO [LST (LSTLine LSTDefinition)]
+
 parseLanguageLST = parseLST (parseLSTLine :: Parser (LSTLine LanguageDefinition))
 parseWeaponLST = parseLST (parseLSTLine :: Parser (LSTLine WeaponProficency))
 parseShieldLST = parseLST (parseLSTLine :: Parser (LSTLine ShieldProficency))

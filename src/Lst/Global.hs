@@ -1,10 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 
-module Lst.Global where
+module Lst.Global (GlobalTag, parseGlobalTags) where
 
 import qualified Data.Text as T
 import Data.Attoparsec.Text
 import Control.Applicative
+import Restrictions(Restriction, parseAdditionalRestrictions)
 import Common
 
 data GlobalTag = KeyStat T.Text
@@ -12,6 +13,7 @@ data GlobalTag = KeyStat T.Text
                | SourcePage T.Text
                | ProductIdentity Bool
                | OutputName T.Text
+               | AbilityTag Ability
                | AutoLanguageTag AutoLanguage
                | ChooseLanguageTag [ChooseLanguage]
                  deriving (Eq, Show)
@@ -30,6 +32,30 @@ parseProductIdentity = ProductIdentity <$> (tag "NAMEISPI" >> yesOrNo)
 
 parseOutputName :: Parser GlobalTag
 parseOutputName = OutputName <$> (tag "OUTPUTNAME" >> parseString)
+
+data AbilityNature = Normal | Automatic | Virtual deriving (Eq, Show)
+
+data Ability = Ability { abilityCategory :: T.Text
+                       , abilityNature :: AbilityNature
+                       , abilityName :: T.Text
+                       , abilityRestrictions :: [Restriction] } deriving (Eq, Show)
+
+-- ABILITY:x|y|z
+--   x is ability category
+--   y is ability nature
+--   z is ability name or key
+parseAbility :: Parser GlobalTag
+parseAbility = do
+  _ <- tag "ABILITY"
+  abilityCategory <- parseWordandSpace
+  abilityNature <- char '|' *> parseAbilityNature
+  abilityName <- char '|' *> parseString
+  abilityRestrictions <- option [] parseAdditionalRestrictions
+  return $ AbilityTag Ability { .. } where
+    parseWordandSpace = takeWhile1 $ inClass "-A-Za-z "
+    parseAbilityNature = (string "NORMAL" >> return Normal)
+                     <|> (string "AUTOMATIC" >> return Automatic)
+                     <|> (string "VIRTUAL" >> return Virtual)
 
 -- AUTO:LANG|x|x...
 --   x is language, language type, ALL, LIST, CLEAR.
@@ -71,5 +97,6 @@ parseGlobalTags = parseKeyStat
               <|> parseSourcePage
               <|> parseProductIdentity
               <|> parseOutputName
+              <|> parseAbility
               <|> parseAutoLanguage
               <|> parseChooseLanguage

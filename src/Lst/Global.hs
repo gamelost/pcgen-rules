@@ -6,6 +6,7 @@ import qualified Data.Text as T
 import Data.Attoparsec.Text
 import Control.Applicative
 import Restrictions(Restriction, parseAdditionalRestrictions)
+import JEPFormula
 import Common
 
 data GlobalTag = KeyStat T.Text
@@ -15,6 +16,7 @@ data GlobalTag = KeyStat T.Text
                | ProductIdentity Bool
                | OutputName T.Text
                | AbilityTag Ability
+               | Select Formula
                | AutoLanguageTag AutoLanguage
                | ChooseLanguageTag [ChooseLanguage]
                  deriving (Eq, Show)
@@ -36,6 +38,9 @@ parseProductIdentity = ProductIdentity <$> (tag "NAMEISPI" >> yesOrNo)
 
 parseOutputName :: Parser GlobalTag
 parseOutputName = OutputName <$> (tag "OUTPUTNAME" >> parseString)
+
+parseSelect :: Parser GlobalTag
+parseSelect = Select <$> (tag "SELECT" >> parseFormula)
 
 data AbilityNature = Normal | Automatic | Virtual deriving (Eq, Show)
 
@@ -100,6 +105,7 @@ parseGlobalTags = parseKeyStat
               <|> parseUseUntrained
               <|> parseSortKey
               <|> parseSourcePage
+              <|> parseSelect
               <|> parseProductIdentity
               <|> parseOutputName
               <|> parseAbility

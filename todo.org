@@ -16,12 +16,10 @@
 ** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
 ** TODO consolidate PREVAR tags, may need to implement DEFINE vars for this
 * skill [0/1]
-** 15 failures
-- PREMULT: 4
+** 10 failures
 - DEFINE: 4
 - AUTO:EQUIP 1
 - PRE:.CLEAR 1
-- SELECT: 1
 - CSKILL: 1
 ** TODO fix test failures in BonusTests
 * JEP [0/1]
@@ -47,7 +45,7 @@
 - [X] SHIELDPROF (32/32)
 - [X] WEAPONPROF (147/152)
 - [X] ARMORPROF (55/55)
-- [X] SKILL (143/163)
+- [X] SKILL (153/163)
 - [ ] COMPANION MODIFIER (0/54)
 - [ ] DEITY (block-based) (0/71)
 - [ ] DOMAIN (0/60)

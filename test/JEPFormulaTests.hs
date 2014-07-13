@@ -73,6 +73,10 @@ testMisc = do
       , Variable "STR" ]
   parseJEP "INT-DEX" @?=
     Function Subtract [ Variable "INT", Variable "DEX" ]
+  parseJEP "-CHA+max(CHA,STR)" @?=
+    Function Add
+      [ Function Subtract [ Number 0, Variable "CHA"]
+      , Function (BuiltIn "max") [ Variable "CHA",Variable "STR" ] ]
 
 formulaTests :: Test
 formulaTests = TestList [ "parse integer" ~: testInt

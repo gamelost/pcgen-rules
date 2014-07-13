@@ -5,6 +5,7 @@ import qualified Data.Text as T
 import qualified Text.Show.Pretty as Pretty
 import Data.Attoparsec.Text
 import Control.Applicative
+import Control.Monad(liftM)
 import Modifications
 import Common
 
@@ -64,7 +65,7 @@ parseLST lstParser lstName  = do
 
 -- debugging only
 prettyPrint :: Show a => Parser (LSTLine a) -> FilePath -> IO String
-prettyPrint x file = parseLST x file >>= return . Pretty.ppShow
+prettyPrint x file = liftM Pretty.ppShow $ parseLST x file
 
 parseLSTToString :: String -> FilePath -> IO String
 parseLSTToString "LANGUAGE" = prettyPrint (parseLSTLine :: Parser (LSTLine LanguageDefinition))

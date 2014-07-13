@@ -60,7 +60,9 @@ testSkillBonus = do
     skillBonus4 = "BONUS:SKILL|Sleight of Hand,Diplomacy,Intimidate|SynergyBonus|TYPE=Synergy.STACK|PRESKILL:1,Bluff=5"
     skillResult4 =
       BonusSkill Skill
-        { bonusToSkills = [ BonusSkillName "Sleight of Hand,Diplomacy,Intimidate" ]
+        { bonusToSkills = [ BonusSkillName "Sleight of Hand"
+                          , BonusSkillName "Diplomacy"
+                          , BonusSkillName "Intimidate" ]
         , skillFormula = SkillFormula (Variable "SynergyBonus")
         , skillType = Just ("Synergy", True)
         , skillRestrictions =
@@ -80,12 +82,13 @@ testSkillBonus = do
                 PreRace { raceNumber = 1 , races = [ RaceName "Elf%" ] }
             ]
         }
+    -- not sure about this one, since SKILL.Intimidate.MISC does not seem to be a variable.
     skillBonus6 = "BONUS:SKILL|Intimidate (Charisma),Intimidate (Strength)|SKILL.Intimidate.MISC"
     skillResult6 =
       BonusSkill Skill
-        { bonusToSkills = [ BonusSkillName "Intimidate (Charisma), Intimidate (Strength)"]
-        , skillFormula = SkillFormula (Number 2) -- should be Nothing
-        , skillType = Just ("Intimidate.MISC", False)
+        { bonusToSkills = [ BonusSkillName "Intimidate (Charisma)", BonusSkillName "Intimidate (Strength)"]
+        , skillFormula = SkillText "SKILL.Intimidate.MISC"
+        , skillType = Nothing
         , skillRestrictions = []}
 
 testSkillRankBonus = do
@@ -97,20 +100,22 @@ testSkillRankBonus = do
     skillRankResult1 =
       BonusSkillRank SkillRank
         { skillRanks = [ SkillRankName "Acrobatics (On ship)" ]
-        , skillRankFormula = LookupSkill ( TOTALRANK, "Acrobatics" )
+        , skillRankFormula = SkillFormula (LookupSkill ( TOTALRANK, "Acrobatics" ))
         , skillRankType = Just ("SkillGranted", False)
         , skillRankRestrictions =
-            [ PreVarNeqRestriction
-                PreVarNeq { variables = [ PreVarFormula ( LookupVariable "SKILL.Acrobatics (On ship).MISC" )
-                                        , PreVarText "SKILL.Acrobatics.MISC" ] }
+            [ PreVarRestriction
+                PreVar { operator = NEQ
+                       , variables = [ PreVarFormula ( LookupVariable "SKILL.Acrobatics (On ship).MISC" )
+                                     , PreVarText "SKILL.Acrobatics.MISC" ] }
             ]
         }
-    skillRankBonus2 = "BONUS:SKILLRANK|Intimidate (Charisma),Intimidate (Strength)|SKILLRANK=Intimidate"
+    -- not sure about this one either, since SKILLRANK=Intimidate does not seem to be a variable.
+    skillRankBonus2 = "BONUS:SKILLRANK|Intimidate (Charisma), Intimidate (Strength)|SKILLRANK=Intimidate"
     skillRankResult2 =
       BonusSkillRank SkillRank
-        { skillRanks = [ SkillRankName "Intimidate (Charisma),Intimidate (Strength)" ]
-        , skillRankFormula = LookupSkill ( TOTALRANK, "Acrobatics" ) -- should be Nothing
-        , skillRankType = Just ("Intimidate", False)
+        { skillRanks = [ SkillRankName "Intimidate (Charisma)", SkillRankName "Intimidate (Strength)" ]
+        , skillRankFormula = SkillText "Intimidate"
+        , skillRankType = Nothing
         , skillRankRestrictions = []
         }
 

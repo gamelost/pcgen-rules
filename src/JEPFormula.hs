@@ -64,6 +64,12 @@ parseVariable :: Parser Formula
 parseVariable = Variable <$> choice varParsers where
   varParsers = map (string . T.pack) listOfVars
 
+-- ugly; unfortunately, this does show up.
+parseNegativeVariable :: Parser Formula
+parseNegativeVariable = char '-' >> choice varParsers >>= embed where
+    varParsers = map (string . T.pack) listOfVars
+    embed v = return $ Function Subtract [ Number 0, Variable v ]
+
 parseGroup :: Parser Formula
 parseGroup = Group <$> (char '(' >> parseFormula <* char ')')
 
@@ -104,6 +110,7 @@ parseInfixFunction = do
     operandMap '+' = Add
     operandMap _ = error "No such infix function"
     parsers = parseVariable
+          <|> parseNegativeVariable
           <|> parseNumber
           <|> parseVarFunction
           <|> parseSkillInfoFunction
@@ -125,6 +132,7 @@ parseFormula = parseInfixFunction
            <|> parseSkillInfoFunction
            <|> parseNumber
            <|> parseVariable
+           <|> parseNegativeVariable
 -- parseFormula = _traceFormula
 
 _traceFormula :: Parser Formula

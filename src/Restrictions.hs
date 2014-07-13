@@ -11,7 +11,6 @@ import Common
 
 data Restriction = PreClassRestriction PreClass
                  | PreClassSkillRestriction PreClassSkill
-                 | PreVarNeqRestriction PreVarNeq
                  | PreVarRestriction PreVar
                  | PreAlignRestriction PreAlign
                  | PreAbilityRestriction PreAbility
@@ -22,6 +21,7 @@ data Restriction = PreClassRestriction PreClass
                  | PreSkillRestriction PreSkill
                  | PreSkillTotalRestriction PreSkillTot
                  | PreRuleRestriction PreRule
+                 | PreMultipleRestriction PreMult
                  | Invert Restriction
                    deriving (Show, Eq)
 
@@ -127,8 +127,9 @@ parsePreFeat = do
   feats <- parseFeat `sepBy` char ','
   let cannotHave = False -- not implemented
   return PreFeat { featNumber = textToInt n, .. } where
-    parseFeat = FeatType <$> (string "TYPE=" >> parseString)
-            <|> FeatName <$> parseString
+    parseFeat = FeatType <$> (string "TYPE=" >> parseStringNoCommas)
+            <|> FeatName <$> parseStringNoCommas
+    parseStringNoCommas = takeWhile1 $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
 
 -- PREITEM:x,y,y,...
 --   x is number of items a character must possess
@@ -168,6 +169,20 @@ parsePreMove = do
       moveType <- parseString
       moveMinimum <- char '=' >> manyNumbers
       return (moveType, textToInt moveMinimum)
+
+-- PREMULT:x,y,y...
+--   x is number of restrictions to pass
+--   y is any restriction in square brackets
+data PreMult = PreMult { restrictionNumber :: Int
+                       , restrictionsToPass :: [Restriction] }
+             deriving (Show, Eq)
+
+parsePreMult :: Parser PreMult
+parsePreMult = do
+  n <- tag "PREMULT" >> manyNumbers
+  restrictionsToPass <- char ',' >> parseRestrictions `sepBy` char ','
+  return PreMult { restrictionNumber = textToInt n, .. } where
+    parseRestrictions = char '[' >> parseRestriction <* char ']'
 
 -- PRERACE:x,y,y...
 --   x is number of racial properties
@@ -250,51 +265,38 @@ parsePreSkillTotal = do
 --   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
 --   y is text (must be in DEFINE: or BONUS:VAR)
 --   z is number to be compared to
+--
+-- NB: documentation does not seem quite right. each y,z parameter is
+-- probably a formula. for now, we read in unknown variables as Text.
 data Operator = EQ | GT | GTEQ | LT | LTEQ | NEQ
                 deriving (Show, Eq)
 
-data PreVar = PreVar { operator :: Operator
-                     , definition :: T.Text
-                     , comparator :: Int }
-              deriving (Show, Eq)
-
-parsePreVar :: Parser PreVar
-parsePreVar = do
-  op <- string "PREVAR" >> choice ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"]
-  def <- char ':' >> parseWord
-  n <- char ',' >> manyNumbers
-  return PreVar { operator = convertOperator op
-                , definition = def
-                , comparator = textToInt n } where
-    convertOperator :: T.Text -> Operator
-    convertOperator "EQ" = EQ
-    convertOperator "GT" = GT
-    convertOperator "GTEQ" = GTEQ
-    convertOperator "LT" = LT
-    convertOperator "LTEQ" = LTEQ
-    convertOperator "NEQ" = NEQ
-    convertOperator _ = error "invalid PREVAR operator"
-
--- not documented, so this is a best-guess
--- TODO: consolidate, as soon as we figure out the exact properties
---       seems like PREVAR:formula1,formula2?
 data PreVarType = PreVarFormula Formula
                 | PreVarText T.Text
                   deriving (Show, Eq)
 
-data PreVarNeq = PreVarNeq { variables :: [PreVarType] } deriving (Show, Eq)
+data PreVar = PreVar { operator :: Operator
+                     , variables :: [PreVarType] } deriving (Show, Eq)
 
-parsePreVarNEq :: Parser PreVarNeq
-parsePreVarNEq = do
-  _ <- tag "PREVARNEQ" <|> tag "PREVARLTEQ"
-  variables <- parsePreVarType `sepBy` char ','
-  return PreVarNeq { .. } where
+parsePreVar :: Parser PreVar
+parsePreVar = do
+  op <- string "PREVAR" >> choice ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"]
+  variables <- char ':' >> parsePreVarType `sepBy` char ','
+  return PreVar { operator = convertOperator op, .. } where
     parsePreVarType = PreVarFormula <$> parseFormula
-                  <|> PreVarText <$> parseString
+                  <|> PreVarText <$> parseStringNoCommas
+    convertOperator :: T.Text -> Operator
+    convertOperator "EQ" = EQ
+    convertOperator "GTEQ" = GTEQ
+    convertOperator "GT" = GT
+    convertOperator "LTEQ" = LTEQ
+    convertOperator "LT" = LT
+    convertOperator "NEQ" = NEQ
+    convertOperator _ = error "invalid PREVAR operator"
+    parseStringNoCommas = takeWhile1 $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
 
 parsePossibleRestriction :: Parser Restriction
-parsePossibleRestriction = PreVarNeqRestriction <$> parsePreVarNEq
-                       <|> PreVarRestriction <$> parsePreVar
+parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreClassSkillRestriction <$> parsePreClassSkill
                        <|> PreClassRestriction <$> parsePreClass
                        <|> PreAbilityRestriction <$> parsePreAbility
@@ -306,6 +308,7 @@ parsePossibleRestriction = PreVarNeqRestriction <$> parsePreVarNEq
                        <|> PreAlignRestriction <$> parsePreAlign
                        <|> PreSkillTotalRestriction <$> parsePreSkillTotal
                        <|> PreSkillRestriction <$> parsePreSkill
+                       <|> PreMultipleRestriction <$> parsePreMult
 
 parseRestriction :: Parser Restriction
 parseRestriction = parseInvertedRestriction parsePossibleRestriction

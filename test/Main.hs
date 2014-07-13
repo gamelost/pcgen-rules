@@ -1,5 +1,6 @@
 module Main where
 
+import RestrictionTests(restrictionTests)
 import JEPFormulaTests(formulaTests)
 import BonusTests(bonusTests)
 import Test.HUnit
@@ -8,6 +9,7 @@ import System.Exit
 
 tests :: [Test]
 tests = [ formulaTests
+        , restrictionTests
         , bonusTests
         ]
 

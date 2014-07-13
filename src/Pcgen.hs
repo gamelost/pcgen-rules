@@ -45,26 +45,9 @@ main = do
   args <- getArgs
   inputFilename <- getFullPath $ head args
   case snd $ splitExtension inputFilename of
-    d | d == ".lst" ->
-      case T.pack $ args !! 1 of
-        "LANGUAGE" -> do
-          lFile <- parseLanguageLST inputFilename
-          putStrLn $ Pretty.ppShow lFile
-        "ARMORPROF" -> do
-          aFile <- parseArmorLST inputFilename
-          putStrLn $ Pretty.ppShow aFile
-        "SHIELDPROF" -> do
-          sFile <- parseShieldLST inputFilename
-          putStrLn $ Pretty.ppShow sFile
-        "WEAPONPROF" -> do
-          wFile <- parseWeaponLST inputFilename
-          putStrLn $ Pretty.ppShow wFile
-        "SKILL" -> do
-          sFile <- parseSkillLST inputFilename
-          putStrLn $ Pretty.ppShow sFile
-        _ -> do
-          gFile <- parseGenericLST inputFilename
-          putStrLn $ Pretty.ppShow gFile
+    d | d == ".lst" -> do
+      results <- parseLSTToString (args !! 1) inputFilename
+      putStrLn results
     d | d == ".pcc" -> do
       firstPcc <- parsePCC inputFilename
       results <- constructPCC firstPcc

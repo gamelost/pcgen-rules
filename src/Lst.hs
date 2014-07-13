@@ -2,6 +2,7 @@ module Lst where
 
 import Prelude hiding (takeWhile)
 import qualified Data.Text as T
+import qualified Text.Show.Pretty as Pretty
 import Data.Attoparsec.Text
 import Control.Applicative
 import Modifications
@@ -61,17 +62,14 @@ parseLST lstParser lstName  = do
   return . parseResult lstName $ parse fullParser contents where
     fullParser = parseLSTLines lstParser
 
--- inhibit annoying warnings for now: this part is not yet finished
-parseLanguageLST :: FilePath -> IO [LST (LSTLine LanguageDefinition)]
-parseWeaponLST :: FilePath -> IO [LST (LSTLine WeaponProficency)]
-parseShieldLST :: FilePath -> IO [LST (LSTLine ShieldProficency)]
-parseArmorLST :: FilePath -> IO [LST (LSTLine ArmorProficency)]
-parseSkillLST :: FilePath -> IO [LST (LSTLine SkillDefinition)]
-parseGenericLST :: FilePath -> IO [LST (LSTLine LSTDefinition)]
+-- debugging only
+prettyPrint :: Show a => Parser (LSTLine a) -> FilePath -> IO String
+prettyPrint x file = parseLST x file >>= return . Pretty.ppShow
 
-parseLanguageLST = parseLST (parseLSTLine :: Parser (LSTLine LanguageDefinition))
-parseWeaponLST = parseLST (parseLSTLine :: Parser (LSTLine WeaponProficency))
-parseShieldLST = parseLST (parseLSTLine :: Parser (LSTLine ShieldProficency))
-parseArmorLST = parseLST (parseLSTLine :: Parser (LSTLine ArmorProficency))
-parseSkillLST = parseLST (parseLSTLine :: Parser (LSTLine SkillDefinition))
-parseGenericLST = parseLST (parseLSTLine :: Parser (LSTLine LSTDefinition))
+parseLSTToString :: String -> FilePath -> IO String
+parseLSTToString "LANGUAGE" = prettyPrint (parseLSTLine :: Parser (LSTLine LanguageDefinition))
+parseLSTToString "ARMORPROF" = prettyPrint (parseLSTLine :: Parser (LSTLine ArmorProficency))
+parseLSTToString "SHIELDPROF" = prettyPrint (parseLSTLine :: Parser (LSTLine ShieldProficency))
+parseLSTToString "WEAPONPROF" = prettyPrint (parseLSTLine :: Parser (LSTLine WeaponProficency))
+parseLSTToString "SKILL" = prettyPrint (parseLSTLine :: Parser (LSTLine SkillDefinition))
+parseLSTToString _ = prettyPrint (parseLSTLine :: Parser (LSTLine LSTDefinition))

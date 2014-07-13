@@ -16,11 +16,13 @@
 ** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
 ** TODO consolidate PREVAR tags, may need to implement DEFINE vars for this
 * skill [0/1]
-** 10 failures
+** 9 failures
 - DEFINE: 4
 - AUTO:EQUIP 1
 - PRE:.CLEAR 1
-- CSKILL: 1
+- ADD:FEAT 1
+- Tactics.COPY 1
+- remaining failure is a bad merge, cannot fix
 ** TODO fix test failures in BonusTests
 * JEP [0/1]
 ** TODO allow for plain strings?

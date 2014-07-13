@@ -18,7 +18,9 @@ data GlobalTag = KeyStat T.Text
                | AbilityTag Ability
                | Select Formula
                | AutoLanguageTag AutoLanguage
+               | ClassSkill [T.Text]
                | ChooseLanguageTag [ChooseLanguage]
+               | ChooseSkillTag [ChooseSkill]
                  deriving (Eq, Show)
 
 parseSortKey :: Parser GlobalTag
@@ -98,6 +100,25 @@ parseChooseLanguage = do
     parseChoice = ChoiceLanguageType <$> (string "TYPE=" *> parseString)
               <|> ChoiceLanguage <$> parseString
 
+-- not fully implemented
+data ChooseSkill = ChoiceSkill T.Text
+                 | ChoiceSkillType T.Text
+                   deriving (Show, Eq)
+
+parseChooseSkill :: Parser GlobalTag
+parseChooseSkill = do
+  _ <- string "CHOOSE:SKILL|"
+  skills <- parseChoice `sepBy` char ','
+  return $ ChooseSkillTag skills where
+    parseChoice = ChoiceSkillType <$> (string "TYPE=" *> parseString)
+              <|> ChoiceSkill <$> parseString
+
+parseClassSkill :: Parser GlobalTag
+parseClassSkill = do
+  _ <- tag "CSKILL"
+  cskills <- parseString `sepBy` char '|'
+  return $ ClassSkill cskills
+
 -- TODO: catchall
 
 parseGlobalTags :: Parser GlobalTag
@@ -110,4 +131,6 @@ parseGlobalTags = parseKeyStat
               <|> parseOutputName
               <|> parseAbility
               <|> parseAutoLanguage
+              <|> parseClassSkill
               <|> parseChooseLanguage
+              <|> parseChooseSkill

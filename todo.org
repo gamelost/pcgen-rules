@@ -16,12 +16,10 @@
 ** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
 ** TODO consolidate PREVAR tags, may need to implement DEFINE vars for this
 * skill [0/1]
-** 19 failures
+** 15 failures
 - PREMULT: 4
-- BONUS:ABILITYPOOL 4
 - DEFINE: 4
 - AUTO:EQUIP 1
-- BONUS:WEAPONPROF 1
 - PRE:.CLEAR 1
 - SELECT: 1
 - CSKILL: 1

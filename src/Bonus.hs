@@ -14,9 +14,25 @@ import Common
 data Bonus = BonusSkill Skill
            | BonusSkillRank SkillRank
            | BonusVariable BonusVar
+           | BonusWeaponProficency BonusWeaponProf
+           | BonusAbilityPool BonusAbility
            | BonusDescription T.Text
            | TemporaryBonus TempBonus
              deriving (Show, Eq)
+
+-- BONUS:ABILITYPOOL|x|y
+--   x is ability category
+--   y is formula added to pool (not number!)
+data BonusAbility = BonusAbility { abilityCategory :: T.Text
+                                 , abilityPoolFormula :: Formula }
+                  deriving (Show, Eq)
+
+parseBonusAbilityPool :: Parser BonusAbility
+parseBonusAbilityPool = do
+  _ <- string "ABILITYPOOL|"
+  abilityCategory <- parseString
+  abilityPoolFormula <- char '|' *> parseFormula
+  return BonusAbility { .. }
 
 -- BONUS:SKILL:x,x,...|y
 --   x is LIST, ALL, skill name, stat name (STAT.x), skill type (TYPE=x)
@@ -118,6 +134,57 @@ parseBonusVariable = do
   (bonusVarRestrictions, bonusVarType) <- parseBonusRestrictionsAndType
   return BonusVar { .. }
 
+-- BONUS:WEAPONPROF=x|y,y...|z
+--   x is weapon proficiency name or type
+--   y is weapon property
+--   z is number, variable, or formula to add
+data BonusWeapon = WeaponName T.Text
+                 | WeaponType T.Text
+                   deriving (Show, Eq)
+
+data BonusWeaponProperty = CRITMULTADD
+                         | CRITRANGEADD
+                         | CRITRANGEDOUBLE
+                         | DAMAGE
+                         | DAMAGEMULT
+                         | DAMAGESIZE
+                         | DAMAGESHORTRANGE
+                         | PCSIZE
+                         | REACH
+                         | TOHIT
+                         | TOHITSHORTRANGE
+                         | TOHITOVERSIZE
+                         | WIELDCATEGORY
+                           deriving (Show, Eq)
+
+data BonusWeaponProf = BonusWeaponProf { bonusWeaponProficency :: BonusWeapon
+                                       , bonusWeaponProperties :: [BonusWeaponProperty]
+                                       , bonusWeaponFormula :: Formula }
+                     deriving (Show, Eq)
+
+parseBonusWeaponProf :: Parser BonusWeaponProf
+parseBonusWeaponProf = do
+  _ <- string "WEAPONPROF="
+  bonusWeaponProficency <- parseWeaponProficiency
+  bonusWeaponProperties <- char '|' *> parseWeaponProperty `sepBy` char ','
+  bonusWeaponFormula <- char '|' *> parseFormula
+  return BonusWeaponProf { .. } where
+    parseWeaponProficiency = string "TYPE=" >> (WeaponType <$> parseString)
+                         <|> WeaponName <$> parseString
+    parseWeaponProperty = (string "CRITMULTADD" >> return CRITMULTADD)
+                      <|> (string "CRITRANGEADD" >> return CRITRANGEADD)
+                      <|> (string "CRITRANGEDOUBLE" >> return CRITRANGEDOUBLE)
+                      <|> (string "DAMAGE" >> return DAMAGE)
+                      <|> (string "DAMAGEMULT" >> return DAMAGEMULT)
+                      <|> (string "DAMAGESIZE" >> return DAMAGESIZE)
+                      <|> (string "DAMAGESHORTRANGE" >> return DAMAGESHORTRANGE)
+                      <|> (string "PCSIZE" >> return PCSIZE)
+                      <|> (string "REACH" >> return REACH)
+                      <|> (string "TOHIT" >> return TOHIT)
+                      <|> (string "TOHITSHORTRANGE" >> return TOHITSHORTRANGE)
+                      <|> (string "TOHITOVERSIZE" >> return TOHITOVERSIZE)
+                      <|> (string "WIELDCATEGORY" >> return WIELDCATEGORY)
+
 -- TEMPBONUS:x,x,...|y|z
 --   x is PC, ANYPC, or EQ
 --   y is equipment type (only when x==EQ)
@@ -155,6 +222,8 @@ parseAnyBonus :: Parser Bonus
 parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusVariable <$> parseBonusVariable
             <|> BonusSkill <$> parseBonusSkill
+            <|> BonusAbilityPool <$> parseBonusAbilityPool
+            <|> BonusWeaponProficency <$> parseBonusWeaponProf
 
 parseBonus :: Parser Bonus
 parseBonus = (tag "BONUS" *> parseAnyBonus)

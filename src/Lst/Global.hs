@@ -10,6 +10,7 @@ import Common
 
 data GlobalTag = KeyStat T.Text
                | UseUntrained Bool
+               | SortKey T.Text
                | SourcePage T.Text
                | ProductIdentity Bool
                | OutputName T.Text
@@ -18,8 +19,11 @@ data GlobalTag = KeyStat T.Text
                | ChooseLanguageTag [ChooseLanguage]
                  deriving (Eq, Show)
 
+parseSortKey :: Parser GlobalTag
+parseSortKey = SortKey <$> (tag "SORTKEY" >> parseString)
+
 parseKeyStat :: Parser GlobalTag
-parseKeyStat  = KeyStat <$> (tag "KEYSTAT" >> parseString)
+parseKeyStat = KeyStat <$> (tag "KEYSTAT" >> parseString)
 
 parseUseUntrained :: Parser GlobalTag
 parseUseUntrained = UseUntrained <$> (tag "USEUNTRAINED" >> yesOrNo)
@@ -94,6 +98,7 @@ parseChooseLanguage = do
 parseGlobalTags :: Parser GlobalTag
 parseGlobalTags = parseKeyStat
               <|> parseUseUntrained
+              <|> parseSortKey
               <|> parseSourcePage
               <|> parseProductIdentity
               <|> parseOutputName

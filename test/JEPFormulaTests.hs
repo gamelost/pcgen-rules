@@ -71,6 +71,8 @@ testMisc = do
     Function Subtract
       [ LookupSkill ( MODIFIER , "Jump" )
       , Variable "STR" ]
+  parseJEP "INT-DEX" @?=
+    Function Subtract [ Variable "INT", Variable "DEX" ]
 
 formulaTests :: Test
 formulaTests = TestList [ "parse integer" ~: testInt

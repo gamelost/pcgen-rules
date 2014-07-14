@@ -6,7 +6,7 @@ import Control.Applicative
 import Data.Attoparsec.Text
 import Modifications
 import Restrictions
-import Lst.Global
+import Lst.GlobalTags
 import Common
 
 data WeaponProficency = Name T.Text

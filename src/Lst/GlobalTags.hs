@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 
-module Lst.Global (GlobalTag, parseGlobalTags) where
+module Lst.GlobalTags (GlobalTag, parseGlobalTags) where
 
 import qualified Data.Text as T
 import Data.Attoparsec.Text

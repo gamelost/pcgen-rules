@@ -7,7 +7,7 @@ import Data.Attoparsec.Text
 import Control.Applicative
 import Restrictions
 import Modifications
-import Lst.Global
+import Lst.GlobalTags
 import Common
 import Bonus
 

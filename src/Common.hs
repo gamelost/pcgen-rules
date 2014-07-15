@@ -8,50 +8,58 @@ import qualified Data.Text as T
 import Data.Text.Encoding(decodeUtf8With)
 import Data.Text.Encoding.Error(lenientDecode)
 import Control.Monad(liftM)
-import Data.Attoparsec.Text hiding (take)
-import Control.Applicative
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.String
+import Control.Applicative hiding (many)
 import qualified Text.Show.Pretty as Pretty
 import Debug.Trace(trace)
 
-parseWord :: Parser T.Text
-parseWord = takeWhile1 $ inClass "-A-Za-z"
+-- conversion from attoparsec -> parsec
+inClass :: String -> Char -> Bool
+inClass "" = const False
+inClass (a:'-':b:xs) = \c -> (c >= a && c <= b) || f c where f = inClass xs
+inClass (x:xs) = \c -> c == x || f c where f = inClass xs
 
-parseString :: Parser T.Text
-parseString = takeWhile1 $ inClass "-A-Za-z0-9_ &+,./:?!%#'()[]~" -- do not put in '=' or '|'
+parseWord :: Parser String
+parseWord = many1 $ satisfy $ inClass "-A-Za-z"
 
-allCaps :: Parser T.Text
-allCaps = takeWhile1 $ inClass "A-Z"
+parseString :: Parser String
+parseString = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()[]~" -- do not put in '=' or '|'
 
-manyNumbers :: Parser T.Text
-manyNumbers = takeWhile1 $ inClass "0-9"
+allCaps :: Parser String
+allCaps = many1 $ satisfy $ inClass "A-Z"
+
+manyNumbers :: Parser String
+manyNumbers = many1 $ satisfy $ inClass "0-9"
 
 tabs :: Parser ()
-tabs = skipWhile (== '\t')
+tabs = skipMany1 $ char '\t'
 
-tag :: String -> Parser Char
-tag t = string (T.pack t) >> char ':'
+tag :: String -> Parser ()
+tag t = string t >> char ':' >> empty
 
-textToInt :: T.Text -> Int
-textToInt t = read (T.unpack t) :: Int
+textToInt :: String -> Int
+textToInt t = read t :: Int
 
 (<||>) :: Applicative f => f Bool -> f Bool -> f Bool
 (<||>) = liftA2 (||)
 infixr 2 <||>
 
-restOfLine :: Parser T.Text
-restOfLine = takeTill ((== '\n') <||> (== '\r'))
+restOfLine :: Parser String
+restOfLine = manyTill anyChar $ satisfy ((== '\n') <||> (== '\r'))
 
-restOfTag :: Parser T.Text
-restOfTag = takeTill ((== '\n') <||> (== '\r') <||> (== '\t'))
+restOfTag :: Parser String
+restOfTag = manyTill anyChar $ satisfy ((== '\n') <||> (== '\r') <||> (== '\t'))
 
-parseTabs :: Parser [T.Text]
+parseTabs :: Parser [String]
 parseTabs = restOfTag `sepBy` tabs
 
-parseCommentLine :: Parser T.Text
-parseCommentLine = char '#' >> skipWhile (== ' ') >> restOfLine
+parseCommentLine :: Parser String
+parseCommentLine = char '#' >> spaces >> restOfLine where
 
-parseWordAndNumber :: Parser T.Text
-parseWordAndNumber = takeWhile1 $ inClass "-A-Za-z0-9"
+parseWordAndNumber :: Parser String
+parseWordAndNumber = many1 $ satisfy $ inClass "-A-Za-z0-9"
 
 yesOrNo :: Parser Bool
 yesOrNo = liftM (== "YES") allCaps
@@ -59,7 +67,7 @@ yesOrNo = liftM (== "YES") allCaps
 -- do not use parseOnly: it does not fail if there is any leftover
 -- input. If our parser does not consume everything, we want instant
 -- failure.
-parseResult :: Show t => FilePath -> IResult T.Text t -> t
+parseResult :: Show t => FilePath -> IResult String t -> t
 parseResult filename result =
   case result of
     Done left success | left == T.empty ->

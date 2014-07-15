@@ -6,13 +6,14 @@ module JEPFormula ( Formula(..)
                   , parseFormula
                   ) where
 
-import qualified Data.Text as T
-import Data.Attoparsec.Text
-import Control.Applicative
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.String
+import Control.Applicative hiding (optional)
 import Common
 import Debug.Trace(trace)
 
-data Operand = BuiltIn T.Text
+data Operand = BuiltIn String
              | Divide
              | Multiply
              | Subtract
@@ -28,9 +29,9 @@ data SkillType = RANK
                  deriving (Show, Eq)
 
 data Formula = Number Int
-             | Variable T.Text
-             | LookupVariable T.Text
-             | LookupSkill (SkillType, T.Text)
+             | Variable String
+             | LookupVariable String
+             | LookupSkill (SkillType, String)
              | Group Formula
              | Function Operand [Formula]
                deriving (Show, Eq)
@@ -62,20 +63,20 @@ parseNumber = Number <$> parseSignedNumber where
 
 parseVariable :: Parser Formula
 parseVariable = Variable <$> choice varParsers where
-  varParsers = map (string . T.pack) listOfVars
+  varParsers = map string listOfVars
 
 -- ugly; unfortunately, this does show up.
 parseNegativeVariable :: Parser Formula
 parseNegativeVariable = char '-' >> choice varParsers >>= embed where
-    varParsers = map (string . T.pack) listOfVars
+    varParsers = map string listOfVars
     embed v = return $ Function Subtract [ Number 0, Variable v ]
 
 parseGroup :: Parser Formula
 parseGroup = Group <$> (char '(' >> parseFormula <* char ')')
 
 -- may want to make sure there are no unterminated quotes!
-parseQuotedString :: Parser T.Text
-parseQuotedString = char '"' *> takeTill (== '"') <* char '"'
+parseQuotedString :: Parser String
+parseQuotedString = char '"' *> (manyTill anyChar $ satisfy (== '"')) <* char '"'
 
 -- treat the var() function specially
 parseVarFunction :: Parser Formula
@@ -122,7 +123,7 @@ parseFunction = do
   f <- BuiltIn <$> choice funcParsers
   args <- char '(' >> parseFormula `sepBy` char ',' <* char ')'
   return $ Function f args where
-    funcParsers = map (string . T.pack) listOfFunctions
+    funcParsers = map string listOfFunctions
 
 parseFormula :: Parser Formula
 parseFormula = parseInfixFunction
@@ -137,6 +138,6 @@ parseFormula = parseInfixFunction
 
 _traceFormula :: Parser Formula
 _traceFormula = do
-  v <- takeTill (\x -> x == '|' || x == '\t' || x == '\r' || x == '\n')
-  _ <- trace ("** Formula was " ++ T.unpack v) $ return ()
+  v <- manyTill anyChar $ satisfy (\x -> x == '|' || x == '\t' || x == '\r' || x == '\n')
+  _ <- trace ("** Formula was " ++ v) $ return ()
   return $ Variable v

@@ -2,17 +2,18 @@
 
 module Lst.WeaponProf where
 
-import qualified Data.Text as T
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.String
 import Control.Monad(liftM)
 import Control.Applicative
-import Data.Attoparsec.Text
 import Modifications
 import Restrictions
 import Lst.GlobalTags
 import Common
 
-data WeaponProficency = Name T.Text
-                      | WeaponType [T.Text]
+data WeaponProficency = Name String
+                      | WeaponType [String]
                       | WeaponHands Int
                       | WeaponHandsRestriction Int
                       -- shared tags
@@ -23,7 +24,7 @@ data WeaponProficency = Name T.Text
 parseWeaponType :: Parser WeaponProficency
 parseWeaponType = WeaponType <$> (tag "TYPE" >> parseWordAndComma `sepBy` char '.') where
   -- comma only shows up in one file (apg_profs_weapon.lst). ugh.
-  parseWordAndComma = takeWhile1 $ inClass "-A-Za-z, "
+  parseWordAndComma = many1 $ satisfy $ inClass "-A-Za-z, "
 
 parseWeaponHands :: Parser WeaponProficency
 parseWeaponHands = WeaponHands <$> (tag "HANDS" >> liftM textToInt manyNumbers)
@@ -41,7 +42,7 @@ parseWeaponProficencyTag = parseWeaponType
                        <|> Global <$> parseGlobalTags
                        <|> Restricted <$> parseRestriction
 
-parseWeaponProficency :: T.Text -> Parser [WeaponProficency]
+parseWeaponProficency :: String -> Parser [WeaponProficency]
 parseWeaponProficency weaponName = do
   weaponTags <- tabs *> parseWeaponProficencyTag `sepBy` tabs
   return $ weaponTags ++ [Name weaponName]

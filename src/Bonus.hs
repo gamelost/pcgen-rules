@@ -2,8 +2,9 @@
 
 module Bonus where
 
-import qualified Data.Text as T
-import Data.Attoparsec.Text
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.String
 import Control.Applicative
 import Control.Exception
 import Data.Maybe
@@ -16,14 +17,14 @@ data Bonus = BonusSkill Skill
            | BonusVariable BonusVar
            | BonusWeaponProficency BonusWeaponProf
            | BonusAbilityPool BonusAbility
-           | BonusDescription T.Text
+           | BonusDescription String
            | TemporaryBonus TempBonus
              deriving (Show, Eq)
 
 -- BONUS:ABILITYPOOL|x|y
 --   x is ability category
 --   y is formula added to pool (not number!)
-data BonusAbility = BonusAbility { abilityCategory :: T.Text
+data BonusAbility = BonusAbility { abilityCategory :: String
                                  , abilityPoolFormula :: Formula }
                   deriving (Show, Eq)
 
@@ -39,30 +40,30 @@ parseBonusAbilityPool = do
 --   y is number, variable, formula
 data BonusToSkill = List
                   | All
-                  | BonusSkillName T.Text
-                  | BonusSkillType T.Text
-                  | StatName T.Text
+                  | BonusSkillName String
+                  | BonusSkillType String
+                  | StatName String
                     deriving (Show, Eq)
 
 data SkillFormulaType = SkillFormula Formula
-                      | SkillText T.Text
+                      | SkillText String
                         deriving (Show, Eq)
 
 data Skill = Skill { bonusToSkills :: [BonusToSkill]
                    , skillFormula :: SkillFormulaType
-                   , skillType :: Maybe (T.Text, Bool)
+                   , skillType :: Maybe (String, Bool)
                    , skillRestrictions :: [Restriction] }
              deriving (Show, Eq)
 
 -- we have far more bonus types, but for now, stick with a simple (Text, Bool)
-parseBonusType :: Parser (T.Text, Bool)
+parseBonusType :: Parser (String, Bool)
 parseBonusType = do
   bonusType <- (string "|TYPE=" <|> string "|SKILLTYPE=") *> parseString
   let testForStack = T.stripSuffix ".STACK" bonusType
   return (fromMaybe bonusType testForStack, isJust testForStack)
 
 -- bonus types can be found either before or after restrictions
-parseBonusRestrictionsAndType :: Parser ([Restriction], Maybe (T.Text, Bool))
+parseBonusRestrictionsAndType :: Parser ([Restriction], Maybe (String, Bool))
 parseBonusRestrictionsAndType = do
   type1 <- optional parseBonusType
   restrictions <- optional parseAdditionalRestrictions
@@ -97,13 +98,13 @@ parseBonusSkill = do
 -- BONUS:SKILLRANK|x,x,...|y
 --   x is skill name, skill type (TYPE=x)
 --   y is number, variable, formula
-data BonusToSkillRank = SkillRankName T.Text
-                      | SkillRankType T.Text
+data BonusToSkillRank = SkillRankName String
+                      | SkillRankType String
                         deriving (Show, Eq)
 
 data SkillRank = SkillRank { skillRanks :: [BonusToSkillRank]
                            , skillRankFormula :: SkillFormulaType
-                           , skillRankType :: Maybe (T.Text, Bool)
+                           , skillRankType :: Maybe (String, Bool)
                            , skillRankRestrictions :: [Restriction] }
                  deriving (Show, Eq)
 
@@ -124,9 +125,9 @@ parseBonusSkillRank = do
 -- BONUS:VAR|x,x,...|y
 --   x is variable name
 --   y is number, variable, or formula to adjust variable by
-data BonusVar = BonusVar { bonusVariables :: [T.Text]
+data BonusVar = BonusVar { bonusVariables :: [String]
                          , adjustBy :: Formula
-                         , bonusVarType :: Maybe (T.Text, Bool)
+                         , bonusVarType :: Maybe (String, Bool)
                          , bonusVarRestrictions :: [Restriction] }
               deriving (Show, Eq)
 
@@ -142,8 +143,8 @@ parseBonusVariable = do
 --   x is weapon proficiency name or type
 --   y is weapon property
 --   z is number, variable, or formula to add
-data BonusWeapon = WeaponName T.Text
-                 | WeaponType T.Text
+data BonusWeapon = WeaponName String
+                 | WeaponType String
                    deriving (Show, Eq)
 
 data BonusWeaponProperty = CRITMULTADD
@@ -197,7 +198,7 @@ data Target = PC | ANYPC | EQUIPMENT
               deriving (Show, Eq)
 
 data TempBonus = TempBonus { target :: Target
-                           , equipmentType :: Maybe T.Text
+                           , equipmentType :: Maybe String
                            , additionalBonuses :: [Bonus]
                            , additionalRestrictions :: [Restriction] }
                  deriving (Show, Eq)
@@ -219,7 +220,7 @@ parseTemporaryBonus = do
 
 -- TEMPDESC:x
 --   x is text to display in the temporary bonus sub-tab
-parseBonusDescription :: Parser T.Text
+parseBonusDescription :: Parser String
 parseBonusDescription = tag "TEMPDESC" >> restOfTag
 
 parseAnyBonus :: Parser Bonus

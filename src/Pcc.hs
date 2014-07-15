@@ -4,20 +4,21 @@ module Pcc where
 
 import Prelude hiding (takeWhile)
 import Control.Monad(liftM)
-import qualified Data.Text as T
-import Data.Attoparsec.Text
 import Control.Applicative
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.String
 import Fs
 import Common
 
 -- store the path of a given reference file.
 data Lookup = Lookup { location :: Location
-                     , filename :: T.Text } deriving Show
+                     , filename :: String } deriving Show
 
 -- PCC tags (raw).
-data PCCTag = PCCDataTag T.Text T.Text
+data PCCTag = PCCDataTag String String
             | PCCBodyTag Lookup
-            | PCCComment T.Text
+            | PCCComment String
             | PCCInvert PCCTag
               deriving Show
 
@@ -50,7 +51,7 @@ parseInversion :: Parser PCCTag
 parseInversion = PCCInvert <$> (char '!' >> parseDataTag)
 
 parsePCCLine :: Parser PCCTags
-parsePCCLine = many $ parseLine <* many endOfLine where
+parsePCCLine = many $ parseLine <* many newline where
   parseLine = parseBodyTag
           <|> parseDataTag
           <|> parseInversion

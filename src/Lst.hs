@@ -1,34 +1,34 @@
 module Lst where
 
 import Prelude hiding (takeWhile)
-import qualified Data.Text as T
 import qualified Text.Show.Pretty as Pretty
-import Data.Attoparsec.Text
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.String
 import Control.Applicative
-import Control.Monad(liftM)
 import Modifications
 import Common
 
 -- custom lst types
-import Lst.Skill(SkillDefinition)
-import Lst.Language(LanguageDefinition)
+-- import Lst.Skill(SkillDefinition)
+-- import Lst.Language(LanguageDefinition)
 import Lst.WeaponProf(WeaponProficency)
-import Lst.ShieldProf(ShieldProficency)
-import Lst.ArmorProf(ArmorProficency)
+-- import Lst.ShieldProf(ShieldProficency)
+-- import Lst.ArmorProf(ArmorProficency)
 
 -- generic, catch-all
-import Lst.Generic(LSTDefinition)
+-- import Lst.Generic(LSTDefinition)
 
 -- structure of a lst file
 data LST a = Source [Header]
            | Definition a
-           | Comment T.Text deriving Show
+           | Comment String deriving Show
 
 -- source headers: these are found in nearly every lst file type.
-data Header = SourceLong T.Text
-            | SourceShort T.Text
-            | SourceWeb T.Text
-            | SourceDate T.Text deriving Show
+data Header = SourceLong String
+            | SourceShort String
+            | SourceWeb String
+            | SourceDate String deriving Show
 
 parseSourceWeb :: Parser Header
 parseSourceWeb = SourceWeb <$> (tag "SOURCEWEB" >> restOfTag)
@@ -51,8 +51,8 @@ parseHeaders = many1 header <* tabs where
 
 parseLSTLines :: Parser a -> Parser [LST a]
 parseLSTLines parseDefinition = do
-  _ <- many endOfLine
-  many1 $ lstLine <* many endOfLine where
+  _ <- many newline
+  many1 $ lstLine <* many newline where
     lstLine = Source <$> parseHeaders
           <|> Comment <$> parseCommentLine
           <|> Definition <$> parseDefinition
@@ -65,12 +65,13 @@ parseLST lstParser lstName  = do
 
 -- debugging only
 prettyPrint :: Show a => Parser (LSTLine a) -> FilePath -> IO String
-prettyPrint x file = liftM Pretty.ppShow $ parseLST x file
+prettyPrint x file = Pretty.ppShow <$> parseLST x file
 
 parseLSTToString :: String -> FilePath -> IO String
-parseLSTToString "LANGUAGE" = prettyPrint (parseLSTLine :: Parser (LSTLine LanguageDefinition))
-parseLSTToString "ARMORPROF" = prettyPrint (parseLSTLine :: Parser (LSTLine ArmorProficency))
-parseLSTToString "SHIELDPROF" = prettyPrint (parseLSTLine :: Parser (LSTLine ShieldProficency))
-parseLSTToString "WEAPONPROF" = prettyPrint (parseLSTLine :: Parser (LSTLine WeaponProficency))
-parseLSTToString "SKILL" = prettyPrint (parseLSTLine :: Parser (LSTLine SkillDefinition))
-parseLSTToString _ = prettyPrint (parseLSTLine :: Parser (LSTLine LSTDefinition))
+-- parseLSTToString "LANGUAGE" = prettyPrint (parseLSTLine :: Parser (LSTLine LanguageDefinition))
+-- parseLSTToString "ARMORPROF" = prettyPrint (parseLSTLine :: Parser (LSTLine ArmorProficency))
+-- parseLSTToString "SHIELDPROF" = prettyPrint (parseLSTLine :: Parser (LSTLine ShieldProficency))
+-- parseLSTToString "WEAPONPROF" = prettyPrint (parseLSTLine :: Parser (LSTLine WeaponProficency))
+-- parseLSTToString "SKILL" = prettyPrint (parseLSTLine :: Parser (LSTLine SkillDefinition))
+-- parseLSTToString _ = prettyPrint (parseLSTLine :: Parser (LSTLine LSTDefinition))
+parseLSTToString _ = prettyPrint (parseLSTLine :: Parser (LSTLine WeaponProficency))

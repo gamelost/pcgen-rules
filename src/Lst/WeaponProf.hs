@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Lst.WeaponProf where
 
 import qualified Data.Text as T
@@ -12,6 +14,7 @@ import Common
 data WeaponProficency = Name T.Text
                       | WeaponType [T.Text]
                       | WeaponHands Int
+                      | WeaponHandsRestriction Int
                       -- shared tags
                       | Global GlobalTag
                       | Restricted Restriction
@@ -25,8 +28,15 @@ parseWeaponType = WeaponType <$> (tag "TYPE" >> parseWordAndComma `sepBy` char '
 parseWeaponHands :: Parser WeaponProficency
 parseWeaponHands = WeaponHands <$> (tag "HANDS" >> liftM textToInt manyNumbers)
 
+parseWeaponHandsRestriction :: Parser WeaponProficency
+parseWeaponHandsRestriction = do
+  n <- tag "HANDS" *> manyNumbers
+  _ <- string "IFLARGERTHANWEAPON"
+  return . WeaponHandsRestriction $ textToInt n
+
 parseWeaponProficencyTag :: Parser WeaponProficency
 parseWeaponProficencyTag = parseWeaponType
+                       <|> parseWeaponHandsRestriction
                        <|> parseWeaponHands
                        <|> Global <$> parseGlobalTags
                        <|> Restricted <$> parseRestriction

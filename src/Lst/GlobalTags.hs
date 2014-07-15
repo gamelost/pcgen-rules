@@ -13,10 +13,12 @@ data GlobalTag = KeyStat T.Text
                | UseUntrained Bool
                | SortKey T.Text
                | SourcePage T.Text
+               | SourceWeb T.Text
                | ProductIdentity Bool
                | OutputName T.Text
                | AbilityTag Ability
                | Select Formula
+               | Define NewVariable
                | AutoLanguageTag AutoLanguage
                | ClassSkill [T.Text]
                | ChooseLanguageTag [ChooseLanguage]
@@ -43,6 +45,19 @@ parseOutputName = OutputName <$> (tag "OUTPUTNAME" >> parseString)
 
 parseSelect :: Parser GlobalTag
 parseSelect = Select <$> (tag "SELECT" >> parseFormula)
+
+parseSourceWeb :: Parser GlobalTag
+parseSourceWeb = SourceWeb <$> (tag "SOURCEWEB" >> restOfTag)
+
+data NewVariable = NewVariable { varName :: T.Text
+                               , startingValue :: Formula }
+                 deriving (Eq, Show)
+
+parseDefine :: Parser GlobalTag
+parseDefine = do
+  varName <- tag "DEFINE" *> parseString
+  startingValue <- char '|' *> parseFormula
+  return . Define $ NewVariable { .. }
 
 data AbilityNature = Normal | Automatic | Virtual deriving (Eq, Show)
 
@@ -126,6 +141,8 @@ parseGlobalTags = parseKeyStat
               <|> parseUseUntrained
               <|> parseSortKey
               <|> parseSourcePage
+              <|> parseSourceWeb
+              <|> parseDefine
               <|> parseSelect
               <|> parseProductIdentity
               <|> parseOutputName

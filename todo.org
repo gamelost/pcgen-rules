@@ -1,13 +1,18 @@
-* general [0/3]
+* general [0/4]
+** TODO switch to parsec
+- need to pass around state monad for updating variables for use in
+  jep formulas.
+- do we want to evaluate as we go on?
 ** TODO add catch-all for tags (with optional trace)
-** TODO narrow down parseString: too general
-** TODO look at data/zen-test/... -- something we can use?
+** TODO narrow down parseString: way too general
+** TODO look at data/zen-test/... -- is this something we can use?
 * pcc [0/2]
 ** TODO implement INCLUDE for lst files
 ** TODO implement EXCLUDE for lst files
-* modifications [0/2]
+* modifications [0/3]
 ** TODO implement CLASS:x.FORGET
 ** TODO CLASS:.COPY
+** TODO SKILL.COPY= ...
 * restrictions [0/6]
 ** TODO pull out per-line restrictions into LSTLine
 ** TODO implement PRE:.CLEAR
@@ -15,9 +20,9 @@
 ** TODO PRERULE should be matching against known rules, not accepting any string
 ** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
 ** TODO consolidate PREVAR tags, may need to implement DEFINE vars for this
-* skill [0/1]
-** 9 failures
-- DEFINE: 4
+* skill [0/2]
+** TODO 6 failures
+- DEFINE: 1
 - AUTO:EQUIP 1
 - PRE:.CLEAR 1
 - ADD:FEAT 1
@@ -27,16 +32,15 @@
 * JEP [0/1]
 ** TODO allow for plain strings?
 - SkillFormulaType/PreVarType are hacks
-* weaponprof [0/4]
-** TODO TYPE:.CLEAR in bloodandblades_weaponprofs.lst
-** TODO BONUS:WEAPON (x2)
-** TODO SOURCEWEB (??)
-** TODO HANDS
-** 5 failures
+- we should warn if we hit an unknown variable.
+* weaponprof [0/1]
+** TODO 3 failures
+- TYPE:.CLEAR in bloodandblades_weaponprofs.lst
+- BONUS:WEAPON (x2)
 * questions
-** when are JEPs used?
+** when are JEPs used? [2/6]
 - [ ] EVAL()
-- [ ] SELECT:
+- [X] SELECT:
 - [ ] QTY:
 - [ ] LOOKUP:...,
 - [ ] STAT:INT=...|
@@ -45,13 +49,13 @@
 * parsing lst types [5/18]
 - [X] LANGUAGE (87/87)
 - [X] SHIELDPROF (32/32)
-- [X] WEAPONPROF (147/152)
+- [X] WEAPONPROF (149/152)
 - [X] ARMORPROF (55/55)
-- [X] SKILL (153/163)
-- [ ] COMPANION MODIFIER (0/54)
+- [X] SKILL (157/163)
+- [ ] COMPANIONMOD (block-based) (0/54)
 - [ ] DEITY (block-based) (0/71)
 - [ ] DOMAIN (0/60)
-- [ ] EQUIPMENT MODIFIER (0/135)
+- [ ] EQUIPMENTMOD (0/135)
 - [ ] EQUIPMENT (0/850)
 - [ ] SPELL (0/235)
 - [ ] FEAT (0/392)

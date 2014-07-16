@@ -1,6 +1,5 @@
 module Lst.ArmorProf where
 
-import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Text.Parsec.String
 import Control.Applicative

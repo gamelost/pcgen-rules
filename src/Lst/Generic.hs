@@ -18,12 +18,12 @@ data LSTDefinition = Name String
                      deriving Show
 
 parseName :: Parser String
-parseName = takeWhile1 $ notInClass "\t\n\r"
+parseName = manyTill anyChar $ noneOf "\t\n\r"
 
 parseLSTTag :: Parser LSTDefinition
 parseLSTTag = do
   a <- allCaps
-  v <- ":" .*> parseName
+  v <- char ':' >> parseName
   return $ Key (a, v)
 
 parseGenericLSTLine :: String -> Parser [LSTDefinition]

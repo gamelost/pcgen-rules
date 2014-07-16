@@ -5,7 +5,7 @@ module Bonus where
 import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Text.Parsec.String
-import Control.Applicative
+import Control.Applicative hiding (optional)
 import Control.Exception
 import Data.Maybe
 import JEPFormula
@@ -59,15 +59,15 @@ data Skill = Skill { bonusToSkills :: [BonusToSkill]
 parseBonusType :: Parser (String, Bool)
 parseBonusType = do
   bonusType <- (string "|TYPE=" <|> string "|SKILLTYPE=") *> parseString
-  let testForStack = T.stripSuffix ".STACK" bonusType
+  let testForStack = stripSuffix ".STACK" bonusType
   return (fromMaybe bonusType testForStack, isJust testForStack)
 
 -- bonus types can be found either before or after restrictions
 parseBonusRestrictionsAndType :: Parser ([Restriction], Maybe (String, Bool))
 parseBonusRestrictionsAndType = do
-  type1 <- optional parseBonusType
-  restrictions <- optional parseAdditionalRestrictions
-  type2 <- optional parseBonusType
+  type1 <- optionMaybe parseBonusType
+  restrictions <- optionMaybe parseAdditionalRestrictions
+  type2 <- optionMaybe parseBonusType
   -- make sure we didn't parse bonus TYPEs both times!
   let _ = assert (isJust type1 && isJust type2)
   let bonusType = type1 <|> type2
@@ -93,7 +93,7 @@ parseBonusSkill = do
     parseSkillName = BonusSkillName <$> parseStringNoCommas
     parseSkillFormulaType = SkillFormula <$> parseFormula
                         <|> SkillText <$> parseStringNoCommas
-    parseStringNoCommas = takeWhile1 $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~"
+    parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~"
 
 -- BONUS:SKILLRANK|x,x,...|y
 --   x is skill name, skill type (TYPE=x)
@@ -120,7 +120,7 @@ parseBonusSkillRank = do
     parseSkillName = SkillRankName <$> parseStringNoCommas
     parseSkillFormulaType = SkillFormula <$> parseFormula
                         <|> SkillText <$> (string "SKILLRANK=" >> parseStringNoCommas)
-    parseStringNoCommas = takeWhile1 $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~"
+    parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~"
 
 -- BONUS:VAR|x,x,...|y
 --   x is variable name
@@ -207,7 +207,7 @@ parseTemporaryBonus :: Parser TempBonus
 parseTemporaryBonus = do
   _ <- tag "TEMPBONUS"
   target <- parseTarget
-  equipmentType <- optional $ parseEquipmentType target
+  equipmentType <- optionMaybe $ parseEquipmentType target
   additionalBonuses <- char '|' >> parseAnyBonus `sepBy` char '|'
   additionalRestrictions <- option [] parseAdditionalRestrictions
   return TempBonus { .. } where

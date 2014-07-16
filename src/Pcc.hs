@@ -4,10 +4,10 @@ module Pcc where
 
 import Prelude hiding (takeWhile)
 import Control.Monad(liftM)
-import Control.Applicative
+import Control.Applicative hiding ((<|>), many)
 import Text.Parsec.Char
-import Text.Parsec.Combinator
 import Text.Parsec.String
+import Text.Parsec.Prim
 import Fs
 import Common
 
@@ -42,7 +42,7 @@ linkLocation _ = Any
 parseBodyTag :: Parser PCCTag
 parseBodyTag = do
   _ <- string "PCC:"
-  l <- satisfy $ inClass "@&*"
+  l <- oneOf "@&*"
   v <- restOfLine
   return $ PCCBodyTag Lookup { location = linkLocation l,
                                filename = v }
@@ -61,5 +61,5 @@ parsePCC :: FilePath -> IO PCCTags
 parsePCC pccName = do
   contents <- readContents pccName
   --print $ "** parsing PCC: " ++ pccName
-  let result = parse parsePCCLine contents in
+  let result = parse parsePCCLine pccName contents in
     return $ parseResult pccName result

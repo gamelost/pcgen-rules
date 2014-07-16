@@ -8,7 +8,6 @@ import Text.Parsec.String
 import Control.Applicative
 import Common
 import Data.Maybe
-import Data.List(stripPrefix)
 
 data Operation = Add | Copy | Modify | Forget deriving Show
 
@@ -25,11 +24,6 @@ class LSTObject a where
     tags <- parseLine name
     _ <- many1 $ satisfy $ inClass "\r\n"
     return LSTLine { .. }
-
-stripSuffix :: String -> String -> Maybe String
-stripSuffix sfx rest = case stripPrefix (reverse sfx) (reverse rest) of
-  Just ys -> Just (reverse ys)
-  Nothing -> Nothing
 
 parseStart :: Parser (String, Operation)
 parseStart = do

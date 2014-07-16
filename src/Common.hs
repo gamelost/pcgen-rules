@@ -4,13 +4,14 @@ module Common where
 
 import Prelude
 import qualified Data.ByteString as B
-import qualified Data.Text as T
-import Data.Text.Encoding(decodeUtf8With)
-import Data.Text.Encoding.Error(lenientDecode)
+import Data.ByteString.UTF8(toString)
 import Control.Monad(liftM)
 import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Text.Parsec.String
+import Text.Parsec.Error
+import Text.Parsec.Prim
+import Data.List(stripPrefix)
 import Control.Applicative hiding (many)
 import qualified Text.Show.Pretty as Pretty
 import Debug.Trace(trace)
@@ -28,13 +29,13 @@ parseString :: Parser String
 parseString = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()[]~" -- do not put in '=' or '|'
 
 allCaps :: Parser String
-allCaps = many1 $ satisfy $ inClass "A-Z"
+allCaps = many1 $ upper
 
 manyNumbers :: Parser String
-manyNumbers = many1 $ satisfy $ inClass "0-9"
+manyNumbers = many1 $ digit
 
 tabs :: Parser ()
-tabs = skipMany1 $ char '\t'
+tabs = skipMany1 $ tab
 
 tag :: String -> Parser ()
 tag t = string t >> char ':' >> empty
@@ -46,8 +47,11 @@ textToInt t = read t :: Int
 (<||>) = liftA2 (||)
 infixr 2 <||>
 
+eol :: Parser Char
+eol = satisfy ((== '\n') <||> (== '\r')) <?> "eol"
+
 restOfLine :: Parser String
-restOfLine = manyTill anyChar $ satisfy ((== '\n') <||> (== '\r'))
+restOfLine = manyTill anyChar $ eol
 
 restOfTag :: Parser String
 restOfTag = manyTill anyChar $ satisfy ((== '\n') <||> (== '\r') <||> (== '\t'))
@@ -64,31 +68,25 @@ parseWordAndNumber = many1 $ satisfy $ inClass "-A-Za-z0-9"
 yesOrNo :: Parser Bool
 yesOrNo = liftM (== "YES") allCaps
 
+stripSuffix :: String -> String -> Maybe String
+stripSuffix sfx rest = case stripPrefix (reverse sfx) (reverse rest) of
+  Just ys -> Just (reverse ys)
+  Nothing -> Nothing
+
 -- do not use parseOnly: it does not fail if there is any leftover
 -- input. If our parser does not consume everything, we want instant
 -- failure.
-parseResult :: Show t => FilePath -> IResult String t -> t
+parseResult :: Show t => FilePath -> Either ParseError t -> t
 parseResult filename result =
   case result of
-    Done left success | left == T.empty ->
-      success
-    Done left r ->
-      let nextTag = dropWhile (== '\t') (T.unpack left) in
-      let filterTag x = x /= '\n' && x /= '\r' in
-      let unparsedTag = Prelude.takeWhile filterTag nextTag in
-      trace (Pretty.ppShow r)
-      error $ "failed to parse " ++ filename ++
-                " with remaining input: '" ++ unparsedTag ++ "'"
-    Partial c ->
-      -- just give the continuation an empty result and try again
-      parseResult filename $ c T.empty
-    Fail _ _ err ->
-      error $ "failed to parse " ++ filename ++ " with error " ++ err
+    Left err ->
+      error $ "failed to parse " ++ filename ++ " with error: " ++ show err
+    Right success -> success
 
 -- Data.Text.IO.readFile does not do the right thing, sigh. Instead,
 -- read in the contents as a bytestring and then attempt an utf8
 -- decoding. We need to do this in order to parse certain LST files.
-readContents :: FilePath -> IO T.Text
+readContents :: FilePath -> IO String
 readContents filename = do
   f <- B.readFile filename
-  return $ decodeUtf8With lenientDecode f
+  return $ toString f

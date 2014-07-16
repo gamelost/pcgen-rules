@@ -27,7 +27,7 @@ constructPCCLinks :: PCCTags -> IO [PCCTags]
 constructPCCLinks pccTags =
   mapM (>>= parsePCC) tags where
     tags = mapMaybe linkTags pccTags
-    linkTags (PCCBodyTag l) = Just (getFullPath . T.unpack $ filename l)
+    linkTags (PCCBodyTag l) = Just (getFullPath $ filename l)
     linkTags _ = Nothing
 
 constructPCC :: PCCTags -> IO Ruleset

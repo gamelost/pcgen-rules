@@ -281,7 +281,7 @@ data PreVar = PreVar { operator :: Operator
 
 parsePreVar :: Parser PreVar
 parsePreVar = do
-  op <- string "PREVAR" >> (choice $ map string ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"])
+  op <- string "PREVAR" >> choice (map string ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"])
   variables <- char ':' >> parsePreVarType `sepBy` char ','
   return PreVar { operator = convertOperator op, .. } where
     parsePreVarType = PreVarFormula <$> parseFormula

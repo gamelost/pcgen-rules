@@ -44,10 +44,10 @@ parseSourceDate = SourceDate <$> (tag "SOURCEDATE" >> restOfTag)
 
 parseHeaders :: Parser [Header]
 parseHeaders = many1 header <* tabs where
-  header = parseSourceLong
-       <|> parseSourceShort
-       <|> parseSourceWeb
-       <|> parseSourceDate
+  header = try parseSourceLong
+       <|> try parseSourceShort
+       <|> try parseSourceWeb
+       <|> try parseSourceDate
 
 parseLSTLines :: Parser a -> Parser [LST a]
 parseLSTLines parseDefinition = do

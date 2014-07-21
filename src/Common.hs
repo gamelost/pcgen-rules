@@ -12,9 +12,6 @@ import Text.Parsec.String
 import Text.Parsec.Error
 import Text.Parsec.Prim
 import Data.List(stripPrefix)
-import Control.Applicative hiding (many)
-import qualified Text.Show.Pretty as Pretty
-import Debug.Trace(trace)
 
 -- conversion from attoparsec -> parsec
 inClass :: String -> Char -> Bool
@@ -29,32 +26,28 @@ parseString :: Parser String
 parseString = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()[]~" -- do not put in '=' or '|'
 
 allCaps :: Parser String
-allCaps = many1 $ upper
+allCaps = many1 upper
 
 manyNumbers :: Parser String
-manyNumbers = many1 $ digit
+manyNumbers = many1 digit
 
 tabs :: Parser ()
-tabs = skipMany1 $ tab
+tabs = skipMany1 tab
 
-tag :: String -> Parser ()
-tag t = string t >> char ':' >> empty
+tag :: String -> Parser String
+tag t = string $ t ++ ":"
 
 textToInt :: String -> Int
 textToInt t = read t :: Int
 
-(<||>) :: Applicative f => f Bool -> f Bool -> f Bool
-(<||>) = liftA2 (||)
-infixr 2 <||>
-
 eol :: Parser Char
-eol = satisfy ((== '\n') <||> (== '\r')) <?> "eol"
+eol = satisfy (inClass "\n\r") <?> "eol"
 
 restOfLine :: Parser String
-restOfLine = manyTill anyChar $ eol
+restOfLine = manyTill anyChar eol
 
 restOfTag :: Parser String
-restOfTag = manyTill anyChar $ satisfy ((== '\n') <||> (== '\r') <||> (== '\t'))
+restOfTag = manyTill anyChar $ satisfy $ inClass "\n\r\t"
 
 parseTabs :: Parser [String]
 parseTabs = restOfTag `sepBy` tabs
@@ -79,8 +72,7 @@ stripSuffix sfx rest = case stripPrefix (reverse sfx) (reverse rest) of
 parseResult :: Show t => FilePath -> Either ParseError t -> t
 parseResult filename result =
   case result of
-    Left err ->
-      error $ "failed to parse " ++ filename ++ " with error: " ++ show err
+    Left err -> error $ show err
     Right success -> success
 
 -- Data.Text.IO.readFile does not do the right thing, sigh. Instead,

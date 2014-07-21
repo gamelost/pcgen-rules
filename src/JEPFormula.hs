@@ -76,7 +76,7 @@ parseGroup = Group <$> (char '(' >> parseFormula <* char ')')
 
 -- may want to make sure there are no unterminated quotes!
 parseQuotedString :: Parser String
-parseQuotedString = char '"' *> (manyTill anyChar $ satisfy (== '"')) <* char '"'
+parseQuotedString = char '"' *> manyTill anyChar (satisfy (== '"')) <* char '"'
 
 -- treat the var() function specially
 parseVarFunction :: Parser Formula

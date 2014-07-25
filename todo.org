@@ -1,8 +1,9 @@
-* general [0/4]
+* general [0/5]
 ** TODO switch to parsec
 - need to pass around state monad for updating variables for use in
   jep formulas.
 - do we want to evaluate as we go on?
+** TODO exit if we don't parse the entire file (eof)
 ** TODO add catch-all for tags (with optional trace)
 ** TODO narrow down parseString: way too general
 ** TODO look at data/zen-test/... -- is this something we can use?

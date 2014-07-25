@@ -32,10 +32,13 @@ manyNumbers :: Parser String
 manyNumbers = many1 digit
 
 tabs :: Parser ()
-tabs = skipMany1 tab
+tabs = skipMany tab
+
+tabs1 :: Parser ()
+tabs1 = skipMany1 tab
 
 tag :: String -> Parser String
-tag t = string $ t ++ ":"
+tag t = try . string $ t ++ ":"
 
 textToInt :: String -> Int
 textToInt t = read t :: Int
@@ -53,7 +56,7 @@ parseTabs :: Parser [String]
 parseTabs = restOfTag `sepBy` tabs
 
 parseCommentLine :: Parser String
-parseCommentLine = char '#' >> spaces >> restOfLine where
+parseCommentLine = char '#' >> option "" (try $ spaces >> restOfLine)
 
 parseWordAndNumber :: Parser String
 parseWordAndNumber = many1 $ satisfy $ inClass "-A-Za-z0-9"
@@ -66,19 +69,12 @@ stripSuffix sfx rest = case stripPrefix (reverse sfx) (reverse rest) of
   Just ys -> Just (reverse ys)
   Nothing -> Nothing
 
--- do not use parseOnly: it does not fail if there is any leftover
--- input. If our parser does not consume everything, we want instant
--- failure.
 parseResult :: Show t => FilePath -> Either ParseError t -> t
 parseResult filename result =
   case result of
     Left err -> error $ show err
     Right success -> success
 
--- Data.Text.IO.readFile does not do the right thing, sigh. Instead,
--- read in the contents as a bytestring and then attempt an utf8
--- decoding. We need to do this in order to parse certain LST files.
 readContents :: FilePath -> IO String
-readContents filename = do
-  f <- B.readFile filename
-  return $ toString f
+readContents filename = B.readFile filename >>= spit where
+  spit x = return $ toString x

@@ -2,8 +2,6 @@
 
 module Modifications where
 
-import Text.Parsec.Char
-import Text.Parsec.Combinator
 import Text.Parsec.String
 import Control.Applicative
 import Common
@@ -22,7 +20,6 @@ class LSTObject a where
   parseLSTLine = do
     (name, operation) <- parseStart <* tabs
     tags <- parseLine name
-    _ <- many1 $ satisfy $ inClass "\r\n"
     return LSTLine { .. }
 
 parseStart :: Parser (String, Operation)

@@ -44,15 +44,15 @@ parseSourceDate = SourceDate <$> (tag "SOURCEDATE" >> restOfTag)
 
 parseHeaders :: Parser [Header]
 parseHeaders = many1 header <* tabs where
-  header = try parseSourceLong
-       <|> try parseSourceShort
-       <|> try parseSourceWeb
-       <|> try parseSourceDate
+  header = parseSourceLong
+       <|> parseSourceShort
+       <|> parseSourceWeb
+       <|> parseSourceDate
 
 parseLSTLines :: Parser a -> Parser [LST a]
 parseLSTLines parseDefinition = do
   _ <- many eol
-  many1 $ lstLine <* many eol where
+  many1 $ lstLine <* many1 eol where
     lstLine = Source <$> parseHeaders
           <|> Comment <$> parseCommentLine
           <|> Definition <$> parseDefinition

@@ -6,6 +6,7 @@ import Prelude hiding (takeWhile, GT, EQ, LT)
 import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Text.Parsec.String
+import Text.Parsec.Prim hiding ((<|>))
 import Control.Applicative
 import JEPFormula
 import Common
@@ -124,7 +125,7 @@ parsePreFeat :: Parser PreFeat
 parsePreFeat = do
   n <- tag "PREFEAT" >> manyNumbers
   _ <- char ','
-  countSeparately <- option False (string "CHECKMULT," >> return True)
+  countSeparately <- option False (try $ string "CHECKMULT," >> return True)
   feats <- parseFeat `sepBy` char ','
   let cannotHave = False -- not implemented
   return PreFeat { featNumber = textToInt n, .. } where
@@ -281,10 +282,10 @@ data PreVar = PreVar { operator :: Operator
 
 parsePreVar :: Parser PreVar
 parsePreVar = do
-  op <- string "PREVAR" >> choice (map string ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"])
+  op <- try $ string "PREVAR" >> choice (map string ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"])
   variables <- char ':' >> parsePreVarType `sepBy` char ','
   return PreVar { operator = convertOperator op, .. } where
-    parsePreVarType = PreVarFormula <$> parseFormula
+    parsePreVarType = PreVarFormula <$> try parseFormula
                   <|> PreVarText <$> parseStringNoCommas
     convertOperator :: String -> Operator
     convertOperator "EQ" = EQ

@@ -10,7 +10,7 @@ import Restrictions
 import Modifications
 import Lst.GlobalTags
 import Common
-import Bonus
+import Bonus(parseBonus, Bonus)
 
 -- we only define the most common language types here
 data LanguageType = Read

@@ -5,8 +5,9 @@ module Bonus where
 import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Text.Parsec.String
-import Control.Applicative hiding (optional)
-import Control.Exception
+import Text.Parsec.Prim hiding ((<|>))
+import Control.Applicative hiding (optional, many)
+import Control.Exception hiding (try)
 import Data.Maybe
 import JEPFormula
 import Restrictions(Restriction, parseAdditionalRestrictions)
@@ -28,9 +29,13 @@ data BonusAbility = BonusAbility { abilityCategory :: String
                                  , abilityPoolFormula :: Formula }
                   deriving (Show, Eq)
 
+
+bonusTag :: String -> Parser String
+bonusTag t = try . string $ t ++ "|"
+
 parseBonusAbilityPool :: Parser BonusAbility
 parseBonusAbilityPool = do
-  _ <- string "ABILITYPOOL|"
+  _ <- bonusTag "ABILITYPOOL"
   abilityCategory <- parseString
   abilityPoolFormula <- char '|' *> parseFormula
   return BonusAbility { .. }
@@ -58,7 +63,7 @@ data Skill = Skill { bonusToSkills :: [BonusToSkill]
 -- we have far more bonus types, but for now, stick with a simple (Text, Bool)
 parseBonusType :: Parser (String, Bool)
 parseBonusType = do
-  bonusType <- (string "|TYPE=" <|> string "|SKILLTYPE=") *> parseString
+  bonusType <- try (string "|TYPE=" <|> string "|SKILLTYPE=") *> parseString
   let testForStack = stripSuffix ".STACK" bonusType
   return (fromMaybe bonusType testForStack, isJust testForStack)
 
@@ -76,7 +81,7 @@ parseBonusRestrictionsAndType = do
 
 parseBonusSkill :: Parser Skill
 parseBonusSkill = do
-  _ <- string "SKILL|"
+  _ <- bonusTag "SKILL"
   bonusToSkills <- parseBonusSkills `sepBy` char ','
   skillFormula <- char '|' *> parseSkillFormulaType
   (skillRestrictions, skillType) <- parseBonusRestrictionsAndType
@@ -86,10 +91,10 @@ parseBonusSkill = do
                    <|> parseSkillType
                    <|> parseStatName
                    <|> parseSkillName
-    parseList = string "LIST" >> return List
-    parseAll = string "ALL" >> return All
-    parseSkillType = string "TYPE=" >> (BonusSkillType <$> parseStringNoCommas)
-    parseStatName = string "STAT." >> (StatName <$> parseStringNoCommas)
+    parseList = try $ string "LIST" >> return List
+    parseAll = try $ string "ALL" >> return All
+    parseSkillType = try $ string "TYPE=" >> (BonusSkillType <$> parseStringNoCommas)
+    parseStatName = try $ string "STAT." >> (StatName <$> parseStringNoCommas)
     parseSkillName = BonusSkillName <$> parseStringNoCommas
     parseSkillFormulaType = SkillFormula <$> parseFormula
                         <|> SkillText <$> parseStringNoCommas
@@ -110,7 +115,7 @@ data SkillRank = SkillRank { skillRanks :: [BonusToSkillRank]
 
 parseBonusSkillRank :: Parser SkillRank
 parseBonusSkillRank = do
-  _ <- string "SKILLRANK|"
+  _ <- bonusTag "SKILLRANK"
   skillRanks <- parseBonusSkillRanks `sepBy` char ','
   skillRankFormula <- char '|' *> parseSkillFormulaType
   (skillRankRestrictions, skillRankType) <- parseBonusRestrictionsAndType
@@ -133,7 +138,7 @@ data BonusVar = BonusVar { bonusVariables :: [String]
 
 parseBonusVariable :: Parser BonusVar
 parseBonusVariable = do
-  _ <- string "VAR|"
+  _ <- bonusTag "VAR"
   bonusVariables <- parseString `sepBy` char ','
   adjustBy <- char '|' *> parseFormula
   (bonusVarRestrictions, bonusVarType) <- parseBonusRestrictionsAndType
@@ -169,7 +174,7 @@ data BonusWeaponProf = BonusWeaponProf { bonusWeaponProficency :: BonusWeapon
 
 parseBonusWeaponProf :: Parser BonusWeaponProf
 parseBonusWeaponProf = do
-  _ <- string "WEAPONPROF="
+  _ <- try $ string "WEAPONPROF="
   bonusWeaponProficency <- parseWeaponProficiency
   bonusWeaponProperties <- char '|' *> parseWeaponProperty `sepBy` char ','
   bonusWeaponFormula <- char '|' *> parseFormula

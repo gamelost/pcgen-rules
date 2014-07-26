@@ -4,10 +4,10 @@ module Pcc where
 
 import Prelude hiding (takeWhile)
 import Control.Monad(liftM)
-import Control.Applicative hiding ((<|>), many)
+import Control.Applicative hiding (many)
 import Text.Parsec.Char
 import Text.Parsec.String
-import Text.Parsec.Prim
+import Text.Parsec.Prim hiding ((<|>))
 import Fs
 import Common
 

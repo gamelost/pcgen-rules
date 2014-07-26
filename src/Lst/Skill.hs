@@ -5,13 +5,14 @@ module Lst.Skill where
 import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Text.Parsec.String
+import Text.Parsec.Prim hiding ((<|>))
 import Control.Monad(liftM)
 import Control.Applicative
 import Restrictions(Restriction, parseRestriction)
 import Modifications
 import Lst.GlobalTags
 import Common
-import Bonus
+import Bonus(parseBonus, Bonus)
 
 data ArmorCheck = Double
                 | Proficient
@@ -57,7 +58,7 @@ parseType = Type <$> (tag "TYPE" >> parseString `sepBy` char '.')
 parseClasses :: SkillTag
 parseClasses = Classes <$> (tag "CLASSES" >> parseClass) where
   parseClass :: Parser Class
-  parseClass = (string "ALL" >> return AllClasses) <|>
+  parseClass = (try $ string "ALL" >> return AllClasses) <|>
                (Subset <$> (parseString `sepBy` char '|'))
 
 parseArmorCheck :: SkillTag

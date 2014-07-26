@@ -4,8 +4,8 @@ import Prelude hiding (takeWhile)
 import qualified Text.Show.Pretty as Pretty
 import Text.Parsec.Combinator
 import Text.Parsec.String
-import Text.Parsec.Prim
-import Control.Applicative hiding ((<|>), many)
+import Text.Parsec.Prim hiding ((<|>))
+import Control.Applicative hiding (many)
 import Modifications
 import Common
 
@@ -52,7 +52,7 @@ parseHeaders = many1 header <* tabs where
 parseLSTLines :: Parser a -> Parser [LST a]
 parseLSTLines parseDefinition = do
   _ <- many eol
-  many1 $ lstLine <* many1 eol where
+  many1 $ lstLine <* many eol where
     lstLine = Source <$> parseHeaders
           <|> Comment <$> parseCommentLine
           <|> Definition <$> parseDefinition

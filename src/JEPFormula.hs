@@ -9,7 +9,8 @@ module JEPFormula ( Formula(..)
 import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Text.Parsec.String
-import Control.Applicative hiding (optional)
+import Text.Parsec.Prim hiding ((<|>))
+import Control.Applicative hiding (optional, many)
 import Common
 import Debug.Trace(trace)
 
@@ -126,7 +127,7 @@ parseFunction = do
     funcParsers = map string listOfFunctions
 
 parseFormula :: Parser Formula
-parseFormula = parseInfixFunction
+parseFormula = try parseInfixFunction
            <|> parseFunction
            <|> parseGroup
            <|> parseVarFunction

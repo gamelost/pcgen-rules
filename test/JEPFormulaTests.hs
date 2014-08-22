@@ -1,16 +1,13 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module JEPFormulaTests where
 
-import qualified Data.Text as T
-import Data.Attoparsec.Text
+import Text.Parsec.Prim
 import Control.Applicative
 import Test.HUnit
 import JEPFormula
 import Common
 
-parseJEP :: T.Text -> Formula
-parseJEP contents = parseResult "parseJEP" $ parse parseFormula contents
+parseJEP :: String -> Formula
+parseJEP contents = parseResult "parseJEP" $ parse parseFormula "parseJEP" contents
 
 testInt = parseJEP "2" @?=
           Number 2

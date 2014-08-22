@@ -1,9 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module BonusTests where
 
-import qualified Data.Text as T
-import Data.Attoparsec.Text
+import Text.Parsec.Prim
 import Control.Applicative
 import Test.HUnit
 import Restrictions
@@ -11,8 +8,8 @@ import JEPFormula
 import Bonus
 import Common
 
-parseBonusString :: T.Text -> Bonus
-parseBonusString contents = parseResult "parseBonus" $ parse parseBonus contents
+parseBonusString :: String -> Bonus
+parseBonusString contents = parseResult "parseBonus" $ parse parseBonus "parseBonus" contents
 
 testSkillBonus = do
   parseBonusString skillBonus1 @?= skillResult1

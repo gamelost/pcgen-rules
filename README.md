@@ -6,4 +6,4 @@ pcgen-rules is an attempt to extract the rules and data from [PCGen](http://pcge
 
 You will need the PCGen data files in a separate directory. Edit the `Makefile` accordingly if you use a directory other than `data/`.
 
-Currently the code just parses .pcc and .lst files; this is very much a work in progress.
+Currently the code just parses .pcc and .lst files; this is very much a work in progress. See `todo.org` for a more detailed listing of what needs to be done.

@@ -19,6 +19,9 @@ inClass "" = const False
 inClass (a:'-':b:xs) = \c -> (c >= a && c <= b) || f c where f = inClass xs
 inClass (x:xs) = \c -> c == x || f c where f = inClass xs
 
+tryStrings :: [String] -> [Parser String]
+tryStrings = map $ try . string
+
 parseWord :: Parser String
 parseWord = many1 $ satisfy $ inClass "-A-Za-z"
 

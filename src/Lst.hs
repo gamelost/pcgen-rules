@@ -65,7 +65,8 @@ parseLST lstParser lstName  = do
 
 -- debugging only
 prettyPrint :: Show a => Parser (LSTLine a) -> FilePath -> IO String
-prettyPrint x file = Pretty.ppShow <$> parseLST x file
+prettyPrint = showAll . parseLST where
+  showAll = ((Pretty.ppShow <$>) .)
 
 parseLSTToString :: String -> FilePath -> IO String
 parseLSTToString "LANGUAGE" = prettyPrint (parseLSTLine :: Parser (LSTLine LanguageDefinition))

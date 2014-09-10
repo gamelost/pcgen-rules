@@ -4,6 +4,7 @@ module JEPFormula ( Formula(..)
                   , Operand(..)
                   , SkillType(..)
                   , parseFormula
+                  , parseQuotedString
                   ) where
 
 import Text.Parsec.Char
@@ -57,19 +58,23 @@ listOfFunctions = [ "floor"
                   , "ceil"
                   ]
 
+variableParsers :: [Parser String]
+variableParsers = tryStrings listOfVars
+
+functionParsers :: [Parser String]
+functionParsers = tryStrings listOfFunctions
+
 parseNumber :: Parser Formula
 parseNumber = Number <$> parseSignedNumber where
   parseSignedNumber = sign <*> (textToInt <$> manyNumbers)
   sign = (char '-' >> return negate) <|> (optional (char '+') >> return id)
 
 parseVariable :: Parser Formula
-parseVariable = Variable <$> choice varParsers where
-  varParsers = map string listOfVars
+parseVariable = Variable <$> choice variableParsers
 
 -- ugly; unfortunately, this does show up.
 parseNegativeVariable :: Parser Formula
-parseNegativeVariable = char '-' >> choice varParsers >>= embed where
-    varParsers = map string listOfVars
+parseNegativeVariable = char '-' >> choice variableParsers >>= embed where
     embed v = return $ Function Subtract [ Number 0, Variable v ]
 
 parseGroup :: Parser Formula
@@ -77,7 +82,8 @@ parseGroup = Group <$> (char '(' >> parseFormula <* char ')')
 
 -- may want to make sure there are no unterminated quotes!
 parseQuotedString :: Parser String
-parseQuotedString = char '"' *> manyTill anyChar (satisfy (== '"')) <* char '"'
+parseQuotedString = char '"' *> untilQuote where
+  untilQuote = manyTill anyChar $ satisfy (== '"')
 
 -- treat the var() function specially
 parseVarFunction :: Parser Formula
@@ -111,29 +117,28 @@ parseInfixFunction = do
     operandMap '-' = Subtract
     operandMap '+' = Add
     operandMap _ = error "No such infix function"
-    parsers = parseVariable
-          <|> parseNegativeVariable
-          <|> parseNumber
-          <|> parseVarFunction
-          <|> parseSkillInfoFunction
-          <|> parseFunction
+    parsers = try parseVariable
+          <|> try parseNegativeVariable
+          <|> try parseNumber
+          <|> try parseVarFunction
+          <|> try parseSkillInfoFunction
+          <|> try parseFunction
           <|> parseGroup
 
 parseFunction :: Parser Formula
 parseFunction = do
-  f <- BuiltIn <$> choice funcParsers
+  f <- BuiltIn <$> choice functionParsers
   args <- char '(' >> parseFormula `sepBy` char ',' <* char ')'
-  return $ Function f args where
-    funcParsers = map string listOfFunctions
+  return $ Function f args
 
 parseFormula :: Parser Formula
 parseFormula = try parseInfixFunction
-           <|> parseFunction
-           <|> parseGroup
-           <|> parseVarFunction
-           <|> parseSkillInfoFunction
-           <|> parseNumber
-           <|> parseVariable
+           <|> try parseFunction
+           <|> try parseGroup
+           <|> try parseVarFunction
+           <|> try parseSkillInfoFunction
+           <|> try parseNumber
+           <|> try parseVariable
            <|> parseNegativeVariable
 -- parseFormula = _traceFormula
 

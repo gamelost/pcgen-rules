@@ -9,6 +9,12 @@ import Common
 parseJEP :: String -> Formula
 parseJEP contents = parseResult "parseJEP" $ parse parseFormula "parseJEP" contents
 
+parseQS :: String -> String
+parseQS contents = parseResult "parseQS" $ parse parseQuotedString "parseQS" contents
+
+testQS = parseQS "\"SKILL.Perception (Dim Light).MISC\"" @?=
+         "SKILL.Perception (Dim Light).MISC"
+
 testInt = parseJEP "2" @?=
           Number 2
 
@@ -85,4 +91,5 @@ formulaTests = TestList [ "parse integer" ~: testInt
                         , "parse function with more nested groups" ~: testNestedFunc2
                         , "parse function with nested infix function" ~: testNestedInfixFunc
                         , "parse miscellaneous formulas" ~: testMisc
+                        , "parse quoted string" ~: testQS
                         ]

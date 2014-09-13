@@ -60,7 +60,7 @@ parseLSTLines parseDefinition = do
 parseLST :: Show a => Parser (LSTLine a) -> FilePath -> IO [LST (LSTLine a)]
 parseLST lstParser lstName  = do
   contents <- readContents lstName
-  return . parseResult $ parse fullParser lstName contents where
+  return $ parseResult fullParser lstName contents where
     fullParser = parseLSTLines lstParser
 
 -- debugging only

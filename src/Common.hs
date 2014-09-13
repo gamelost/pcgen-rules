@@ -6,10 +6,10 @@ import Prelude
 import qualified Data.ByteString as B
 import Data.ByteString.UTF8(toString)
 import Control.Monad(liftM)
+import Control.Applicative((<*))
 import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Text.Parsec.String
-import Text.Parsec.Error
 import Text.Parsec.Prim
 import Data.List(stripPrefix)
 
@@ -78,9 +78,10 @@ stripSuffix sfx rest = case stripPrefix (reverse sfx) (reverse rest) of
   Just ys -> Just (reverse ys)
   Nothing -> Nothing
 
-parseResult :: Show t => Either ParseError t -> t
-parseResult result =
-  case result of
+parseResult :: Show a => Parser a -> FilePath -> String -> a
+parseResult parser filename contents =
+  let doall = parser <* eof in
+  case parse doall filename contents of
     Left err -> error $ show err
     Right success -> success
 

@@ -43,8 +43,11 @@ tabs = skipMany tab
 tabs1 :: Parser ()
 tabs1 = skipMany1 tab
 
+labeled :: String -> Parser String
+labeled = try . string
+
 tag :: String -> Parser String
-tag t = try . string $ t ++ ":"
+tag t = labeled $ t ++ ":"
 
 textToInt :: String -> Int
 textToInt t = read t :: Int

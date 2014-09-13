@@ -31,7 +31,7 @@ data BonusAbility = BonusAbility { abilityCategory :: String
 
 
 bonusTag :: String -> Parser String
-bonusTag t = try . string $ t ++ "|"
+bonusTag t = labeled $ t ++ "|"
 
 parseBonusAbilityPool :: Parser BonusAbility
 parseBonusAbilityPool = do
@@ -63,16 +63,18 @@ data Skill = Skill { bonusToSkills :: [BonusToSkill]
 -- we have far more bonus types, but for now, stick with a simple (Text, Bool)
 parseBonusType :: Parser (String, Bool)
 parseBonusType = do
-  bonusType <- try (string "|TYPE=" <|> string "|SKILLTYPE=") *> parseString
+  bonusType <- types *> parseString
   let testForStack = stripSuffix ".STACK" bonusType
-  return (fromMaybe bonusType testForStack, isJust testForStack)
+  return (fromMaybe bonusType testForStack, isJust testForStack) where
+    types = labeled "|TYPE="
+        <|> labeled "|SKILLTYPE="
 
 -- bonus types can be found either before or after restrictions
 parseBonusRestrictionsAndType :: Parser ([Restriction], Maybe (String, Bool))
 parseBonusRestrictionsAndType = do
-  type1 <- optionMaybe parseBonusType
-  restrictions <- optionMaybe parseAdditionalRestrictions
-  type2 <- optionMaybe parseBonusType
+  type1 <- tryOption parseBonusType
+  restrictions <- tryOption parseAdditionalRestrictions
+  type2 <- tryOption parseBonusType
   -- make sure we didn't parse bonus TYPEs both times!
   let _ = assert (isJust type1 && isJust type2)
   let bonusType = type1 <|> type2
@@ -91,12 +93,12 @@ parseBonusSkill = do
                    <|> parseSkillType
                    <|> parseStatName
                    <|> parseSkillName
-    parseList = try $ string "LIST" >> return List
-    parseAll = try $ string "ALL" >> return All
-    parseSkillType = try $ string "TYPE=" >> (BonusSkillType <$> parseStringNoCommas)
-    parseStatName = try $ string "STAT." >> (StatName <$> parseStringNoCommas)
+    parseList = labeled "LIST" >> return List
+    parseAll = labeled "ALL" >> return All
+    parseSkillType = labeled "TYPE=" >> (BonusSkillType <$> parseStringNoCommas)
+    parseStatName = labeled "STAT." >> (StatName <$> parseStringNoCommas)
     parseSkillName = BonusSkillName <$> parseStringNoCommas
-    parseSkillFormulaType = SkillFormula <$> parseFormula
+    parseSkillFormulaType = SkillFormula <$> try parseFormula
                         <|> SkillText <$> parseStringNoCommas
     parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~"
 
@@ -121,10 +123,10 @@ parseBonusSkillRank = do
   (skillRankRestrictions, skillRankType) <- parseBonusRestrictionsAndType
   return SkillRank { .. } where
     parseBonusSkillRanks = many space >> (parseSkillType <|> parseSkillName)
-    parseSkillType = string "TYPE=" >> (SkillRankType <$> parseStringNoCommas)
+    parseSkillType = labeled "TYPE=" >> (SkillRankType <$> parseStringNoCommas)
     parseSkillName = SkillRankName <$> parseStringNoCommas
     parseSkillFormulaType = SkillFormula <$> parseFormula
-                        <|> SkillText <$> (string "SKILLRANK=" >> parseStringNoCommas)
+                        <|> SkillText <$> (labeled "SKILLRANK=" >> parseStringNoCommas)
     parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~"
 
 -- BONUS:VAR|x,x,...|y
@@ -174,26 +176,26 @@ data BonusWeaponProf = BonusWeaponProf { bonusWeaponProficency :: BonusWeapon
 
 parseBonusWeaponProf :: Parser BonusWeaponProf
 parseBonusWeaponProf = do
-  _ <- try $ string "WEAPONPROF="
+  _ <- labeled "WEAPONPROF="
   bonusWeaponProficency <- parseWeaponProficiency
   bonusWeaponProperties <- char '|' *> parseWeaponProperty `sepBy` char ','
   bonusWeaponFormula <- char '|' *> parseFormula
   return BonusWeaponProf { .. } where
-    parseWeaponProficiency = string "TYPE=" >> (WeaponType <$> parseString)
+    parseWeaponProficiency = labeled "TYPE=" >> (WeaponType <$> parseString)
                          <|> WeaponName <$> parseString
-    parseWeaponProperty = (string "CRITMULTADD" >> return CRITMULTADD)
-                      <|> (string "CRITRANGEADD" >> return CRITRANGEADD)
-                      <|> (string "CRITRANGEDOUBLE" >> return CRITRANGEDOUBLE)
-                      <|> (string "DAMAGE" >> return DAMAGE)
-                      <|> (string "DAMAGEMULT" >> return DAMAGEMULT)
-                      <|> (string "DAMAGESIZE" >> return DAMAGESIZE)
-                      <|> (string "DAMAGESHORTRANGE" >> return DAMAGESHORTRANGE)
-                      <|> (string "PCSIZE" >> return PCSIZE)
-                      <|> (string "REACH" >> return REACH)
-                      <|> (string "TOHIT" >> return TOHIT)
-                      <|> (string "TOHITSHORTRANGE" >> return TOHITSHORTRANGE)
-                      <|> (string "TOHITOVERSIZE" >> return TOHITOVERSIZE)
-                      <|> (string "WIELDCATEGORY" >> return WIELDCATEGORY)
+    parseWeaponProperty = (labeled "CRITMULTADD" >> return CRITMULTADD)
+                      <|> (labeled "CRITRANGEADD" >> return CRITRANGEADD)
+                      <|> (labeled "CRITRANGEDOUBLE" >> return CRITRANGEDOUBLE)
+                      <|> (labeled "DAMAGE" >> return DAMAGE)
+                      <|> (labeled "DAMAGEMULT" >> return DAMAGEMULT)
+                      <|> (labeled "DAMAGESIZE" >> return DAMAGESIZE)
+                      <|> (labeled "DAMAGESHORTRANGE" >> return DAMAGESHORTRANGE)
+                      <|> (labeled "PCSIZE" >> return PCSIZE)
+                      <|> (labeled "REACH" >> return REACH)
+                      <|> (labeled "TOHIT" >> return TOHIT)
+                      <|> (labeled "TOHITSHORTRANGE" >> return TOHITSHORTRANGE)
+                      <|> (labeled "TOHITOVERSIZE" >> return TOHITOVERSIZE)
+                      <|> (labeled "WIELDCATEGORY" >> return WIELDCATEGORY)
 
 -- TEMPBONUS:x,x,...|y|z
 --   x is PC, ANYPC, or EQ
@@ -205,6 +207,7 @@ data Target = PC | ANYPC | EQUIPMENT
 data TempBonus = TempBonus { target :: Target
                            , equipmentType :: Maybe String
                            , additionalBonuses :: [Bonus]
+                           -- TODO: can this ever apply to temp bonus itself?
                            , additionalRestrictions :: [Restriction] }
                  deriving (Show, Eq)
 
@@ -212,16 +215,18 @@ parseTemporaryBonus :: Parser TempBonus
 parseTemporaryBonus = do
   _ <- tag "TEMPBONUS"
   target <- parseTarget
-  equipmentType <- optionMaybe $ parseEquipmentType target
-  additionalBonuses <- char '|' >> parseAnyBonus `sepBy` char '|'
+  equipmentType <- tryOption $ parseEquipmentType target
+  -- additionalBonuses <- char '|' >> parseAnyBonus `sepBy` char '|'
+  additionalBonuses <- many $ try bonuses
   additionalRestrictions <- option [] parseAdditionalRestrictions
   return TempBonus { .. } where
     parseTarget :: Parser Target
-    parseTarget = (string "PC" >> return PC)
-              <|> (string "ANYPC" >> return ANYPC)
-              <|> (string "EQ" >> return EQUIPMENT)
+    parseTarget = (labeled "PC" >> return PC)
+              <|> (labeled "ANYPC" >> return ANYPC)
+              <|> (labeled "EQ" >> return EQUIPMENT)
     parseEquipmentType EQUIPMENT = parseString
     parseEquipmentType _ = string "\t" -- better way to do this?
+    bonuses = char '|' >> parseAnyBonus
 
 -- TEMPDESC:x
 --   x is text to display in the temporary bonus sub-tab

@@ -154,16 +154,16 @@ testTempBonus = do
                   { bonusToSkills = [ BonusSkillName "Craft (Fletcher)" ]
                   , skillFormula = SkillFormula (Number (-2))
                   , skillType = Just ("Circumstance", False)
-                  , skillRestrictions = []
+                  , skillRestrictions =
+                      [ Invert $ PreItemRestriction
+                        PreItem
+                        { itemNumber = 1
+                        , items = [ ItemType "WeaponsmithingTools" ]
+                        }
+                      ]
                   }
             ]
-        , additionalRestrictions =
-            [ Invert $ PreItemRestriction
-                PreItem
-                { itemNumber = 1
-                , items = [ ItemType "WeaponsmithingTools" ]
-                }
-            ]
+        , additionalRestrictions = []
         }
     tempBonus2 = "TEMPBONUS:PC|SKILL|Disguise|SynergyBonus|PRESKILL:1,Bluff=5|TYPE=TempSynergy"
     tempResult2 =
@@ -175,8 +175,14 @@ testTempBonus = do
                 Skill
                   { bonusToSkills = [ BonusSkillName "Disguise" ]
                   , skillFormula = SkillFormula ( Variable "SynergyBonus" )
-                  , skillType = Just ("Circumstance", False)
-                  , skillRestrictions = []
+                  , skillType = Just ("TempSynergy", False)
+                  , skillRestrictions =
+                      [ PreSkillRestriction
+                        PreSkill
+                         { skillNumber = 1
+                         , skills = [(SkillName "Bluff",5)]
+                         }
+                      ]
                   }
             ]
         , additionalRestrictions = []

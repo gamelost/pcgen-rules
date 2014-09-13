@@ -321,4 +321,4 @@ parseRestriction = parseInvertedRestriction parsePossibleRestriction
 -- for chained restrictions (e.g., BONUS tags)
 parseAdditionalRestrictions :: Parser [Restriction]
 parseAdditionalRestrictions = many $ try restrictions where
-  restrictions = char '|' *> parseRestriction
+  restrictions = char '|' >> parseRestriction

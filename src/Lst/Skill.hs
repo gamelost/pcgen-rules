@@ -58,7 +58,7 @@ parseType = Type <$> (tag "TYPE" >> parseString `sepBy` char '.')
 parseClasses :: SkillTag
 parseClasses = Classes <$> (tag "CLASSES" >> parseClass) where
   parseClass :: Parser Class
-  parseClass = (try $ string "ALL" >> return AllClasses) <|>
+  parseClass = try (string "ALL" >> return AllClasses) <|>
                (Subset <$> (parseString `sepBy` char '|'))
 
 parseArmorCheck :: SkillTag

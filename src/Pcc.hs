@@ -62,4 +62,4 @@ parsePCC pccName = do
   contents <- readContents pccName
   --print $ "** parsing PCC: " ++ pccName
   let result = parse parsePCCLine pccName contents in
-    return $ parseResult pccName result
+    return $ parseResult result

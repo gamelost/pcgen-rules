@@ -9,7 +9,8 @@ import Bonus
 import Common
 
 parseRestrictionString :: String -> Restriction
-parseRestrictionString contents = parseResult "parseRestriction" $ parse parseRestriction "parseRestriction" contents
+parseRestrictionString contents = parseResult $ parse parseRestriction "parseRestriction" contents
+
 
 testPreFeat = do
   parseRestrictionString preFeat1 @?= preFeatResult1

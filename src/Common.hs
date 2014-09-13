@@ -22,6 +22,9 @@ inClass (x:xs) = \c -> c == x || f c where f = inClass xs
 tryStrings :: [String] -> [Parser String]
 tryStrings = map $ try . string
 
+tryOption :: Parser a -> Parser (Maybe a)
+tryOption = optionMaybe . try
+
 parseWord :: Parser String
 parseWord = many1 $ satisfy $ inClass "-A-Za-z"
 
@@ -72,8 +75,8 @@ stripSuffix sfx rest = case stripPrefix (reverse sfx) (reverse rest) of
   Just ys -> Just (reverse ys)
   Nothing -> Nothing
 
-parseResult :: Show t => FilePath -> Either ParseError t -> t
-parseResult filename result =
+parseResult :: Show t => Either ParseError t -> t
+parseResult result =
   case result of
     Left err -> error $ show err
     Right success -> success

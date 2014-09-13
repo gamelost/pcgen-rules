@@ -6,7 +6,7 @@ import Prelude hiding (takeWhile, GT, EQ, LT)
 import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Text.Parsec.String
-import Text.Parsec.Prim hiding ((<|>))
+import Text.Parsec.Prim hiding ((<|>), many)
 import Control.Applicative
 import JEPFormula
 import Common
@@ -320,4 +320,5 @@ parseRestriction = parseInvertedRestriction parsePossibleRestriction
 
 -- for chained restrictions (e.g., BONUS tags)
 parseAdditionalRestrictions :: Parser [Restriction]
-parseAdditionalRestrictions = char '|' *> (parseRestriction `sepBy` char '|')
+parseAdditionalRestrictions = many $ try restrictions where
+  restrictions = char '|' *> parseRestriction

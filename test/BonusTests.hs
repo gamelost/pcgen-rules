@@ -9,7 +9,7 @@ import Bonus
 import Common
 
 parseBonusString :: String -> Bonus
-parseBonusString contents = parseResult "parseBonus" $ parse parseBonus "parseBonus" contents
+parseBonusString contents = parseResult $ parse parseBonus "parseBonus" contents
 
 testSkillBonus = do
   parseBonusString skillBonus1 @?= skillResult1

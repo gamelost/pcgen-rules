@@ -6,7 +6,7 @@ import Prelude
 import qualified Data.ByteString as B
 import Data.ByteString.UTF8(toString)
 import Control.Monad(liftM)
-import Control.Applicative((<*))
+import Control.Applicative((<*), (*>))
 import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Text.Parsec.String
@@ -52,8 +52,12 @@ tag t = labeled $ t ++ ":"
 textToInt :: String -> Int
 textToInt t = read t :: Int
 
+-- accomodate crlf line terminators.
+crlf :: Parser Char
+crlf = char '\r' *> char '\n' <?> "crlf new-line"
+
 eol :: Parser Char
-eol = satisfy (inClass "\n\r") <?> "eol"
+eol = newline <|> crlf <?> "eol"
 
 restOfLine :: Parser String
 restOfLine = manyTill anyChar eol

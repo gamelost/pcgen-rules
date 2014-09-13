@@ -80,9 +80,9 @@ parseAbility = do
   abilityRestrictions <- option [] parseAdditionalRestrictions
   return $ AbilityTag Ability { .. } where
     parseWordandSpace = many1 $ satisfy $ inClass "-A-Za-z "
-    parseAbilityNature = (string "NORMAL" >> return Normal)
-                     <|> (string "AUTOMATIC" >> return Automatic)
-                     <|> (string "VIRTUAL" >> return Virtual)
+    parseAbilityNature = (labeled "NORMAL" >> return Normal)
+                     <|> (labeled "AUTOMATIC" >> return Automatic)
+                     <|> (labeled "VIRTUAL" >> return Virtual)
 
 -- AUTO:LANG|x|x...
 --   x is language, language type, ALL, LIST, CLEAR.
@@ -95,11 +95,11 @@ data AutoLanguage = Language String
                     deriving (Show, Eq)
 
 parseAutoLanguage :: Parser GlobalTag
-parseAutoLanguage = string "AUTO:LANG|" >> (AutoLanguageTag <$> parseLanguages) where
-  parseLanguages = LanguageType <$> (string "TYPE=" *> parseString)
-               <|> (string "ALL" >> return AllLanguages)
-               <|> (string "%LIST" >> return ListLanguages)
-               <|> (string "CLEAR" >> return ClearLanguages)
+parseAutoLanguage = labeled "AUTO:LANG|" >> (AutoLanguageTag <$> parseLanguages) where
+  parseLanguages = LanguageType <$> (labeled "TYPE=" *> parseString)
+               <|> (labeled "ALL" >> return AllLanguages)
+               <|> (labeled "%LIST" >> return ListLanguages)
+               <|> (labeled "CLEAR" >> return ClearLanguages)
                <|> Invert <$> (char '!' >> parseLanguages)
                <|> Language <$> parseString
 
@@ -110,10 +110,10 @@ data ChooseLanguage = ChoiceLanguage String
 
 parseChooseLanguage :: Parser GlobalTag
 parseChooseLanguage = do
-  _ <- string "CHOOSE:LANG|"
+  _ <- labeled "CHOOSE:LANG|"
   languages <- parseChoice `sepBy` char ','
   return $ ChooseLanguageTag languages where
-    parseChoice = ChoiceLanguageType <$> (string "TYPE=" *> parseString)
+    parseChoice = ChoiceLanguageType <$> (labeled "TYPE=" *> parseString)
               <|> ChoiceLanguage <$> parseString
 
 -- not fully implemented
@@ -123,10 +123,10 @@ data ChooseSkill = ChoiceSkill String
 
 parseChooseSkill :: Parser GlobalTag
 parseChooseSkill = do
-  _ <- string "CHOOSE:SKILL|"
+  _ <- labeled "CHOOSE:SKILL|"
   skills <- parseChoice `sepBy` char ','
   return $ ChooseSkillTag skills where
-    parseChoice = ChoiceSkillType <$> (string "TYPE=" *> parseString)
+    parseChoice = ChoiceSkillType <$> (labeled "TYPE=" *> parseString)
               <|> ChoiceSkill <$> parseString
 
 parseClassSkill :: Parser GlobalTag

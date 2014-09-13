@@ -35,7 +35,7 @@ parseWeaponHands = WeaponHands <$> (tag "HANDS" >> liftM textToInt manyNumbers)
 parseWeaponHandsRestriction :: Parser WeaponProficency
 parseWeaponHandsRestriction = do
   n <- tag "HANDS" *> manyNumbers
-  _ <- string "IFLARGERTHANWEAPON"
+  _ <- labeled "IFLARGERTHANWEAPON"
   return . WeaponHandsRestriction $ textToInt n
 
 parseWeaponProficencyTag :: Parser WeaponProficency

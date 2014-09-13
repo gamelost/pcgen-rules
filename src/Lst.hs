@@ -43,7 +43,7 @@ parseSourceDate :: Parser Header
 parseSourceDate = SourceDate <$> (tag "SOURCEDATE" >> restOfTag)
 
 parseHeaders :: Parser [Header]
-parseHeaders = many1 header <* tabs where
+parseHeaders = header `sepBy1` tabs where
   header = parseSourceLong
        <|> parseSourceShort
        <|> parseSourceWeb

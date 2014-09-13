@@ -19,11 +19,11 @@
 * skill [0/2]
 ** TODO 6 failures
 - DEFINE: 1
-- AUTO:EQUIP 1
 - PRE:.CLEAR 1
-- ADD:FEAT 1
-- Tactics.COPY 1
 - remaining failure is a bad merge, cannot fix
+- Tactics.COPY 1
+- ADD:FEAT 1
+- AUTO:EQUIP 1
 ** TODO fix test failures in BonusTests
 * JEP [0/1]
 ** TODO allow for plain strings?

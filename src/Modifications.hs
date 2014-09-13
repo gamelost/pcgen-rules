@@ -19,7 +19,7 @@ class LSTObject a where
   parseLSTLine :: Parser (LSTLine a)
   parseLSTLine = do
     (name, operation) <- parseStart <* tabs
-    tags <- parseLine name
+    tags <- parseLine name <* eol
     return LSTLine { .. }
 
 parseStart :: Parser (String, Operation)

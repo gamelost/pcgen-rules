@@ -41,7 +41,7 @@ linkLocation _ = Any
 
 parseBodyTag :: Parser PCCTag
 parseBodyTag = do
-  _ <- string "PCC:"
+  _ <- labeled "PCC:"
   l <- oneOf "@&*"
   v <- restOfLine
   return $ PCCBodyTag Lookup { location = linkLocation l,

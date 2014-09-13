@@ -87,12 +87,12 @@ parseQuotedString = char '"' *> untilQuote where
 
 -- treat the var() function specially
 parseVarFunction :: Parser Formula
-parseVarFunction = LookupVariable <$> (string "var(" >> parseQuotedString <* string ")")
+parseVarFunction = LookupVariable <$> (labeled "var(" >> parseQuotedString <* labeled ")")
 
 -- treat the skillinfo() function specially
 parseSkillInfoFunction :: Parser Formula
 parseSkillInfoFunction = do
-  prop <- string "skillinfo(" *> parseQuotedString
+  prop <- labeled "skillinfo(" *> parseQuotedString
   _ <- char ',' >> many space
   var <- parseQuotedString <* char ')'
   return $ LookupSkill (parseProperty prop, var) where

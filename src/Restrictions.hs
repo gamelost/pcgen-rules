@@ -39,7 +39,7 @@ data PreAbility = PreAbility { abilityNumber :: Int
 parsePreAbility :: Parser PreAbility
 parsePreAbility = do
   n <- tag "PREABILITY" >> manyNumbers
-  categoryName <- string ",CATEGORY=" >> parseWordWithSpaces
+  categoryName <- labeled ",CATEGORY=" >> parseWordWithSpaces
   abilities <- char ',' >> parseString `sepBy` char ','
   return PreAbility { abilityNumber = textToInt n, .. } where
     parseWordWithSpaces = many1 $ satisfy $ inClass "-A-Za-z "
@@ -104,7 +104,7 @@ parsePreClassSkill = do
   n <- tag "PRECSKILL" >> manyNumbers
   classSkill <- char ',' >> parseClassSkill
   return PreClassSkill { classSkillNumber = textToInt n, .. } where
-    parseClassSkill = ClassSkillType <$> (string "TYPE=" >> parseString)
+    parseClassSkill = ClassSkillType <$> (labeled "TYPE=" >> parseString)
                   <|> ClassSkillName <$> parseString
 
 -- PREFEAT:x,y,z,z,..
@@ -125,11 +125,11 @@ parsePreFeat :: Parser PreFeat
 parsePreFeat = do
   n <- tag "PREFEAT" >> manyNumbers
   _ <- char ','
-  countSeparately <- option False (try $ string "CHECKMULT," >> return True)
+  countSeparately <- option False (labeled "CHECKMULT," >> return True)
   feats <- parseFeat `sepBy` char ','
   let cannotHave = False -- not implemented
   return PreFeat { featNumber = textToInt n, .. } where
-    parseFeat = FeatType <$> (string "TYPE=" >> parseStringNoCommas)
+    parseFeat = FeatType <$> (labeled "TYPE=" >> parseStringNoCommas)
             <|> FeatName <$> parseStringNoCommas
     parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
 
@@ -150,7 +150,7 @@ parsePreItem = do
   n <- tag "PREITEM" >> manyNumbers
   items <- char ',' >> parseItems `sepBy` char ','
   return PreItem { itemNumber = textToInt n, .. } where
-    parseItems = ItemType <$> (string "TYPE=" >> parseString)
+    parseItems = ItemType <$> (labeled "TYPE=" >> parseString)
              <|> (char '%' >> return AnyItem)
              <|> ItemType <$> parseString
 
@@ -204,9 +204,9 @@ parsePreRace = do
   n <- tag "PRERACE" >> manyNumbers
   races <- char ',' >> parseRaces `sepBy` char ','
   return PreRace { raceNumber = textToInt n, .. } where
-    parseRaces = RaceSubType <$> (string "RACESUBTYPE=" *> parseString)
-             <|> RaceTypeType <$> (string "RACETYPE=" *> parseString)
-             <|> RaceType <$> (string "TYPE=" *> parseString)
+    parseRaces = RaceSubType <$> (labeled "RACESUBTYPE=" *> parseString)
+             <|> RaceTypeType <$> (labeled "RACETYPE=" *> parseString)
+             <|> RaceType <$> (labeled "TYPE=" *> parseString)
              <|> RaceName <$> parseString
 
 -- PRERULE:x,y
@@ -244,7 +244,7 @@ parsePreSkill = do
       skill <- parseSkill
       val <- char '=' *> manyNumbers
       return (skill, textToInt val)
-    parseSkill = SkillType <$> (string "TYPE=" >> parseString)
+    parseSkill = SkillType <$> (labeled "TYPE=" >> parseString)
              <|> SkillName <$> parseString
 
 -- PRESKILLTOT:x,x,...=y
@@ -260,7 +260,7 @@ parsePreSkillTotal = do
   skillTotals <- parseSkills `sepBy` char ','
   n <- char '=' *> manyNumbers
   return PreSkillTot { skillTotalNeeded = textToInt n, .. } where
-    parseSkills = SkillType <$> (string "TYPE=" >> parseString)
+    parseSkills = SkillType <$> (labeled "TYPE=" >> parseString)
               <|> SkillName <$> parseString
 
 -- PREVARx:y,z
@@ -282,7 +282,7 @@ data PreVar = PreVar { operator :: Operator
 
 parsePreVar :: Parser PreVar
 parsePreVar = do
-  op <- try $ string "PREVAR" >> choice prefixes
+  op <- labeled "PREVAR" >> choice prefixes
   variables <- char ':' >> parsePreVarType `sepBy` char ','
   return PreVar { operator = convertOperator op, .. } where
     prefixes = tryStrings ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"]

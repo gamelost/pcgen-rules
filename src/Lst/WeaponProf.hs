@@ -4,7 +4,6 @@ module Lst.WeaponProf where
 
 import Text.Parsec.Char
 import Text.Parsec.Combinator
-import Text.Parsec.String
 import Text.Parsec.Prim hiding ((<|>))
 import Control.Monad(liftM)
 import Control.Applicative
@@ -24,21 +23,21 @@ data WeaponProficency = Name String
                       | Restricted Restriction
                         deriving Show
 
-parseWeaponType :: Parser WeaponProficency
+parseWeaponType :: PParser WeaponProficency
 parseWeaponType = WeaponType <$> (tag "TYPE" >> parseWordAndComma `sepBy1` char '.') where
   -- comma only shows up in one file (apg_profs_weapon.lst). ugh.
   parseWordAndComma = many1 $ satisfy $ inClass "-A-Za-z, "
 
-parseWeaponHands :: Parser WeaponProficency
+parseWeaponHands :: PParser WeaponProficency
 parseWeaponHands = WeaponHands <$> (tag "HANDS" >> liftM textToInt manyNumbers)
 
-parseWeaponHandsRestriction :: Parser WeaponProficency
+parseWeaponHandsRestriction :: PParser WeaponProficency
 parseWeaponHandsRestriction = do
   n <- tag "HANDS" *> manyNumbers
   _ <- labeled "IFLARGERTHANWEAPON"
   return . WeaponHandsRestriction $ textToInt n
 
-parseWeaponProficencyTag :: Parser WeaponProficency
+parseWeaponProficencyTag :: PParser WeaponProficency
 parseWeaponProficencyTag = parseWeaponType
                        <|> try parseWeaponHandsRestriction
                        <|> try parseWeaponHands
@@ -46,7 +45,7 @@ parseWeaponProficencyTag = parseWeaponType
                        <|> WeaponBonus <$> parseBonus
                        <|> Restricted <$> parseRestriction
 
-parseWeaponProficency :: String -> Parser [WeaponProficency]
+parseWeaponProficency :: String -> PParser [WeaponProficency]
 parseWeaponProficency weaponName = do
   weaponTags <- tabs *> parseWeaponProficencyTag `sepBy` tabs
   return $ weaponTags ++ [Name weaponName]

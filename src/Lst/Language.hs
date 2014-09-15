@@ -4,7 +4,6 @@ module Lst.Language where
 
 import Text.Parsec.Char
 import Text.Parsec.Combinator
-import Text.Parsec.String
 import Control.Applicative
 import Restrictions
 import Modifications
@@ -28,10 +27,10 @@ data LanguageDefinition = Name String
                         | Restricted Restriction
                           deriving Show
 
-parseKey :: Parser LanguageDefinition
+parseKey :: PParser LanguageDefinition
 parseKey = Key <$> (tag "KEY" >> parseString)
 
-parseTypes :: Parser LanguageDefinition
+parseTypes :: PParser LanguageDefinition
 parseTypes = do
   types <- tag "TYPE" >> parseWordAndNumber `sepBy` char '.'
   return . LanguageTypes $ map convertLanguageType types where
@@ -41,14 +40,14 @@ parseTypes = do
     convertLanguageType "Written" = Written
     convertLanguageType l = Other l
 
-parseLanguageTag :: Parser LanguageDefinition
+parseLanguageTag :: PParser LanguageDefinition
 parseLanguageTag = parseKey
                <|> parseTypes
                <|> Global <$> parseGlobalTags
                <|> LanguageBonus <$> parseBonus
                <|> Restricted <$> parseRestriction
 
-parseLanguageDefinition :: String -> Parser [LanguageDefinition]
+parseLanguageDefinition :: String -> PParser [LanguageDefinition]
 parseLanguageDefinition name = do
   languageTags <- parseLanguageTag `sepBy` tabs
   return $ languageTags ++ [Name name]

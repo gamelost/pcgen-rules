@@ -1,7 +1,6 @@
 module Lst.ShieldProf where
 
 import Text.Parsec.Combinator
-import Text.Parsec.String
 import Control.Applicative
 import Modifications
 import Restrictions
@@ -11,10 +10,10 @@ data ShieldProficency = Name String
                       | Restricted Restriction
                         deriving Show
 
-parseShieldProficencyTag :: Parser ShieldProficency
+parseShieldProficencyTag :: PParser ShieldProficency
 parseShieldProficencyTag = Restricted <$> parseRestriction
 
-parseShieldProficency :: String -> Parser [ShieldProficency]
+parseShieldProficency :: String -> PParser [ShieldProficency]
 parseShieldProficency shieldName = do
   shieldTags <- tabs *> parseShieldProficencyTag `sepBy` tabs
   return $ shieldTags ++ [Name shieldName]

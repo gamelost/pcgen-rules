@@ -4,7 +4,6 @@ module Lst.Skill where
 
 import Text.Parsec.Char
 import Text.Parsec.Combinator
-import Text.Parsec.String
 import Text.Parsec.Prim hiding ((<|>))
 import Control.Monad(liftM)
 import Control.Applicative
@@ -44,7 +43,7 @@ data SkillDefinition = Name String
                      | Restricted Restriction
                        deriving Show
 
-type SkillTag = Parser SkillDefinition
+type SkillTag = PParser SkillDefinition
 
 parseExclusive :: SkillTag
 parseExclusive = Exclusive <$> (tag "EXCLUSIVE" >> yesOrNo)
@@ -57,7 +56,7 @@ parseType = Type <$> (tag "TYPE" >> parseString `sepBy` char '.')
 
 parseClasses :: SkillTag
 parseClasses = Classes <$> (tag "CLASSES" >> parseClass) where
-  parseClass :: Parser Class
+  parseClass :: PParser Class
   parseClass = try (labeled "ALL" >> return AllClasses) <|>
                (Subset <$> (parseString `sepBy` char '|'))
 
@@ -98,7 +97,7 @@ parseSkillTag = parseArmorCheck
             <|> SkillBonus <$> parseBonus
             <|> Restricted <$> parseRestriction
 
-parseSkillDefinition :: String -> Parser [SkillDefinition]
+parseSkillDefinition :: String -> PParser [SkillDefinition]
 parseSkillDefinition name = do
   skillTags <- parseSkillTag `sepBy` tabs
   return $ skillTags ++ [Name name]

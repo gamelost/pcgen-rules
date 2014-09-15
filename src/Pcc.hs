@@ -6,7 +6,6 @@ import Prelude hiding (takeWhile)
 import Control.Monad(liftM)
 import Control.Applicative hiding (many)
 import Text.Parsec.Char
-import Text.Parsec.String
 import Text.Parsec.Prim hiding ((<|>))
 import Fs
 import Common
@@ -24,10 +23,10 @@ data PCCTag = PCCDataTag String String
 
 type PCCTags = [PCCTag]
 
-parseComment :: Parser PCCTag
+parseComment :: PParser PCCTag
 parseComment = liftM PCCComment parseCommentLine
 
-parseDataTag :: Parser PCCTag
+parseDataTag :: PParser PCCTag
 parseDataTag = do
   k <- allCaps
   _ <- char ':'
@@ -39,7 +38,7 @@ linkLocation '@' = Data
 linkLocation '&' = Vendor
 linkLocation _ = Any
 
-parseBodyTag :: Parser PCCTag
+parseBodyTag :: PParser PCCTag
 parseBodyTag = do
   _ <- labeled "PCC:"
   l <- oneOf "@&*"
@@ -47,10 +46,10 @@ parseBodyTag = do
   return $ PCCBodyTag Lookup { location = linkLocation l,
                                filename = v }
 
-parseInversion :: Parser PCCTag
+parseInversion :: PParser PCCTag
 parseInversion = PCCInvert <$> (char '!' >> parseDataTag)
 
-parsePCCLine :: Parser PCCTags
+parsePCCLine :: PParser PCCTags
 parsePCCLine = many $ parseLine <* many newline where
   parseLine = parseBodyTag
           <|> parseDataTag

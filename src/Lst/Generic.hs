@@ -5,7 +5,6 @@ module Lst.Generic where
 import Prelude hiding (takeWhile)
 import Text.Parsec.Char
 import Text.Parsec.Combinator
-import Text.Parsec.String
 import Modifications
 import Restrictions
 import Common
@@ -17,16 +16,16 @@ data LSTDefinition = Name String
                    | Restricted Restriction
                      deriving Show
 
-parseName :: Parser String
+parseName :: PParser String
 parseName = manyTill anyChar $ noneOf "\t\n\r"
 
-parseLSTTag :: Parser LSTDefinition
+parseLSTTag :: PParser LSTDefinition
 parseLSTTag = do
   a <- allCaps
   v <- char ':' >> parseName
   return $ Key (a, v)
 
-parseGenericLSTLine :: String -> Parser [LSTDefinition]
+parseGenericLSTLine :: String -> PParser [LSTDefinition]
 parseGenericLSTLine name = do
   keys <- parseLSTTag `sepBy` tabs
   return $ keys ++ [Name name]

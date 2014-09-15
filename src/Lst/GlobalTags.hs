@@ -2,25 +2,26 @@
 
 module Lst.GlobalTags (GlobalTag, parseGlobalTags) where
 
-import qualified Data.Text as T
-import Data.Attoparsec.Text
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.String
 import Control.Applicative
 import Restrictions(Restriction, parseAdditionalRestrictions)
 import JEPFormula
 import Common
 
-data GlobalTag = KeyStat T.Text
+data GlobalTag = KeyStat String
                | UseUntrained Bool
-               | SortKey T.Text
-               | SourcePage T.Text
-               | SourceWeb T.Text
+               | SortKey String
+               | SourcePage String
+               | SourceWeb String
                | ProductIdentity Bool
-               | OutputName T.Text
+               | OutputName String
                | AbilityTag Ability
                | Select Formula
                | Define NewVariable
                | AutoLanguageTag AutoLanguage
-               | ClassSkill [T.Text]
+               | ClassSkill [String]
                | ChooseLanguageTag [ChooseLanguage]
                | ChooseSkillTag [ChooseSkill]
                  deriving (Eq, Show)
@@ -49,7 +50,7 @@ parseSelect = Select <$> (tag "SELECT" >> parseFormula)
 parseSourceWeb :: Parser GlobalTag
 parseSourceWeb = SourceWeb <$> (tag "SOURCEWEB" >> restOfTag)
 
-data NewVariable = NewVariable { varName :: T.Text
+data NewVariable = NewVariable { varName :: String
                                , startingValue :: Formula }
                  deriving (Eq, Show)
 
@@ -61,9 +62,9 @@ parseDefine = do
 
 data AbilityNature = Normal | Automatic | Virtual deriving (Eq, Show)
 
-data Ability = Ability { abilityCategory :: T.Text
+data Ability = Ability { abilityCategory :: String
                        , abilityNature :: AbilityNature
-                       , abilityName :: T.Text
+                       , abilityName :: String
                        , abilityRestrictions :: [Restriction] } deriving (Eq, Show)
 
 -- ABILITY:x|y|z
@@ -78,15 +79,15 @@ parseAbility = do
   abilityName <- char '|' *> parseString
   abilityRestrictions <- option [] parseAdditionalRestrictions
   return $ AbilityTag Ability { .. } where
-    parseWordandSpace = takeWhile1 $ inClass "-A-Za-z "
-    parseAbilityNature = (string "NORMAL" >> return Normal)
-                     <|> (string "AUTOMATIC" >> return Automatic)
-                     <|> (string "VIRTUAL" >> return Virtual)
+    parseWordandSpace = many1 $ satisfy $ inClass "-A-Za-z "
+    parseAbilityNature = (labeled "NORMAL" >> return Normal)
+                     <|> (labeled "AUTOMATIC" >> return Automatic)
+                     <|> (labeled "VIRTUAL" >> return Virtual)
 
 -- AUTO:LANG|x|x...
 --   x is language, language type, ALL, LIST, CLEAR.
-data AutoLanguage = Language T.Text
-                  | LanguageType T.Text
+data AutoLanguage = Language String
+                  | LanguageType String
                   | AllLanguages
                   | ListLanguages
                   | ClearLanguages
@@ -94,38 +95,38 @@ data AutoLanguage = Language T.Text
                     deriving (Show, Eq)
 
 parseAutoLanguage :: Parser GlobalTag
-parseAutoLanguage = string "AUTO:LANG|" >> (AutoLanguageTag <$> parseLanguages) where
-  parseLanguages = LanguageType <$> (string "TYPE=" *> parseString)
-               <|> (string "ALL" >> return AllLanguages)
-               <|> (string "%LIST" >> return ListLanguages)
-               <|> (string "CLEAR" >> return ClearLanguages)
+parseAutoLanguage = labeled "AUTO:LANG|" >> (AutoLanguageTag <$> parseLanguages) where
+  parseLanguages = LanguageType <$> (labeled "TYPE=" *> parseString)
+               <|> (labeled "ALL" >> return AllLanguages)
+               <|> (labeled "%LIST" >> return ListLanguages)
+               <|> (labeled "CLEAR" >> return ClearLanguages)
                <|> Invert <$> (char '!' >> parseLanguages)
                <|> Language <$> parseString
 
 -- not fully implemented
-data ChooseLanguage = ChoiceLanguage T.Text
-                    | ChoiceLanguageType T.Text
+data ChooseLanguage = ChoiceLanguage String
+                    | ChoiceLanguageType String
                       deriving (Show, Eq)
 
 parseChooseLanguage :: Parser GlobalTag
 parseChooseLanguage = do
-  _ <- string "CHOOSE:LANG|"
+  _ <- labeled "CHOOSE:LANG|"
   languages <- parseChoice `sepBy` char ','
   return $ ChooseLanguageTag languages where
-    parseChoice = ChoiceLanguageType <$> (string "TYPE=" *> parseString)
+    parseChoice = ChoiceLanguageType <$> (labeled "TYPE=" *> parseString)
               <|> ChoiceLanguage <$> parseString
 
 -- not fully implemented
-data ChooseSkill = ChoiceSkill T.Text
-                 | ChoiceSkillType T.Text
+data ChooseSkill = ChoiceSkill String
+                 | ChoiceSkillType String
                    deriving (Show, Eq)
 
 parseChooseSkill :: Parser GlobalTag
 parseChooseSkill = do
-  _ <- string "CHOOSE:SKILL|"
+  _ <- labeled "CHOOSE:SKILL|"
   skills <- parseChoice `sepBy` char ','
   return $ ChooseSkillTag skills where
-    parseChoice = ChoiceSkillType <$> (string "TYPE=" *> parseString)
+    parseChoice = ChoiceSkillType <$> (labeled "TYPE=" *> parseString)
               <|> ChoiceSkill <$> parseString
 
 parseClassSkill :: Parser GlobalTag

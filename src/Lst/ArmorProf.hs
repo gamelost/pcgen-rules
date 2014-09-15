@@ -1,14 +1,14 @@
 module Lst.ArmorProf where
 
-import qualified Data.Text as T
+import Text.Parsec.Combinator
+import Text.Parsec.String
 import Control.Applicative
-import Data.Attoparsec.Text
 import Modifications
 import Restrictions
 import Common
 
-data ArmorProficency = Name T.Text
-                     | Type T.Text
+data ArmorProficency = Name String
+                     | Type String
                      | Restricted Restriction
                        deriving Show
 
@@ -19,7 +19,7 @@ parseArmorProficencyTag :: Parser ArmorProficency
 parseArmorProficencyTag = parseArmorType <|>
                           Restricted <$> parseRestriction
 
-parseArmorProficency :: T.Text -> Parser [ArmorProficency]
+parseArmorProficency :: String -> Parser [ArmorProficency]
 parseArmorProficency armorName = do
   armorTags <- parseArmorProficencyTag `sepBy` tabs
   return $ armorTags ++ [Name armorName]

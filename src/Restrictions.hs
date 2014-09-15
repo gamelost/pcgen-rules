@@ -3,8 +3,10 @@
 module Restrictions where
 
 import Prelude hiding (takeWhile, GT, EQ, LT)
-import qualified Data.Text as T
-import Data.Attoparsec.Text
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.String
+import Text.Parsec.Prim hiding ((<|>), many)
 import Control.Applicative
 import JEPFormula
 import Common
@@ -30,17 +32,17 @@ data Restriction = PreClassRestriction PreClass
 --   y is category name or ALL
 --   z is ability name, ability type (TYPE.z), or ALL
 data PreAbility = PreAbility { abilityNumber :: Int
-                             , categoryName :: T.Text
-                             , abilities :: [T.Text] }
+                             , categoryName :: String
+                             , abilities :: [String] }
                   deriving (Show, Eq)
 
 parsePreAbility :: Parser PreAbility
 parsePreAbility = do
   n <- tag "PREABILITY" >> manyNumbers
-  categoryName <- string ",CATEGORY=" >> parseWordWithSpaces
+  categoryName <- labeled ",CATEGORY=" >> parseWordWithSpaces
   abilities <- char ',' >> parseString `sepBy` char ','
   return PreAbility { abilityNumber = textToInt n, .. } where
-    parseWordWithSpaces = takeWhile1 $ inClass "-A-Za-z "
+    parseWordWithSpaces = many1 $ satisfy $ inClass "-A-Za-z "
 
 -- PARSEALIGN:x,x...
 --   x is alignment abbreviation or alignment array number
@@ -54,7 +56,7 @@ parsePreAlign :: Parser PreAlign
 parsePreAlign = do
   args <- tag "PREALIGN" >> parseWord `sepBy` char ','
   return PreAlign { alignments = map parseAlignment args } where
-    parseAlignment :: T.Text -> Alignment
+    parseAlignment :: String -> Alignment
     parseAlignment x | x == "LG", x == "0" = LG
     parseAlignment x | x == "LN", x == "1" = LN
     parseAlignment x | x == "LE", x == "2" = LE
@@ -72,7 +74,7 @@ parsePreAlign = do
 --   y is class name or class type (TYPE.y) or SPELLCASTER. or SPELLCASTER.y
 --   z is number, class level
 data PreClass = PreClass { passNumber :: Int
-                         , classRequisites :: [(T.Text, Int)] }
+                         , classRequisites :: [(String, Int)] }
                 deriving (Show, Eq)
 
 parsePreClass :: Parser PreClass
@@ -80,7 +82,7 @@ parsePreClass = do
   n <- tag "PRECLASS" >> manyNumbers
   classRequisites <- char ',' >> parseEqual `sepBy` char ','
   return PreClass { passNumber = textToInt n, .. } where
-    parseEqual :: Parser (T.Text, Int)
+    parseEqual :: Parser (String, Int)
     parseEqual = do
       x <- parseString
       n <- char '=' >> manyNumbers
@@ -89,8 +91,8 @@ parsePreClass = do
 -- PRECSKILL:x,y
 --   x is number of class skills
 --   y is skill name or skill type (TYPE=y)
-data ClassSkill = ClassSkillName T.Text
-                | ClassSkillType T.Text
+data ClassSkill = ClassSkillName String
+                | ClassSkillType String
                   deriving (Show, Eq)
 
 data PreClassSkill = PreClassSkill { classSkillNumber :: Int
@@ -102,15 +104,15 @@ parsePreClassSkill = do
   n <- tag "PRECSKILL" >> manyNumbers
   classSkill <- char ',' >> parseClassSkill
   return PreClassSkill { classSkillNumber = textToInt n, .. } where
-    parseClassSkill = ClassSkillType <$> (string "TYPE=" >> parseString)
+    parseClassSkill = ClassSkillType <$> (labeled "TYPE=" >> parseString)
                   <|> ClassSkillName <$> parseString
 
 -- PREFEAT:x,y,z,z,..
 --   x is number of required feats
 --   y can be CHECKMULT
 --   z is feat name (or TYPE=type) ([] indicates inversion)
-data Feat = FeatName T.Text
-          | FeatType T.Text
+data Feat = FeatName String
+          | FeatType String
             deriving (Show, Eq)
 
 data PreFeat = PreFeat { featNumber :: Int
@@ -123,19 +125,19 @@ parsePreFeat :: Parser PreFeat
 parsePreFeat = do
   n <- tag "PREFEAT" >> manyNumbers
   _ <- char ','
-  countSeparately <- option False (string "CHECKMULT," >> return True)
+  countSeparately <- option False (labeled "CHECKMULT," >> return True)
   feats <- parseFeat `sepBy` char ','
   let cannotHave = False -- not implemented
   return PreFeat { featNumber = textToInt n, .. } where
-    parseFeat = FeatType <$> (string "TYPE=" >> parseStringNoCommas)
+    parseFeat = FeatType <$> (labeled "TYPE=" >> parseStringNoCommas)
             <|> FeatName <$> parseStringNoCommas
-    parseStringNoCommas = takeWhile1 $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
+    parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
 
 -- PREITEM:x,y,y,...
 --   x is number of items a character must possess
 --   y is text, type, or wildcard (%)
-data Item = ItemName T.Text
-          | ItemType T.Text
+data Item = ItemName String
+          | ItemType String
           | AnyItem
             deriving (Show, Eq)
 
@@ -148,7 +150,7 @@ parsePreItem = do
   n <- tag "PREITEM" >> manyNumbers
   items <- char ',' >> parseItems `sepBy` char ','
   return PreItem { itemNumber = textToInt n, .. } where
-    parseItems = ItemType <$> (string "TYPE=" >> parseString)
+    parseItems = ItemType <$> (labeled "TYPE=" >> parseString)
              <|> (char '%' >> return AnyItem)
              <|> ItemType <$> parseString
 
@@ -157,7 +159,7 @@ parsePreItem = do
 --   y is name of movement type
 --   z is minimum number for the given movement type
 data PreMove = PreMove { moveNumber :: Int
-                       , moves :: [(T.Text, Int)] }
+                       , moves :: [(String, Int)] }
                deriving (Show, Eq)
 
 parsePreMove :: Parser PreMove
@@ -187,10 +189,10 @@ parsePreMult = do
 -- PRERACE:x,y,y...
 --   x is number of racial properties
 --   y is name of race, type, racetype, racesubtype
-data Race = RaceName T.Text
-          | RaceType T.Text
-          | RaceTypeType T.Text
-          | RaceSubType T.Text
+data Race = RaceName String
+          | RaceType String
+          | RaceTypeType String
+          | RaceSubType String
             deriving (Show, Eq)
 
 data PreRace = PreRace { raceNumber :: Int
@@ -202,16 +204,16 @@ parsePreRace = do
   n <- tag "PRERACE" >> manyNumbers
   races <- char ',' >> parseRaces `sepBy` char ','
   return PreRace { raceNumber = textToInt n, .. } where
-    parseRaces = RaceSubType <$> (string "RACESUBTYPE=" *> parseString)
-             <|> RaceTypeType <$> (string "RACETYPE=" *> parseString)
-             <|> RaceType <$> (string "TYPE=" *> parseString)
+    parseRaces = RaceSubType <$> (labeled "RACESUBTYPE=" *> parseString)
+             <|> RaceTypeType <$> (labeled "RACETYPE=" *> parseString)
+             <|> RaceType <$> (labeled "TYPE=" *> parseString)
              <|> RaceName <$> parseString
 
 -- PRERULE:x,y
 --   x is number of rules required
 --   y is rule name
 data PreRule = PreRule { ruleNumber :: Int
-                       , ruleName :: T.Text }
+                       , ruleName :: String }
                deriving (Show, Eq)
 
 parsePreRule :: Parser PreRule
@@ -225,8 +227,8 @@ parsePreRule = do
 --   x is number of skills
 --   y is skill name or skill type (TYPE=y)
 --   z is number of skill ranks
-data Skill = SkillName T.Text
-           | SkillType T.Text
+data Skill = SkillName String
+           | SkillType String
              deriving (Show, Eq)
 
 data PreSkill = PreSkill { skillNumber :: Int
@@ -242,7 +244,7 @@ parsePreSkill = do
       skill <- parseSkill
       val <- char '=' *> manyNumbers
       return (skill, textToInt val)
-    parseSkill = SkillType <$> (string "TYPE=" >> parseString)
+    parseSkill = SkillType <$> (labeled "TYPE=" >> parseString)
              <|> SkillName <$> parseString
 
 -- PRESKILLTOT:x,x,...=y
@@ -258,7 +260,7 @@ parsePreSkillTotal = do
   skillTotals <- parseSkills `sepBy` char ','
   n <- char '=' *> manyNumbers
   return PreSkillTot { skillTotalNeeded = textToInt n, .. } where
-    parseSkills = SkillType <$> (string "TYPE=" >> parseString)
+    parseSkills = SkillType <$> (labeled "TYPE=" >> parseString)
               <|> SkillName <$> parseString
 
 -- PREVARx:y,z
@@ -272,7 +274,7 @@ data Operator = EQ | GT | GTEQ | LT | LTEQ | NEQ
                 deriving (Show, Eq)
 
 data PreVarType = PreVarFormula Formula
-                | PreVarText T.Text
+                | PreVarText String
                   deriving (Show, Eq)
 
 data PreVar = PreVar { operator :: Operator
@@ -280,12 +282,13 @@ data PreVar = PreVar { operator :: Operator
 
 parsePreVar :: Parser PreVar
 parsePreVar = do
-  op <- string "PREVAR" >> choice ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"]
+  op <- labeled "PREVAR" >> choice prefixes
   variables <- char ':' >> parsePreVarType `sepBy` char ','
   return PreVar { operator = convertOperator op, .. } where
-    parsePreVarType = PreVarFormula <$> parseFormula
+    prefixes = tryStrings ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"]
+    parsePreVarType = PreVarFormula <$> try parseFormula
                   <|> PreVarText <$> parseStringNoCommas
-    convertOperator :: T.Text -> Operator
+    convertOperator :: String -> Operator
     convertOperator "EQ" = EQ
     convertOperator "GTEQ" = GTEQ
     convertOperator "GT" = GT
@@ -293,7 +296,7 @@ parsePreVar = do
     convertOperator "LT" = LT
     convertOperator "NEQ" = NEQ
     convertOperator _ = error "invalid PREVAR operator"
-    parseStringNoCommas = takeWhile1 $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
+    parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
 
 parsePossibleRestriction :: Parser Restriction
 parsePossibleRestriction = PreVarRestriction <$> parsePreVar
@@ -317,4 +320,5 @@ parseRestriction = parseInvertedRestriction parsePossibleRestriction
 
 -- for chained restrictions (e.g., BONUS tags)
 parseAdditionalRestrictions :: Parser [Restriction]
-parseAdditionalRestrictions = char '|' *> (parseRestriction `sepBy` char '|')
+parseAdditionalRestrictions = many $ try restrictions where
+  restrictions = char '|' >> parseRestriction

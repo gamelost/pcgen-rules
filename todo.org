@@ -1,8 +1,4 @@
-* general [0/4]
-** TODO switch to parsec
-- need to pass around state monad for updating variables for use in
-  jep formulas.
-- do we want to evaluate as we go on?
+* general [0/3]
 ** TODO add catch-all for tags (with optional trace)
 ** TODO narrow down parseString: way too general
 ** TODO look at data/zen-test/... -- is this something we can use?
@@ -23,11 +19,11 @@
 * skill [0/2]
 ** TODO 6 failures
 - DEFINE: 1
-- AUTO:EQUIP 1
 - PRE:.CLEAR 1
-- ADD:FEAT 1
-- Tactics.COPY 1
 - remaining failure is a bad merge, cannot fix
+- Tactics.COPY 1
+- ADD:FEAT 1
+- AUTO:EQUIP 1
 ** TODO fix test failures in BonusTests
 * JEP [0/1]
 ** TODO allow for plain strings?

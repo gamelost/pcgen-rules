@@ -2,24 +2,25 @@
 
 module Lst.Language where
 
-import qualified Data.Text as T
-import Data.Attoparsec.Text
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.String
 import Control.Applicative
 import Restrictions
 import Modifications
 import Lst.GlobalTags
 import Common
-import Bonus
+import Bonus(parseBonus, Bonus)
 
 -- we only define the most common language types here
 data LanguageType = Read
                   | Spoken
                   | Written
-                  | Other T.Text
+                  | Other String
                     deriving Show
 
-data LanguageDefinition = Name T.Text
-                        | Key T.Text
+data LanguageDefinition = Name String
+                        | Key String
                         | LanguageTypes [LanguageType]
                         | LanguageBonus Bonus
                         -- shared tags
@@ -34,7 +35,7 @@ parseTypes :: Parser LanguageDefinition
 parseTypes = do
   types <- tag "TYPE" >> parseWordAndNumber `sepBy` char '.'
   return . LanguageTypes $ map convertLanguageType types where
-    convertLanguageType :: T.Text -> LanguageType
+    convertLanguageType :: String -> LanguageType
     convertLanguageType "Read" = Read
     convertLanguageType "Spoken" = Spoken
     convertLanguageType "Written" = Written
@@ -47,9 +48,9 @@ parseLanguageTag = parseKey
                <|> LanguageBonus <$> parseBonus
                <|> Restricted <$> parseRestriction
 
-parseLanguageDefinition :: T.Text -> Parser [LanguageDefinition]
+parseLanguageDefinition :: String -> Parser [LanguageDefinition]
 parseLanguageDefinition name = do
-  languageTags <- tabs *> parseLanguageTag `sepBy` tabs
+  languageTags <- parseLanguageTag `sepBy` tabs
   return $ languageTags ++ [Name name]
 
 instance LSTObject LanguageDefinition where

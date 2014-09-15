@@ -4,7 +4,6 @@ module Main where
 
 import System.Environment(getArgs)
 import qualified Data.Map as M
-import qualified Data.Text as T
 import qualified Text.Show.Pretty as Pretty
 import Data.Maybe(mapMaybe)
 import System.FilePath(splitExtension)
@@ -12,7 +11,7 @@ import Pcc
 import Lst
 import Fs
 
-type PCCMap = M.Map T.Text [T.Text]
+type PCCMap = M.Map String [String]
 
 data Ruleset = Ruleset { config :: PCCMap
                        , links :: [Ruleset]} deriving Show
@@ -28,7 +27,7 @@ constructPCCLinks :: PCCTags -> IO [PCCTags]
 constructPCCLinks pccTags =
   mapM (>>= parsePCC) tags where
     tags = mapMaybe linkTags pccTags
-    linkTags (PCCBodyTag l) = Just (getFullPath . T.unpack $ filename l)
+    linkTags (PCCBodyTag l) = Just (getFullPath $ filename l)
     linkTags _ = Nothing
 
 constructPCC :: PCCTags -> IO Ruleset

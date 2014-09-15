@@ -4,83 +4,91 @@ module Common where
 
 import Prelude
 import qualified Data.ByteString as B
-import qualified Data.Text as T
-import Data.Text.Encoding(decodeUtf8With)
-import Data.Text.Encoding.Error(lenientDecode)
+import Data.ByteString.UTF8(toString)
 import Control.Monad(liftM)
-import Data.Attoparsec.Text hiding (take)
-import Control.Applicative
-import qualified Text.Show.Pretty as Pretty
-import Debug.Trace(trace)
+import Control.Applicative((<*), (*>))
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.String
+import Text.Parsec.Prim
+import Data.List(stripPrefix)
 
-parseWord :: Parser T.Text
-parseWord = takeWhile1 $ inClass "-A-Za-z"
+-- conversion from attoparsec -> parsec
+inClass :: String -> Char -> Bool
+inClass "" = const False
+inClass (a:'-':b:xs) = \c -> (c >= a && c <= b) || f c where f = inClass xs
+inClass (x:xs) = \c -> c == x || f c where f = inClass xs
 
-parseString :: Parser T.Text
-parseString = takeWhile1 $ inClass "-A-Za-z0-9_ &+,./:?!%#'()[]~" -- do not put in '=' or '|'
+tryStrings :: [String] -> [Parser String]
+tryStrings = map $ try . string
 
-allCaps :: Parser T.Text
-allCaps = takeWhile1 $ inClass "A-Z"
+tryOption :: Parser a -> Parser (Maybe a)
+tryOption = optionMaybe . try
 
-manyNumbers :: Parser T.Text
-manyNumbers = takeWhile1 $ inClass "0-9"
+parseWord :: Parser String
+parseWord = many1 $ satisfy $ inClass "-A-Za-z"
+
+parseString :: Parser String
+parseString = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()[]~" -- do not put in '=' or '|'
+
+allCaps :: Parser String
+allCaps = many1 upper
+
+manyNumbers :: Parser String
+manyNumbers = many1 digit
 
 tabs :: Parser ()
-tabs = skipWhile (== '\t')
+tabs = skipMany tab
 
-tag :: String -> Parser Char
-tag t = string (T.pack t) >> char ':'
+tabs1 :: Parser ()
+tabs1 = skipMany1 tab
 
-textToInt :: T.Text -> Int
-textToInt t = read (T.unpack t) :: Int
+labeled :: String -> Parser String
+labeled = try . string
 
-(<||>) :: Applicative f => f Bool -> f Bool -> f Bool
-(<||>) = liftA2 (||)
-infixr 2 <||>
+tag :: String -> Parser String
+tag t = labeled $ t ++ ":"
 
-restOfLine :: Parser T.Text
-restOfLine = takeTill ((== '\n') <||> (== '\r'))
+textToInt :: String -> Int
+textToInt t = read t :: Int
 
-restOfTag :: Parser T.Text
-restOfTag = takeTill ((== '\n') <||> (== '\r') <||> (== '\t'))
+-- accomodate crlf line terminators.
+crlf :: Parser Char
+crlf = char '\r' *> char '\n' <?> "crlf new-line"
 
-parseTabs :: Parser [T.Text]
+eol :: Parser Char
+eol = newline <|> crlf <?> "eol"
+
+restOfLine :: Parser String
+restOfLine = manyTill anyChar eol
+
+restOfTag :: Parser String
+restOfTag = manyTill anyChar $ satisfy $ inClass "\n\r\t"
+
+parseTabs :: Parser [String]
 parseTabs = restOfTag `sepBy` tabs
 
-parseCommentLine :: Parser T.Text
-parseCommentLine = char '#' >> skipWhile (== ' ') >> restOfLine
+parseCommentLine :: Parser String
+parseCommentLine = char '#' >> option "" (try $ spaces >> restOfLine)
 
-parseWordAndNumber :: Parser T.Text
-parseWordAndNumber = takeWhile1 $ inClass "-A-Za-z0-9"
+parseWordAndNumber :: Parser String
+parseWordAndNumber = many1 $ satisfy $ inClass "-A-Za-z0-9"
 
 yesOrNo :: Parser Bool
 yesOrNo = liftM (== "YES") allCaps
 
--- do not use parseOnly: it does not fail if there is any leftover
--- input. If our parser does not consume everything, we want instant
--- failure.
-parseResult :: Show t => FilePath -> IResult T.Text t -> t
-parseResult filename result =
-  case result of
-    Done left success | left == T.empty ->
-      success
-    Done left r ->
-      let nextTag = dropWhile (== '\t') (T.unpack left) in
-      let filterTag x = x /= '\n' && x /= '\r' in
-      let unparsedTag = Prelude.takeWhile filterTag nextTag in
-      trace (Pretty.ppShow r)
-      error $ "failed to parse " ++ filename ++
-                " with remaining input: '" ++ unparsedTag ++ "'"
-    Partial c ->
-      -- just give the continuation an empty result and try again
-      parseResult filename $ c T.empty
-    Fail _ _ err ->
-      error $ "failed to parse " ++ filename ++ " with error " ++ err
+stripSuffix :: String -> String -> Maybe String
+stripSuffix sfx rest = case stripPrefix (reverse sfx) (reverse rest) of
+  Just ys -> Just (reverse ys)
+  Nothing -> Nothing
 
--- Data.Text.IO.readFile does not do the right thing, sigh. Instead,
--- read in the contents as a bytestring and then attempt an utf8
--- decoding. We need to do this in order to parse certain LST files.
-readContents :: FilePath -> IO T.Text
-readContents filename = do
-  f <- B.readFile filename
-  return $ decodeUtf8With lenientDecode f
+parseResult :: Show a => Parser a -> FilePath -> String -> a
+parseResult parser filename contents =
+  let doall = parser <* eof in
+  case parse doall filename contents of
+    Left err -> error $ show err
+    Right success -> success
+
+readContents :: FilePath -> IO String
+readContents filename = B.readFile filename >>= spit where
+  spit x = return $ toString x

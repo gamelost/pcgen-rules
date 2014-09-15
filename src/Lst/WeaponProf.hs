@@ -2,28 +2,32 @@
 
 module Lst.WeaponProf where
 
-import qualified Data.Text as T
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.String
+import Text.Parsec.Prim hiding ((<|>))
 import Control.Monad(liftM)
 import Control.Applicative
-import Data.Attoparsec.Text
 import Modifications
 import Restrictions
 import Lst.GlobalTags
 import Common
+import Bonus(parseBonus, Bonus)
 
-data WeaponProficency = Name T.Text
-                      | WeaponType [T.Text]
+data WeaponProficency = Name String
+                      | WeaponType [String]
                       | WeaponHands Int
                       | WeaponHandsRestriction Int
                       -- shared tags
+                      | WeaponBonus Bonus
                       | Global GlobalTag
                       | Restricted Restriction
                         deriving Show
 
 parseWeaponType :: Parser WeaponProficency
-parseWeaponType = WeaponType <$> (tag "TYPE" >> parseWordAndComma `sepBy` char '.') where
+parseWeaponType = WeaponType <$> (tag "TYPE" >> parseWordAndComma `sepBy1` char '.') where
   -- comma only shows up in one file (apg_profs_weapon.lst). ugh.
-  parseWordAndComma = takeWhile1 $ inClass "-A-Za-z, "
+  parseWordAndComma = many1 $ satisfy $ inClass "-A-Za-z, "
 
 parseWeaponHands :: Parser WeaponProficency
 parseWeaponHands = WeaponHands <$> (tag "HANDS" >> liftM textToInt manyNumbers)
@@ -31,17 +35,18 @@ parseWeaponHands = WeaponHands <$> (tag "HANDS" >> liftM textToInt manyNumbers)
 parseWeaponHandsRestriction :: Parser WeaponProficency
 parseWeaponHandsRestriction = do
   n <- tag "HANDS" *> manyNumbers
-  _ <- string "IFLARGERTHANWEAPON"
+  _ <- labeled "IFLARGERTHANWEAPON"
   return . WeaponHandsRestriction $ textToInt n
 
 parseWeaponProficencyTag :: Parser WeaponProficency
 parseWeaponProficencyTag = parseWeaponType
-                       <|> parseWeaponHandsRestriction
-                       <|> parseWeaponHands
+                       <|> try parseWeaponHandsRestriction
+                       <|> try parseWeaponHands
                        <|> Global <$> parseGlobalTags
+                       <|> WeaponBonus <$> parseBonus
                        <|> Restricted <$> parseRestriction
 
-parseWeaponProficency :: T.Text -> Parser [WeaponProficency]
+parseWeaponProficency :: String -> Parser [WeaponProficency]
 parseWeaponProficency weaponName = do
   weaponTags <- tabs *> parseWeaponProficencyTag `sepBy` tabs
   return $ weaponTags ++ [Name weaponName]

@@ -1,20 +1,20 @@
 module Lst.ShieldProf where
 
-import qualified Data.Text as T
+import Text.Parsec.Combinator
+import Text.Parsec.String
 import Control.Applicative
-import Data.Attoparsec.Text
 import Modifications
 import Restrictions
 import Common
 
-data ShieldProficency = Name T.Text
+data ShieldProficency = Name String
                       | Restricted Restriction
                         deriving Show
 
 parseShieldProficencyTag :: Parser ShieldProficency
 parseShieldProficencyTag = Restricted <$> parseRestriction
 
-parseShieldProficency :: T.Text -> Parser [ShieldProficency]
+parseShieldProficency :: String -> Parser [ShieldProficency]
 parseShieldProficency shieldName = do
   shieldTags <- tabs *> parseShieldProficencyTag `sepBy` tabs
   return $ shieldTags ++ [Name shieldName]

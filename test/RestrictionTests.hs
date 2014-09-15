@@ -1,9 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module RestrictionTests where
 
-import qualified Data.Text as T
-import Data.Attoparsec.Text
+import Text.Parsec.Prim
 import Control.Applicative
 import Test.HUnit
 import Restrictions
@@ -11,8 +8,8 @@ import JEPFormula
 import Bonus
 import Common
 
-parseRestrictionString :: T.Text -> Restriction
-parseRestrictionString contents = parseResult "parseRestriction" $ parse parseRestriction contents
+parseRestrictionString :: String -> Restriction
+parseRestrictionString contents = parseResult parseRestriction "parseRestriction" contents
 
 testPreFeat = do
   parseRestrictionString preFeat1 @?= preFeatResult1

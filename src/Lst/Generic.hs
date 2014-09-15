@@ -3,29 +3,30 @@
 module Lst.Generic where
 
 import Prelude hiding (takeWhile)
-import qualified Data.Text as T
-import Data.Attoparsec.Text
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.String
 import Modifications
 import Restrictions
 import Common
 
 -- generic lst placeholder while we implement specific lst types
 
-data LSTDefinition = Name T.Text
-                   | Key (T.Text, T.Text)
+data LSTDefinition = Name String
+                   | Key (String, String)
                    | Restricted Restriction
                      deriving Show
 
-parseName :: Parser T.Text
-parseName = takeWhile1 $ notInClass "\t\n\r"
+parseName :: Parser String
+parseName = manyTill anyChar $ noneOf "\t\n\r"
 
 parseLSTTag :: Parser LSTDefinition
 parseLSTTag = do
   a <- allCaps
-  v <- ":" .*> parseName
+  v <- char ':' >> parseName
   return $ Key (a, v)
 
-parseGenericLSTLine :: T.Text -> Parser [LSTDefinition]
+parseGenericLSTLine :: String -> Parser [LSTDefinition]
 parseGenericLSTLine name = do
   keys <- parseLSTTag `sepBy` tabs
   return $ keys ++ [Name name]

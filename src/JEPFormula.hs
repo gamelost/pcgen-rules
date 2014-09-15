@@ -4,15 +4,18 @@ module JEPFormula ( Formula(..)
                   , Operand(..)
                   , SkillType(..)
                   , parseFormula
+                  , parseQuotedString
                   ) where
 
-import qualified Data.Text as T
-import Data.Attoparsec.Text
-import Control.Applicative
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.String
+import Text.Parsec.Prim hiding ((<|>))
+import Control.Applicative hiding (optional, many)
 import Common
 import Debug.Trace(trace)
 
-data Operand = BuiltIn T.Text
+data Operand = BuiltIn String
              | Divide
              | Multiply
              | Subtract
@@ -28,9 +31,9 @@ data SkillType = RANK
                  deriving (Show, Eq)
 
 data Formula = Number Int
-             | Variable T.Text
-             | LookupVariable T.Text
-             | LookupSkill (SkillType, T.Text)
+             | Variable String
+             | LookupVariable String
+             | LookupSkill (SkillType, String)
              | Group Formula
              | Function Operand [Formula]
                deriving (Show, Eq)
@@ -55,36 +58,41 @@ listOfFunctions = [ "floor"
                   , "ceil"
                   ]
 
+variableParsers :: [Parser String]
+variableParsers = tryStrings listOfVars
+
+functionParsers :: [Parser String]
+functionParsers = tryStrings listOfFunctions
+
 parseNumber :: Parser Formula
 parseNumber = Number <$> parseSignedNumber where
   parseSignedNumber = sign <*> (textToInt <$> manyNumbers)
   sign = (char '-' >> return negate) <|> (optional (char '+') >> return id)
 
 parseVariable :: Parser Formula
-parseVariable = Variable <$> choice varParsers where
-  varParsers = map (string . T.pack) listOfVars
+parseVariable = Variable <$> choice variableParsers
 
 -- ugly; unfortunately, this does show up.
 parseNegativeVariable :: Parser Formula
-parseNegativeVariable = char '-' >> choice varParsers >>= embed where
-    varParsers = map (string . T.pack) listOfVars
+parseNegativeVariable = char '-' >> choice variableParsers >>= embed where
     embed v = return $ Function Subtract [ Number 0, Variable v ]
 
 parseGroup :: Parser Formula
 parseGroup = Group <$> (char '(' >> parseFormula <* char ')')
 
 -- may want to make sure there are no unterminated quotes!
-parseQuotedString :: Parser T.Text
-parseQuotedString = char '"' *> takeTill (== '"') <* char '"'
+parseQuotedString :: Parser String
+parseQuotedString = char '"' *> untilQuote where
+  untilQuote = manyTill anyChar $ satisfy (== '"')
 
 -- treat the var() function specially
 parseVarFunction :: Parser Formula
-parseVarFunction = LookupVariable <$> (string "var(" >> parseQuotedString <* string ")")
+parseVarFunction = LookupVariable <$> (labeled "var(" >> parseQuotedString <* labeled ")")
 
 -- treat the skillinfo() function specially
 parseSkillInfoFunction :: Parser Formula
 parseSkillInfoFunction = do
-  prop <- string "skillinfo(" *> parseQuotedString
+  prop <- labeled "skillinfo(" *> parseQuotedString
   _ <- char ',' >> many space
   var <- parseQuotedString <* char ')'
   return $ LookupSkill (parseProperty prop, var) where
@@ -109,34 +117,33 @@ parseInfixFunction = do
     operandMap '-' = Subtract
     operandMap '+' = Add
     operandMap _ = error "No such infix function"
-    parsers = parseVariable
-          <|> parseNegativeVariable
-          <|> parseNumber
-          <|> parseVarFunction
-          <|> parseSkillInfoFunction
-          <|> parseFunction
+    parsers = try parseVariable
+          <|> try parseNegativeVariable
+          <|> try parseNumber
+          <|> try parseVarFunction
+          <|> try parseSkillInfoFunction
+          <|> try parseFunction
           <|> parseGroup
 
 parseFunction :: Parser Formula
 parseFunction = do
-  f <- BuiltIn <$> choice funcParsers
+  f <- BuiltIn <$> choice functionParsers
   args <- char '(' >> parseFormula `sepBy` char ',' <* char ')'
-  return $ Function f args where
-    funcParsers = map (string . T.pack) listOfFunctions
+  return $ Function f args
 
 parseFormula :: Parser Formula
-parseFormula = parseInfixFunction
-           <|> parseFunction
-           <|> parseGroup
-           <|> parseVarFunction
-           <|> parseSkillInfoFunction
-           <|> parseNumber
-           <|> parseVariable
+parseFormula = try parseInfixFunction
+           <|> try parseFunction
+           <|> try parseGroup
+           <|> try parseVarFunction
+           <|> try parseSkillInfoFunction
+           <|> try parseNumber
+           <|> try parseVariable
            <|> parseNegativeVariable
 -- parseFormula = _traceFormula
 
 _traceFormula :: Parser Formula
 _traceFormula = do
-  v <- takeTill (\x -> x == '|' || x == '\t' || x == '\r' || x == '\n')
-  _ <- trace ("** Formula was " ++ T.unpack v) $ return ()
+  v <- manyTill anyChar $ satisfy (\x -> x == '|' || x == '\t' || x == '\r' || x == '\n')
+  _ <- trace ("** Formula was " ++ v) $ return ()
   return $ Variable v

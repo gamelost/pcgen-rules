@@ -2,15 +2,17 @@
 
 module Lst.Skill where
 
-import qualified Data.Text as T
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.String
+import Text.Parsec.Prim hiding ((<|>))
 import Control.Monad(liftM)
-import Data.Attoparsec.Text
 import Control.Applicative
 import Restrictions(Restriction, parseRestriction)
 import Modifications
 import Lst.GlobalTags
 import Common
-import Bonus
+import Bonus(parseBonus, Bonus)
 
 data ArmorCheck = Double
                 | Proficient
@@ -26,15 +28,15 @@ data Visible = Always
                deriving Show
 
 data Class = AllClasses
-           | Subset [T.Text]
+           | Subset [String]
              deriving Show
 
-data SkillDefinition = Name T.Text
-                     | Type [T.Text]
+data SkillDefinition = Name String
+                     | Type [String]
                      | ArmorClassCheck ArmorCheck
                      | Classes Class
                      | Exclusive Bool
-                     | UniqueKey T.Text
+                     | UniqueKey String
                      | Visibility (Visible, Bool)
                      -- shared tags
                      | Global GlobalTag
@@ -56,14 +58,14 @@ parseType = Type <$> (tag "TYPE" >> parseString `sepBy` char '.')
 parseClasses :: SkillTag
 parseClasses = Classes <$> (tag "CLASSES" >> parseClass) where
   parseClass :: Parser Class
-  parseClass = (string "ALL" >> return AllClasses) <|>
+  parseClass = try (labeled "ALL" >> return AllClasses) <|>
                (Subset <$> (parseString `sepBy` char '|'))
 
 parseArmorCheck :: SkillTag
 parseArmorCheck = do
   a <- tag "ACHECK" >> liftM matchArmorCheck allCaps
   return $ ArmorClassCheck a where
-    matchArmorCheck :: T.Text -> ArmorCheck
+    matchArmorCheck :: String -> ArmorCheck
     matchArmorCheck "DOUBLE" = Double
     matchArmorCheck "PROFICIENT" = Proficient
     matchArmorCheck "NONPROF" = NonProficient
@@ -74,9 +76,9 @@ parseArmorCheck = do
 parseVisibility :: SkillTag
 parseVisibility = do
   v <- tag "VISIBLE" >> liftM matchVisibility allCaps
-  ro <- option False (string "|READONLY" >> return True)
+  ro <- option False (labeled "|READONLY" >> return True)
   return $ Visibility (v, ro) where
-    matchVisibility :: T.Text -> Visible
+    matchVisibility :: String -> Visible
     matchVisibility "ALWAYS" = Always
     matchVisibility "YES" = Always
     matchVisibility "GUI" = Display
@@ -96,7 +98,7 @@ parseSkillTag = parseArmorCheck
             <|> SkillBonus <$> parseBonus
             <|> Restricted <$> parseRestriction
 
-parseSkillDefinition :: T.Text -> Parser [SkillDefinition]
+parseSkillDefinition :: String -> Parser [SkillDefinition]
 parseSkillDefinition name = do
   skillTags <- parseSkillTag `sepBy` tabs
   return $ skillTags ++ [Name name]

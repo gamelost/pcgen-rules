@@ -20,7 +20,7 @@ test-suite test
   default-language:     Haskell2010
   main-is:              Main.hs
   hs-source-dirs:       src, test
-  build-depends:        base >=4.6 && <4.8, directory >=1.2 && <1.3, filepath >=1.3 && <1.4, text >=1.1 && <1.2, bytestring >=0.10 && <0.11, attoparsec >=0.11 && <0.12, containers >=0.5 && <0.6, pretty-show >=1.6 && <1.7, HUnit >=1.2 && <1.3
+  build-depends:        base >=4.6 && <4.8, directory >=1.2 && <1.3, filepath >=1.3 && <1.4, text >=1.1 && <1.2, bytestring >=0.10 && <0.11, parsec >=3.1.5 && <3.1.6, containers >=0.5 && <0.6, pretty-show >=1.6 && <1.7, HUnit >=1.2 && <1.3, utf8-string>=0.3.8 && < 0.4
 
 executable pcgen-rules
   main-is:             Pcgen.hs
@@ -28,6 +28,6 @@ executable pcgen-rules
   default-language:    Haskell2010
   ghc-options:         -Wall
   other-extensions:    OverloadedStrings, RecordWildCards
-  build-depends:       base >=4.6 && <4.8, directory >=1.2 && <1.3, filepath >=1.3 && <1.4, text >=1.1 && <1.2, bytestring >=0.10 && <0.11, attoparsec >=0.11 && <0.12, containers >=0.5 && <0.6, pretty-show>= 1.6 && <1.7
+  build-depends:       base >=4.6 && <4.8, directory >=1.2 && <1.3, filepath >=1.3 && <1.4, text >=1.1 && <1.2, bytestring >=0.10 && <0.11, parsec >=3.1.5 && <3.1.6, containers >=0.5 && <0.6, pretty-show>= 1.6 && <1.7, utf8-string>=0.3.8 && < 0.4
   default-language:    Haskell2010
   -- other-modules:

@@ -2,8 +2,7 @@
 
 module Modifications where
 
-import qualified Data.Text as T
-import Data.Attoparsec.Text
+import Text.Parsec.String
 import Control.Applicative
 import Common
 import Data.Maybe
@@ -15,20 +14,19 @@ data LSTLine a = LSTLine { operation :: Operation
                  deriving Show
 
 class LSTObject a where
-  parseLine :: T.Text -> Parser [a]
+  parseLine :: String -> Parser [a]
 
   parseLSTLine :: Parser (LSTLine a)
   parseLSTLine = do
     (name, operation) <- parseStart <* tabs
-    tags <- parseLine name
-    _ <- endOfLine <|> endOfInput
+    tags <- parseLine name <* eol
     return LSTLine { .. }
 
-parseStart :: Parser (T.Text, Operation)
+parseStart :: Parser (String, Operation)
 parseStart = do
   what <- parseString
   return . fromJust $ matchSuffixes what where
-    matchSuffixes str = (\x -> (x, Modify)) <$> T.stripSuffix ".MOD" str
-                    <|> (\x -> (x, Forget)) <$> T.stripSuffix ".FORGET" str
-                    <|> (\x -> (x, Copy)) <$> T.stripSuffix ".COPY" str
+    matchSuffixes str = (\x -> (x, Modify)) <$> stripSuffix ".MOD" str
+                    <|> (\x -> (x, Forget)) <$> stripSuffix ".FORGET" str
+                    <|> (\x -> (x, Copy)) <$> stripSuffix ".COPY" str
                     <|> return (str, Add)

@@ -1,9 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module BonusTests where
 
-import qualified Data.Text as T
-import Data.Attoparsec.Text
+import Text.Parsec.Prim
 import Control.Applicative
 import Test.HUnit
 import Restrictions
@@ -11,8 +8,8 @@ import JEPFormula
 import Bonus
 import Common
 
-parseBonusString :: T.Text -> Bonus
-parseBonusString contents = parseResult "parseBonus" $ parse parseBonus contents
+parseBonusString :: String -> Bonus
+parseBonusString contents = parseResult parseBonus "parseBonus" contents
 
 testSkillBonus = do
   parseBonusString skillBonus1 @?= skillResult1
@@ -20,7 +17,8 @@ testSkillBonus = do
   parseBonusString skillBonus3 @?= skillResult3
   parseBonusString skillBonus4 @?= skillResult4
   parseBonusString skillBonus5 @?= skillResult5
-  parseBonusString skillBonus6 @?= skillResult6 where
+  parseBonusString skillBonus6 @?= skillResult6
+  parseBonusString skillBonus7 @?= skillResult7 where
     skillBonus1 = "BONUS:SKILL|Climb|8|PREMOVE:1,Climb=1|TYPE=Racial"
     skillResult1 =
       BonusSkill Skill
@@ -90,6 +88,16 @@ testSkillBonus = do
         , skillFormula = SkillText "SKILL.Intimidate.MISC"
         , skillType = Nothing
         , skillRestrictions = []}
+    skillBonus7 = "BONUS:SKILL|Balance,Jump|SynergyBonus|PRESKILL:1,Tumble=5|TYPE=Synergy.STACK"
+    skillResult7 = BonusSkill Skill
+        { bonusToSkills = [ BonusSkillName "Balance", BonusSkillName "Jump"]
+        , skillFormula = SkillFormula (Variable "SynergyBonus")
+        , skillType = Just ("Synergy", True)
+        , skillRestrictions =
+            [ PreSkillRestriction
+                PreSkill {skillNumber = 1, skills = [(SkillName "Tumble",5)]}
+            ]
+        }
 
 testSkillRankBonus = do
   parseBonusString skillRankBonus1 @?= skillRankResult1
@@ -157,16 +165,16 @@ testTempBonus = do
                   { bonusToSkills = [ BonusSkillName "Craft (Fletcher)" ]
                   , skillFormula = SkillFormula (Number (-2))
                   , skillType = Just ("Circumstance", False)
-                  , skillRestrictions = []
+                  , skillRestrictions =
+                      [ Invert $ PreItemRestriction
+                        PreItem
+                        { itemNumber = 1
+                        , items = [ ItemType "WeaponsmithingTools" ]
+                        }
+                      ]
                   }
             ]
-        , additionalRestrictions =
-            [ Invert $ PreItemRestriction
-                PreItem
-                { itemNumber = 1
-                , items = [ ItemType "WeaponsmithingTools" ]
-                }
-            ]
+        , additionalRestrictions = []
         }
     tempBonus2 = "TEMPBONUS:PC|SKILL|Disguise|SynergyBonus|PRESKILL:1,Bluff=5|TYPE=TempSynergy"
     tempResult2 =
@@ -178,8 +186,14 @@ testTempBonus = do
                 Skill
                   { bonusToSkills = [ BonusSkillName "Disguise" ]
                   , skillFormula = SkillFormula ( Variable "SynergyBonus" )
-                  , skillType = Just ("Circumstance", False)
-                  , skillRestrictions = []
+                  , skillType = Just ("TempSynergy", False)
+                  , skillRestrictions =
+                      [ PreSkillRestriction
+                        PreSkill
+                         { skillNumber = 1
+                         , skills = [(SkillName "Bluff",5)]
+                         }
+                      ]
                   }
             ]
         , additionalRestrictions = []

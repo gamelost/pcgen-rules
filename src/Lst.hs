@@ -1,11 +1,11 @@
 module Lst where
 
 import Prelude hiding (takeWhile)
-import qualified Data.Text as T
 import qualified Text.Show.Pretty as Pretty
-import Data.Attoparsec.Text
-import Control.Applicative
-import Control.Monad(liftM)
+import Text.Parsec.Combinator
+import Text.Parsec.String
+import Text.Parsec.Prim hiding ((<|>))
+import Control.Applicative hiding (many)
 import Modifications
 import Common
 
@@ -22,13 +22,13 @@ import Lst.Generic(LSTDefinition)
 -- structure of a lst file
 data LST a = Source [Header]
            | Definition a
-           | Comment T.Text deriving Show
+           | Comment String deriving Show
 
 -- source headers: these are found in nearly every lst file type.
-data Header = SourceLong T.Text
-            | SourceShort T.Text
-            | SourceWeb T.Text
-            | SourceDate T.Text deriving Show
+data Header = SourceLong String
+            | SourceShort String
+            | SourceWeb String
+            | SourceDate String deriving Show
 
 parseSourceWeb :: Parser Header
 parseSourceWeb = SourceWeb <$> (tag "SOURCEWEB" >> restOfTag)
@@ -43,7 +43,7 @@ parseSourceDate :: Parser Header
 parseSourceDate = SourceDate <$> (tag "SOURCEDATE" >> restOfTag)
 
 parseHeaders :: Parser [Header]
-parseHeaders = many1 header <* tabs where
+parseHeaders = header `sepBy1` tabs where
   header = parseSourceLong
        <|> parseSourceShort
        <|> parseSourceWeb
@@ -51,8 +51,8 @@ parseHeaders = many1 header <* tabs where
 
 parseLSTLines :: Parser a -> Parser [LST a]
 parseLSTLines parseDefinition = do
-  _ <- many endOfLine
-  many1 $ lstLine <* many endOfLine where
+  _ <- many eol
+  many1 $ lstLine <* many eol where
     lstLine = Source <$> parseHeaders
           <|> Comment <$> parseCommentLine
           <|> Definition <$> parseDefinition
@@ -60,12 +60,13 @@ parseLSTLines parseDefinition = do
 parseLST :: Show a => Parser (LSTLine a) -> FilePath -> IO [LST (LSTLine a)]
 parseLST lstParser lstName  = do
   contents <- readContents lstName
-  return . parseResult lstName $ parse fullParser contents where
+  return $ parseResult fullParser lstName contents where
     fullParser = parseLSTLines lstParser
 
 -- debugging only
 prettyPrint :: Show a => Parser (LSTLine a) -> FilePath -> IO String
-prettyPrint x file = liftM Pretty.ppShow $ parseLST x file
+prettyPrint = showAll . parseLST where
+  showAll = ((Pretty.ppShow <$>) .)
 
 parseLSTToString :: String -> FilePath -> IO String
 parseLSTToString "LANGUAGE" = prettyPrint (parseLSTLine :: Parser (LSTLine LanguageDefinition))

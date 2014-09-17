@@ -7,10 +7,10 @@ import JEPFormula
 import Common
 
 parseJEP :: String -> Formula
-parseJEP contents = parseResult parseFormula "parseJEP" contents
+parseJEP = parseResult parseFormula "parseJEP"
 
 parseQS :: String -> String
-parseQS contents = parseResult parseQuotedString "parseQS" contents
+parseQS = parseResult parseQuotedString "parseQS"
 
 testQS = parseQS "\"SKILL.Perception (Dim Light).MISC\"" @?=
          "SKILL.Perception (Dim Light).MISC"

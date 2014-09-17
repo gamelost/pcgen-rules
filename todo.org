@@ -15,10 +15,9 @@
 ** TODO PREFEAT is not fully implemented
 ** TODO PRERULE should be matching against known rules, not accepting any string
 ** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
-** TODO consolidate PREVAR tags, may need to implement DEFINE vars for this
+** TODO consolidate PREVAR tags
 * skill [0/2]
-** TODO 6 failures
-- DEFINE: 1
+** TODO 5 failures
 - PRE:.CLEAR 1
 - remaining failure is a bad merge, cannot fix
 - Tactics.COPY 1
@@ -47,7 +46,7 @@
 - [X] SHIELDPROF (32/32)
 - [X] WEAPONPROF (149/152)
 - [X] ARMORPROF (55/55)
-- [X] SKILL (157/163)
+- [X] SKILL (158/163)
 - [ ] COMPANIONMOD (block-based) (0/54)
 - [ ] DEITY (block-based) (0/71)
 - [ ] DOMAIN (0/60)

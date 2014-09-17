@@ -91,9 +91,12 @@ parseResult :: Show a => PParser a -> FilePath -> String -> a
 parseResult parser filename contents =
   let doall = parser <* eof in
   let result = runParserT doall () filename contents in
-  case runState result (M.fromList []) of
-    ((Left err), _) -> error $ show err
-    ((Right success), _) -> success
+  case runState result M.empty of
+    (Left err, vars) -> error $
+      show err ++ "\nvars:\n" ++ show vars
+    (Right success, vars) ->
+      let _ = trace $ "variable dump: " ++ show vars in
+      success
 
 readContents :: FilePath -> IO String
 readContents filename = B.readFile filename >>= spit where

@@ -6,6 +6,8 @@ import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Control.Applicative
 import Restrictions(Restriction, parseAdditionalRestrictions)
+import Control.Monad.State
+import qualified Data.Map as M
 import JEPFormula
 import Common
 
@@ -50,13 +52,16 @@ parseSourceWeb :: PParser GlobalTag
 parseSourceWeb = SourceWeb <$> (tag "SOURCEWEB" >> restOfTag)
 
 data NewVariable = NewVariable { varName :: String
-                               , startingValue :: Formula }
+                               , varFormula :: Formula
+                               , varValue :: Int}
                  deriving (Eq, Show)
 
 parseDefine :: PParser GlobalTag
 parseDefine = do
   varName <- tag "DEFINE" *> parseString
-  startingValue <- char '|' *> parseFormula
+  varFormula <- char '|' *> parseFormula
+  let varValue = evalJEPFormula varFormula
+  put $ M.fromList [(varName, varValue)]
   return . Define $ NewVariable { .. }
 
 data AbilityNature = Normal | Automatic | Virtual deriving (Eq, Show)

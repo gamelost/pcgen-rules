@@ -5,13 +5,15 @@ module JEPFormula ( Formula(..)
                   , SkillType(..)
                   , parseFormula
                   , parseQuotedString
+                  , evalJEPFormula
                   ) where
 
 import Text.Parsec.Char
 import Text.Parsec.Combinator
-import Text.Parsec.String
 import Text.Parsec.Prim hiding ((<|>))
 import Control.Applicative hiding (optional, many)
+import Control.Monad.State
+import qualified Data.Map as M
 import Common
 import Debug.Trace(trace)
 
@@ -40,16 +42,16 @@ data Formula = Number Int
 
 -- since we don't have variables yet, hard-code some to get past the
 -- parser verification process
-listOfVars :: [String]
-listOfVars = [ "SynergyBonus"
-             , "Reputation"
-             , "INT" -- should these be attributes instead?
-             , "DEX"
-             , "STR"
-             , "CON"
-             , "WIS"
-             , "CHA"
-             ]
+varBuiltins :: [String]
+varBuiltins = [ "SynergyBonus"
+              , "Reputation"
+              , "INT"
+              , "DEX"
+              , "STR"
+              , "CON"
+              , "WIS"
+              , "CHA"
+              ]
 
 listOfFunctions :: [String]
 listOfFunctions = [ "floor"
@@ -58,39 +60,53 @@ listOfFunctions = [ "floor"
                   , "ceil"
                   ]
 
-variableParsers :: [Parser String]
-variableParsers = tryStrings listOfVars
+getVariables :: PParser [String]
+getVariables = do
+  vars <- get
+  return $ M.keys vars ++ varBuiltins
 
-functionParsers :: [Parser String]
+variableParsers :: PParser String
+variableParsers = msum . tryStrings =<< getVariables
+
+functionParsers :: [PParser String]
 functionParsers = tryStrings listOfFunctions
 
-parseNumber :: Parser Formula
+-- for now.
+evalJEPFormula :: Formula -> Int
+evalJEPFormula f = 0
+
+parseNumber :: PParser Formula
 parseNumber = Number <$> parseSignedNumber where
   parseSignedNumber = sign <*> (textToInt <$> manyNumbers)
   sign = (char '-' >> return negate) <|> (optional (char '+') >> return id)
 
-parseVariable :: Parser Formula
-parseVariable = Variable <$> choice variableParsers
+parseVariable :: PParser Formula
+parseVariable = Variable <$> variableParsers
 
 -- ugly; unfortunately, this does show up.
-parseNegativeVariable :: Parser Formula
-parseNegativeVariable = char '-' >> choice variableParsers >>= embed where
+parseNegativeVariable :: PParser Formula
+parseNegativeVariable = char '-' >> variableParsers >>= embed where
     embed v = return $ Function Subtract [ Number 0, Variable v ]
 
-parseGroup :: Parser Formula
+parseGroup :: PParser Formula
 parseGroup = Group <$> (char '(' >> parseFormula <* char ')')
 
--- may want to make sure there are no unterminated quotes!
-parseQuotedString :: Parser String
-parseQuotedString = char '"' *> untilQuote where
+-- we treat all known unquoted variables specially (for now) -- not
+-- sure what they refer to, just yet.
+--
+-- NB: may want to make sure there are no unterminated quotes!
+parseQuotedString :: PParser String
+parseQuotedString = labeled "ARMOR.0.ACCHECK"
+                <|> labeled "SPELLSTAT"
+                <|> char '"' *> untilQuote where
   untilQuote = manyTill anyChar $ satisfy (== '"')
 
 -- treat the var() function specially
-parseVarFunction :: Parser Formula
+parseVarFunction :: PParser Formula
 parseVarFunction = LookupVariable <$> (labeled "var(" >> parseQuotedString <* labeled ")")
 
 -- treat the skillinfo() function specially
-parseSkillInfoFunction :: Parser Formula
+parseSkillInfoFunction :: PParser Formula
 parseSkillInfoFunction = do
   prop <- labeled "skillinfo(" *> parseQuotedString
   _ <- char ',' >> many space
@@ -104,7 +120,7 @@ parseSkillInfoFunction = do
     parseProperty "TOTAL" = TOTAL
     parseProperty _ = error "No such skillinfo property"
 
-parseInfixFunction :: Parser Formula
+parseInfixFunction :: PParser Formula
 parseInfixFunction = do
   -- only support infix 2 for now
   first <- parsers
@@ -125,13 +141,13 @@ parseInfixFunction = do
           <|> try parseFunction
           <|> parseGroup
 
-parseFunction :: Parser Formula
+parseFunction :: PParser Formula
 parseFunction = do
   f <- BuiltIn <$> choice functionParsers
   args <- char '(' >> parseFormula `sepBy` char ',' <* char ')'
   return $ Function f args
 
-parseFormula :: Parser Formula
+parseFormula :: PParser Formula
 parseFormula = try parseInfixFunction
            <|> try parseFunction
            <|> try parseGroup
@@ -142,7 +158,7 @@ parseFormula = try parseInfixFunction
            <|> parseNegativeVariable
 -- parseFormula = _traceFormula
 
-_traceFormula :: Parser Formula
+_traceFormula :: PParser Formula
 _traceFormula = do
   v <- manyTill anyChar $ satisfy (\x -> x == '|' || x == '\t' || x == '\r' || x == '\n')
   _ <- trace ("** Formula was " ++ v) $ return ()

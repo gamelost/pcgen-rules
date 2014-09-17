@@ -3,7 +3,6 @@ module Lst where
 import Prelude hiding (takeWhile)
 import qualified Text.Show.Pretty as Pretty
 import Text.Parsec.Combinator
-import Text.Parsec.String
 import Text.Parsec.Prim hiding ((<|>))
 import Control.Applicative hiding (many)
 import Modifications
@@ -30,26 +29,26 @@ data Header = SourceLong String
             | SourceWeb String
             | SourceDate String deriving Show
 
-parseSourceWeb :: Parser Header
+parseSourceWeb :: PParser Header
 parseSourceWeb = SourceWeb <$> (tag "SOURCEWEB" >> restOfTag)
 
-parseSourceLong :: Parser Header
+parseSourceLong :: PParser Header
 parseSourceLong = SourceLong <$> (tag "SOURCELONG" >> restOfTag)
 
-parseSourceShort :: Parser Header
+parseSourceShort :: PParser Header
 parseSourceShort = SourceShort <$> (tag "SOURCESHORT" >> restOfTag)
 
-parseSourceDate :: Parser Header
+parseSourceDate :: PParser Header
 parseSourceDate = SourceDate <$> (tag "SOURCEDATE" >> restOfTag)
 
-parseHeaders :: Parser [Header]
+parseHeaders :: PParser [Header]
 parseHeaders = header `sepBy1` tabs where
   header = parseSourceLong
        <|> parseSourceShort
        <|> parseSourceWeb
        <|> parseSourceDate
 
-parseLSTLines :: Parser a -> Parser [LST a]
+parseLSTLines :: PParser a -> PParser [LST a]
 parseLSTLines parseDefinition = do
   _ <- many eol
   many1 $ lstLine <* many eol where
@@ -57,21 +56,21 @@ parseLSTLines parseDefinition = do
           <|> Comment <$> parseCommentLine
           <|> Definition <$> parseDefinition
 
-parseLST :: Show a => Parser (LSTLine a) -> FilePath -> IO [LST (LSTLine a)]
-parseLST lstParser lstName  = do
+parseLST :: Show a => PParser (LSTLine a) -> FilePath -> IO [LST (LSTLine a)]
+parseLST lstPParser lstName  = do
   contents <- readContents lstName
-  return $ parseResult fullParser lstName contents where
-    fullParser = parseLSTLines lstParser
+  return $ parseResult fullPParser lstName contents where
+    fullPParser = parseLSTLines lstPParser
 
 -- debugging only
-prettyPrint :: Show a => Parser (LSTLine a) -> FilePath -> IO String
+prettyPrint :: Show a => PParser (LSTLine a) -> FilePath -> IO String
 prettyPrint = showAll . parseLST where
   showAll = ((Pretty.ppShow <$>) .)
 
 parseLSTToString :: String -> FilePath -> IO String
-parseLSTToString "LANGUAGE" = prettyPrint (parseLSTLine :: Parser (LSTLine LanguageDefinition))
-parseLSTToString "ARMORPROF" = prettyPrint (parseLSTLine :: Parser (LSTLine ArmorProficency))
-parseLSTToString "SHIELDPROF" = prettyPrint (parseLSTLine :: Parser (LSTLine ShieldProficency))
-parseLSTToString "WEAPONPROF" = prettyPrint (parseLSTLine :: Parser (LSTLine WeaponProficency))
-parseLSTToString "SKILL" = prettyPrint (parseLSTLine :: Parser (LSTLine SkillDefinition))
-parseLSTToString _ = prettyPrint (parseLSTLine :: Parser (LSTLine LSTDefinition))
+parseLSTToString "LANGUAGE" = prettyPrint (parseLSTLine :: PParser (LSTLine LanguageDefinition))
+parseLSTToString "ARMORPROF" = prettyPrint (parseLSTLine :: PParser (LSTLine ArmorProficency))
+parseLSTToString "SHIELDPROF" = prettyPrint (parseLSTLine :: PParser (LSTLine ShieldProficency))
+parseLSTToString "WEAPONPROF" = prettyPrint (parseLSTLine :: PParser (LSTLine WeaponProficency))
+parseLSTToString "SKILL" = prettyPrint (parseLSTLine :: PParser (LSTLine SkillDefinition))
+parseLSTToString _ = prettyPrint (parseLSTLine :: PParser (LSTLine LSTDefinition))

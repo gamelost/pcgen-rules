@@ -2,7 +2,6 @@
 
 module Modifications where
 
-import Text.Parsec.String
 import Control.Applicative
 import Common
 import Data.Maybe
@@ -14,15 +13,15 @@ data LSTLine a = LSTLine { operation :: Operation
                  deriving Show
 
 class LSTObject a where
-  parseLine :: String -> Parser [a]
+  parseLine :: String -> PParser [a]
 
-  parseLSTLine :: Parser (LSTLine a)
+  parseLSTLine :: PParser (LSTLine a)
   parseLSTLine = do
     (name, operation) <- parseStart <* tabs
     tags <- parseLine name <* eol
     return LSTLine { .. }
 
-parseStart :: Parser (String, Operation)
+parseStart :: PParser (String, Operation)
 parseStart = do
   what <- parseString
   return . fromJust $ matchSuffixes what where

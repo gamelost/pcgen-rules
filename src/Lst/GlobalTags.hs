@@ -4,9 +4,10 @@ module Lst.GlobalTags (GlobalTag, parseGlobalTags) where
 
 import Text.Parsec.Char
 import Text.Parsec.Combinator
-import Text.Parsec.String
 import Control.Applicative
 import Restrictions(Restriction, parseAdditionalRestrictions)
+import Control.Monad.State
+import qualified Data.Map as M
 import JEPFormula
 import Common
 
@@ -26,38 +27,41 @@ data GlobalTag = KeyStat String
                | ChooseSkillTag [ChooseSkill]
                  deriving (Eq, Show)
 
-parseSortKey :: Parser GlobalTag
+parseSortKey :: PParser GlobalTag
 parseSortKey = SortKey <$> (tag "SORTKEY" >> parseString)
 
-parseKeyStat :: Parser GlobalTag
+parseKeyStat :: PParser GlobalTag
 parseKeyStat = KeyStat <$> (tag "KEYSTAT" >> parseString)
 
-parseUseUntrained :: Parser GlobalTag
+parseUseUntrained :: PParser GlobalTag
 parseUseUntrained = UseUntrained <$> (tag "USEUNTRAINED" >> yesOrNo)
 
-parseSourcePage :: Parser GlobalTag
+parseSourcePage :: PParser GlobalTag
 parseSourcePage  = SourcePage <$> (tag "SOURCEPAGE" >> parseString)
 
-parseProductIdentity :: Parser GlobalTag
+parseProductIdentity :: PParser GlobalTag
 parseProductIdentity = ProductIdentity <$> (tag "NAMEISPI" >> yesOrNo)
 
-parseOutputName :: Parser GlobalTag
+parseOutputName :: PParser GlobalTag
 parseOutputName = OutputName <$> (tag "OUTPUTNAME" >> parseString)
 
-parseSelect :: Parser GlobalTag
+parseSelect :: PParser GlobalTag
 parseSelect = Select <$> (tag "SELECT" >> parseFormula)
 
-parseSourceWeb :: Parser GlobalTag
+parseSourceWeb :: PParser GlobalTag
 parseSourceWeb = SourceWeb <$> (tag "SOURCEWEB" >> restOfTag)
 
 data NewVariable = NewVariable { varName :: String
-                               , startingValue :: Formula }
+                               , varFormula :: Formula
+                               , varValue :: Int}
                  deriving (Eq, Show)
 
-parseDefine :: Parser GlobalTag
+parseDefine :: PParser GlobalTag
 parseDefine = do
   varName <- tag "DEFINE" *> parseString
-  startingValue <- char '|' *> parseFormula
+  varFormula <- char '|' *> parseFormula
+  let varValue = evalJEPFormula varFormula
+  put $ M.fromList [(varName, varValue)]
   return . Define $ NewVariable { .. }
 
 data AbilityNature = Normal | Automatic | Virtual deriving (Eq, Show)
@@ -71,7 +75,7 @@ data Ability = Ability { abilityCategory :: String
 --   x is ability category
 --   y is ability nature
 --   z is ability name or key
-parseAbility :: Parser GlobalTag
+parseAbility :: PParser GlobalTag
 parseAbility = do
   _ <- tag "ABILITY"
   abilityCategory <- parseWordandSpace
@@ -94,7 +98,7 @@ data AutoLanguage = Language String
                   | Invert AutoLanguage
                     deriving (Show, Eq)
 
-parseAutoLanguage :: Parser GlobalTag
+parseAutoLanguage :: PParser GlobalTag
 parseAutoLanguage = labeled "AUTO:LANG|" >> (AutoLanguageTag <$> parseLanguages) where
   parseLanguages = LanguageType <$> (labeled "TYPE=" *> parseString)
                <|> (labeled "ALL" >> return AllLanguages)
@@ -108,7 +112,7 @@ data ChooseLanguage = ChoiceLanguage String
                     | ChoiceLanguageType String
                       deriving (Show, Eq)
 
-parseChooseLanguage :: Parser GlobalTag
+parseChooseLanguage :: PParser GlobalTag
 parseChooseLanguage = do
   _ <- labeled "CHOOSE:LANG|"
   languages <- parseChoice `sepBy` char ','
@@ -121,7 +125,7 @@ data ChooseSkill = ChoiceSkill String
                  | ChoiceSkillType String
                    deriving (Show, Eq)
 
-parseChooseSkill :: Parser GlobalTag
+parseChooseSkill :: PParser GlobalTag
 parseChooseSkill = do
   _ <- labeled "CHOOSE:SKILL|"
   skills <- parseChoice `sepBy` char ','
@@ -129,7 +133,7 @@ parseChooseSkill = do
     parseChoice = ChoiceSkillType <$> (labeled "TYPE=" *> parseString)
               <|> ChoiceSkill <$> parseString
 
-parseClassSkill :: Parser GlobalTag
+parseClassSkill :: PParser GlobalTag
 parseClassSkill = do
   _ <- tag "CSKILL"
   cskills <- parseString `sepBy` char '|'
@@ -137,7 +141,7 @@ parseClassSkill = do
 
 -- TODO: catchall
 
-parseGlobalTags :: Parser GlobalTag
+parseGlobalTags :: PParser GlobalTag
 parseGlobalTags = parseKeyStat
               <|> parseUseUntrained
               <|> parseSortKey

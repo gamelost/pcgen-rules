@@ -5,7 +5,6 @@ module Restrictions where
 import Prelude hiding (takeWhile, GT, EQ, LT)
 import Text.Parsec.Char
 import Text.Parsec.Combinator
-import Text.Parsec.String
 import Text.Parsec.Prim hiding ((<|>), many)
 import Control.Applicative
 import JEPFormula
@@ -36,7 +35,7 @@ data PreAbility = PreAbility { abilityNumber :: Int
                              , abilities :: [String] }
                   deriving (Show, Eq)
 
-parsePreAbility :: Parser PreAbility
+parsePreAbility :: PParser PreAbility
 parsePreAbility = do
   n <- tag "PREABILITY" >> manyNumbers
   categoryName <- labeled ",CATEGORY=" >> parseWordWithSpaces
@@ -52,7 +51,7 @@ data Alignment = LG | LN | LE | NG | TN | NE | CG | CN | CE | None | Deity
 data PreAlign = PreAlign { alignments :: [Alignment] }
                 deriving (Show, Eq)
 
-parsePreAlign :: Parser PreAlign
+parsePreAlign :: PParser PreAlign
 parsePreAlign = do
   args <- tag "PREALIGN" >> parseWord `sepBy` char ','
   return PreAlign { alignments = map parseAlignment args } where
@@ -77,12 +76,12 @@ data PreClass = PreClass { passNumber :: Int
                          , classRequisites :: [(String, Int)] }
                 deriving (Show, Eq)
 
-parsePreClass :: Parser PreClass
+parsePreClass :: PParser PreClass
 parsePreClass = do
   n <- tag "PRECLASS" >> manyNumbers
   classRequisites <- char ',' >> parseEqual `sepBy` char ','
   return PreClass { passNumber = textToInt n, .. } where
-    parseEqual :: Parser (String, Int)
+    parseEqual :: PParser (String, Int)
     parseEqual = do
       x <- parseString
       n <- char '=' >> manyNumbers
@@ -99,7 +98,7 @@ data PreClassSkill = PreClassSkill { classSkillNumber :: Int
                                    , classSkill :: ClassSkill }
                      deriving (Show, Eq)
 
-parsePreClassSkill :: Parser PreClassSkill
+parsePreClassSkill :: PParser PreClassSkill
 parsePreClassSkill = do
   n <- tag "PRECSKILL" >> manyNumbers
   classSkill <- char ',' >> parseClassSkill
@@ -121,7 +120,7 @@ data PreFeat = PreFeat { featNumber :: Int
                        , cannotHave :: Bool}
                deriving (Show, Eq)
 
-parsePreFeat :: Parser PreFeat
+parsePreFeat :: PParser PreFeat
 parsePreFeat = do
   n <- tag "PREFEAT" >> manyNumbers
   _ <- char ','
@@ -145,7 +144,7 @@ data PreItem = PreItem { itemNumber :: Int
                        , items :: [Item] }
              deriving (Show, Eq)
 
-parsePreItem :: Parser PreItem
+parsePreItem :: PParser PreItem
 parsePreItem = do
   n <- tag "PREITEM" >> manyNumbers
   items <- char ',' >> parseItems `sepBy` char ','
@@ -162,7 +161,7 @@ data PreMove = PreMove { moveNumber :: Int
                        , moves :: [(String, Int)] }
                deriving (Show, Eq)
 
-parsePreMove :: Parser PreMove
+parsePreMove :: PParser PreMove
 parsePreMove = do
   n <- tag "PREMOVE" >> manyNumbers
   moves <- char ',' >> parseMoves `sepBy` char ','
@@ -179,7 +178,7 @@ data PreMult = PreMult { restrictionNumber :: Int
                        , restrictionsToPass :: [Restriction] }
              deriving (Show, Eq)
 
-parsePreMult :: Parser PreMult
+parsePreMult :: PParser PreMult
 parsePreMult = do
   n <- tag "PREMULT" >> manyNumbers
   restrictionsToPass <- char ',' >> parseRestrictions `sepBy` char ','
@@ -199,7 +198,7 @@ data PreRace = PreRace { raceNumber :: Int
                        , races :: [Race ] }
              deriving (Show, Eq)
 
-parsePreRace :: Parser PreRace
+parsePreRace :: PParser PreRace
 parsePreRace = do
   n <- tag "PRERACE" >> manyNumbers
   races <- char ',' >> parseRaces `sepBy` char ','
@@ -216,7 +215,7 @@ data PreRule = PreRule { ruleNumber :: Int
                        , ruleName :: String }
                deriving (Show, Eq)
 
-parsePreRule :: Parser PreRule
+parsePreRule :: PParser PreRule
 parsePreRule = do
   n <- tag "PRERULE" >> manyNumbers
   _ <- char ','
@@ -235,7 +234,7 @@ data PreSkill = PreSkill { skillNumber :: Int
                          , skills :: [(Skill, Int)]}
                 deriving (Show, Eq)
 
-parsePreSkill :: Parser PreSkill
+parsePreSkill :: PParser PreSkill
 parsePreSkill = do
   n <- tag "PRESKILL" >> manyNumbers
   skills <- char ',' >> parseSkills `sepBy` char ','
@@ -254,7 +253,7 @@ data PreSkillTot = PreSkillTot { skillTotals :: [Skill]
                                , skillTotalNeeded :: Int }
                    deriving (Show, Eq)
 
-parsePreSkillTotal :: Parser PreSkillTot
+parsePreSkillTotal :: PParser PreSkillTot
 parsePreSkillTotal = do
   _ <- tag "PRESKILLTOT"
   skillTotals <- parseSkills `sepBy` char ','
@@ -280,7 +279,7 @@ data PreVarType = PreVarFormula Formula
 data PreVar = PreVar { operator :: Operator
                      , variables :: [PreVarType] } deriving (Show, Eq)
 
-parsePreVar :: Parser PreVar
+parsePreVar :: PParser PreVar
 parsePreVar = do
   op <- labeled "PREVAR" >> choice prefixes
   variables <- char ':' >> parsePreVarType `sepBy` char ','
@@ -298,7 +297,7 @@ parsePreVar = do
     convertOperator _ = error "invalid PREVAR operator"
     parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
 
-parsePossibleRestriction :: Parser Restriction
+parsePossibleRestriction :: PParser Restriction
 parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreClassSkillRestriction <$> parsePreClassSkill
                        <|> PreClassRestriction <$> parsePreClass
@@ -313,12 +312,12 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreSkillRestriction <$> parsePreSkill
                        <|> PreMultipleRestriction <$> parsePreMult
 
-parseRestriction :: Parser Restriction
+parseRestriction :: PParser Restriction
 parseRestriction = parseInvertedRestriction parsePossibleRestriction
                                         <|> parsePossibleRestriction where
   parseInvertedRestriction p = char '!' >> Invert <$> p
 
 -- for chained restrictions (e.g., BONUS tags)
-parseAdditionalRestrictions :: Parser [Restriction]
+parseAdditionalRestrictions :: PParser [Restriction]
 parseAdditionalRestrictions = many $ try restrictions where
   restrictions = char '|' >> parseRestriction

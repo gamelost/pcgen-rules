@@ -16,6 +16,7 @@ data Bonus = BonusSkill Skill
            | BonusSkillRank SkillRank
            | BonusVariable BonusVar
            | BonusWeaponProficency BonusWeaponProf
+           | BonusWeaponProperty BonusWeaponProp
            | BonusAbilityPool BonusAbility
            | BonusDescription String
            | TemporaryBonus TempBonus
@@ -145,6 +146,42 @@ parseBonusVariable = do
   (bonusVarRestrictions, bonusVarType) <- parseBonusRestrictionsAndType
   return BonusVar { .. }
 
+-- BONUS:WEAPON=x,x|y
+--   x is weapon property
+--   y is number, variable, or formula to add
+data BonusWeaponProp = BonusWeaponProp { bonusWeaponProperties :: [BonusWeaponProperty]
+                                       , bonusWeaponFormula :: Formula }
+                     deriving (Show, Eq)
+
+data BonusWeaponProperty = ATTACKS
+                         | ATTACKSPROGRESS
+                         | P_DAMAGE
+                         | P_DAMAGEMULT
+                         | P_DAMAGESIZE
+                         | P_DAMAGESHORTRANGE
+                         | P_TOHIT
+                         | P_TOHITSHORTRANGE
+                         | WEAPONBAB
+                         | WEAPONCATEGORY
+                           deriving (Show, Eq)
+
+parseBonusWeaponProp :: PParser BonusWeaponProp
+parseBonusWeaponProp = do
+  _ <- bonusTag "WEAPON"
+  bonusWeaponProperties <- parseWeaponProperty `sepBy` char ','
+  bonusWeaponFormula <- char '|' *> parseFormula
+  return BonusWeaponProp { .. } where
+    parseWeaponProperty = (labeled "ATTACKS" >> return ATTACKS)
+                      <|> (labeled "ATTACKSPROGRESS" >> return ATTACKSPROGRESS)
+                      <|> (labeled "DAMAGE" >> return P_DAMAGE)
+                      <|> (labeled "DAMAGEMULT" >> return P_DAMAGEMULT)
+                      <|> (labeled "DAMAGESIZE" >> return P_DAMAGESIZE)
+                      <|> (labeled "DAMAGE-SHORTRANGE" >> return P_DAMAGESHORTRANGE)
+                      <|> (labeled "TOHIT" >> return P_TOHIT)
+                      <|> (labeled "TOHIT-SHORTRANGE" >> return P_TOHITSHORTRANGE)
+                      <|> (labeled "WEAPONBAB" >> return WEAPONBAB)
+                      <|> (labeled "WEAPONCATEGORY" >> return WEAPONCATEGORY)
+
 -- BONUS:WEAPONPROF=x|y,y...|z
 --   x is weapon proficiency name or type
 --   y is weapon property
@@ -153,32 +190,32 @@ data BonusWeapon = WeaponName String
                  | WeaponType String
                    deriving (Show, Eq)
 
-data BonusWeaponProperty = CRITMULTADD
-                         | CRITRANGEADD
-                         | CRITRANGEDOUBLE
-                         | DAMAGE
-                         | DAMAGEMULT
-                         | DAMAGESIZE
-                         | DAMAGESHORTRANGE
-                         | PCSIZE
-                         | REACH
-                         | TOHIT
-                         | TOHITSHORTRANGE
-                         | TOHITOVERSIZE
-                         | WIELDCATEGORY
-                           deriving (Show, Eq)
+data BonusWeaponProfProperty = CRITMULTADD
+                             | CRITRANGEADD
+                             | CRITRANGEDOUBLE
+                             | DAMAGE
+                             | DAMAGEMULT
+                             | DAMAGESIZE
+                             | DAMAGESHORTRANGE
+                             | PCSIZE
+                             | REACH
+                             | TOHIT
+                             | TOHITSHORTRANGE
+                             | TOHITOVERSIZE
+                             | WIELDCATEGORY
+                               deriving (Show, Eq)
 
 data BonusWeaponProf = BonusWeaponProf { bonusWeaponProficency :: BonusWeapon
-                                       , bonusWeaponProperties :: [BonusWeaponProperty]
-                                       , bonusWeaponFormula :: Formula }
+                                       , bonusWeaponProfProperties :: [BonusWeaponProfProperty]
+                                       , bonusWeaponProfFormula :: Formula }
                      deriving (Show, Eq)
 
 parseBonusWeaponProf :: PParser BonusWeaponProf
 parseBonusWeaponProf = do
   _ <- labeled "WEAPONPROF="
   bonusWeaponProficency <- parseWeaponProficiency
-  bonusWeaponProperties <- char '|' *> parseWeaponProperty `sepBy` char ','
-  bonusWeaponFormula <- char '|' *> parseFormula
+  bonusWeaponProfProperties <- char '|' *> parseWeaponProperty `sepBy` char ','
+  bonusWeaponProfFormula <- char '|' *> parseFormula
   return BonusWeaponProf { .. } where
     parseWeaponProficiency = labeled "TYPE=" >> (WeaponType <$> parseString)
                          <|> WeaponName <$> parseString
@@ -238,6 +275,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusSkill <$> parseBonusSkill
             <|> BonusAbilityPool <$> parseBonusAbilityPool
             <|> BonusWeaponProficency <$> parseBonusWeaponProf
+            <|> BonusWeaponProperty <$> parseBonusWeaponProp
 
 parseBonus :: PParser Bonus
 parseBonus = (tag "BONUS" *> parseAnyBonus)

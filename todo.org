@@ -29,9 +29,8 @@
 - SkillFormulaType/PreVarType are hacks
 - we should warn if we hit an unknown variable.
 * weaponprof [0/1]
-** TODO 3 failures
+** TODO 1 failures
 - TYPE:.CLEAR in bloodandblades_weaponprofs.lst
-- BONUS:WEAPON (x2)
 * questions
 ** when are JEPs used? [2/6]
 - [ ] EVAL()
@@ -44,7 +43,7 @@
 * parsing lst types [5/18]
 - [X] LANGUAGE (87/87)
 - [X] SHIELDPROF (32/32)
-- [X] WEAPONPROF (149/152)
+- [X] WEAPONPROF (151/152)
 - [X] ARMORPROF (55/55)
 - [X] SKILL (158/163)
 - [ ] COMPANIONMOD (block-based) (0/54)

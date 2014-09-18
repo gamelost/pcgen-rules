@@ -14,6 +14,7 @@ import Text.Parsec.String()
 import Text.Parsec.Prim hiding (State)
 import Data.List(stripPrefix)
 import qualified Data.Map.Strict as M
+import Debug.Trace(trace)
 
 type Variables = M.Map String Int
 type PParser a = ParsecT String () (State Variables) a

@@ -2,6 +2,7 @@
 
 module Modifications where
 
+import Text.Parsec.Combinator(eof)
 import Control.Applicative
 import Common
 import Data.Maybe
@@ -18,8 +19,9 @@ class LSTObject a where
   parseLSTLine :: PParser (LSTLine a)
   parseLSTLine = do
     (name, operation) <- parseStart <* tabs
-    tags <- parseLine name <* eol
-    return LSTLine { .. }
+    tags <- parseLine name <* ending
+    return LSTLine { .. } where
+      ending = eol <|> (eof >> return '\0')
 
 parseStart :: PParser (String, Operation)
 parseStart = do

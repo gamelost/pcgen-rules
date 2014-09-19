@@ -34,7 +34,7 @@ testNestedInfixFunc = parseJEP "max(0,Reputation-INT)" @?=
                           , Variable "INT" ] ]
 
 testVarFunc = parseJEP "var(\"SKILL.Perception (Dim Light).MISC\")" @?=
-              LookupVariable "SKILL.Perception (Dim Light).MISC"
+              Variable "SKILL.Perception (Dim Light).MISC"
 
 testSkillInfoFunc = do
   parseJEP "skillinfo(\"TOTALRANK\", \"Perception\")" @?=
@@ -47,7 +47,7 @@ testNestedFunc = parseJEP "floor((var(\"MOVE[Walk]\")-30)/10)*4" @?=
                    Function (BuiltIn "floor")
                      [ Function Divide
                        [ Group
-                         (Function Subtract [ LookupVariable "MOVE[Walk]"
+                         (Function Subtract [ Variable "MOVE[Walk]"
                                             , Number 30 ])
                          , Number 10 ] ]
                    , Number 4 ]
@@ -58,7 +58,7 @@ testNestedFunc2 = parseJEP "max(floor((var(\"SKILLRANK=Concentration\")-5)/20))*
                       [ Function (BuiltIn "floor")
                         [ Function Divide
                           [ Group
-                            (Function Subtract [LookupVariable "SKILLRANK=Concentration"
+                            (Function Subtract [ Variable "SKILLRANK=Concentration"
                                                , Number 5])
                           , Number 20 ] ] ]
                     , Variable "SynergyBonus"]

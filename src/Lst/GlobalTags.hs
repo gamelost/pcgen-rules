@@ -60,7 +60,8 @@ parseDefine :: PParser GlobalTag
 parseDefine = do
   varName <- tag "DEFINE" *> parseString
   varFormula <- char '|' *> parseFormula
-  let varValue = evalJEPFormula varFormula
+  vars <- get
+  let varValue = evalJEPFormula vars varFormula
   put $ M.fromList [(varName, varValue)]
   return . Define $ NewVariable { .. }
 

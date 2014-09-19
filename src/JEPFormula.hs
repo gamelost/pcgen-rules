@@ -34,7 +34,6 @@ data SkillType = RANK
 
 data Formula = Number Int
              | Variable String
-             | LookupVariable String
              | LookupSkill (SkillType, String)
              | Group Formula
              | Function Operand [Formula]
@@ -71,9 +70,51 @@ variableParsers = msum . tryStrings =<< getVariables
 functionParsers :: [PParser String]
 functionParsers = tryStrings listOfFunctions
 
--- for now.
-evalJEPFormula :: Formula -> Int
-evalJEPFormula f = 0
+-- NB: PCGen rounds down to the nearest integer the results of each
+-- formula. The problem is, of course, determining *when* exactly it
+-- does this...
+evalJEPFormula :: Variables -> Formula -> Int
+evalJEPFormula vars f = floor $ evalJEPFormulae vars f
+
+-- Because of the way we parse the infix functions, we are
+-- guaranteed there are only two parameters.
+actualFunction :: Operand -> [Rational] -> Rational
+actualFunction Divide = foldr (/) 1.0
+actualFunction Multiply = product
+actualFunction Subtract = foldr (-) 0.0
+actualFunction Add = sum
+-- Built-in functions, however, can have any arity.
+actualFunction (BuiltIn f) = builtInFunction f
+
+builtInFunction :: String -> [Rational] -> Rational
+builtInFunction "min" = minimum
+builtInFunction "max" = maximum
+builtInFunction "floor" = \x ->
+  case length x of
+    1 -> (toRational :: Int -> Rational) . floor $ head x
+    _ -> error "floor was called with incorrect arity"
+builtInFunction "ceil" = \x ->
+  case length x of
+    1 -> (toRational :: Int -> Rational) . ceiling $ head x
+    _ -> error "ceil was called with incorrect arity"
+builtInFunction _ = error "No such built-in function"
+
+evalJEPFormulae :: Variables -> Formula -> Rational
+evalJEPFormulae _ (Number x) = toRational x
+evalJEPFormulae _ (LookupSkill _) =
+  warning "evaluating skillinfo() is not implemented"
+  0
+evalJEPFormulae vars (Function operand formulas) =
+  let f = actualFunction operand in
+  let args = map (evalJEPFormulae vars) formulas in
+  f args
+evalJEPFormulae vars (Group f) = evalJEPFormulae vars f
+evalJEPFormulae vars (Variable v) =
+  case M.lookup v vars of
+    Just n -> toRational n
+    Nothing ->
+      (warning $ "variable \"" ++ v ++ "\" was not found")
+      0
 
 parseNumber :: PParser Formula
 parseNumber = Number <$> parseSignedNumber where
@@ -101,9 +142,11 @@ parseQuotedString = labeled "ARMOR.0.ACCHECK"
                 <|> char '"' *> untilQuote where
   untilQuote = manyTill anyChar $ satisfy (== '"')
 
--- treat the var() function specially
+-- since the var() function just allows the variable to contain
+-- characters which are not valid JEP syntax, we just treat it as a
+-- regular variable.
 parseVarFunction :: PParser Formula
-parseVarFunction = LookupVariable <$> (labeled "var(" >> parseQuotedString <* labeled ")")
+parseVarFunction = Variable <$> (labeled "var(" >> parseQuotedString <* labeled ")")
 
 -- treat the skillinfo() function specially
 parseSkillInfoFunction :: PParser Formula

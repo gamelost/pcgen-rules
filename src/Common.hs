@@ -19,6 +19,9 @@ import Debug.Trace(trace)
 type Variables = M.Map String Int
 type PParser a = ParsecT String () (State Variables) a
 
+warning :: String -> a -> a
+warning x = trace $ "Warning: " ++ x
+
 -- conversion from attoparsec -> parsec
 inClass :: String -> Char -> Bool
 inClass "" = const False

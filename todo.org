@@ -24,10 +24,7 @@
 - ADD:FEAT 1
 - AUTO:EQUIP 1
 ** TODO fix test failures in BonusTests
-* JEP [0/1]
-** TODO allow for plain strings?
-- SkillFormulaType/PreVarType are hacks
-- we should warn if we hit an unknown variable.
+* JEP [0/0]
 * weaponprof [0/1]
 ** TODO 1 failures
 - TYPE:.CLEAR in bloodandblades_weaponprofs.lst

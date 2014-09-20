@@ -113,7 +113,7 @@ testSkillRankBonus = do
         , skillRankRestrictions =
             [ PreVarRestriction
                 PreVar { operator = NEQ
-                       , variables = [ PreVarFormula ( LookupVariable "SKILL.Acrobatics (On ship).MISC" )
+                       , variables = [ PreVarFormula ( Variable "SKILL.Acrobatics (On ship).MISC" )
                                      , PreVarText "SKILL.Acrobatics.MISC" ] }
             ]
         }

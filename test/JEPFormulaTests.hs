@@ -1,5 +1,6 @@
 module JEPFormulaTests where
 
+import qualified Data.Map.Strict as M
 import Text.Parsec.Prim
 import Control.Applicative
 import Test.HUnit
@@ -34,7 +35,7 @@ testNestedInfixFunc = parseJEP "max(0,Reputation-INT)" @?=
                           , Variable "INT" ] ]
 
 testVarFunc = parseJEP "var(\"SKILL.Perception (Dim Light).MISC\")" @?=
-              LookupVariable "SKILL.Perception (Dim Light).MISC"
+              Variable "SKILL.Perception (Dim Light).MISC"
 
 testSkillInfoFunc = do
   parseJEP "skillinfo(\"TOTALRANK\", \"Perception\")" @?=
@@ -47,7 +48,7 @@ testNestedFunc = parseJEP "floor((var(\"MOVE[Walk]\")-30)/10)*4" @?=
                    Function (BuiltIn "floor")
                      [ Function Divide
                        [ Group
-                         (Function Subtract [ LookupVariable "MOVE[Walk]"
+                         (Function Subtract [ Variable "MOVE[Walk]"
                                             , Number 30 ])
                          , Number 10 ] ]
                    , Number 4 ]
@@ -58,7 +59,7 @@ testNestedFunc2 = parseJEP "max(floor((var(\"SKILLRANK=Concentration\")-5)/20))*
                       [ Function (BuiltIn "floor")
                         [ Function Divide
                           [ Group
-                            (Function Subtract [LookupVariable "SKILLRANK=Concentration"
+                            (Function Subtract [ Variable "SKILLRANK=Concentration"
                                                , Number 5])
                           , Number 20 ] ] ]
                     , Variable "SynergyBonus"]
@@ -81,6 +82,21 @@ testMisc = do
       [ Function Subtract [ Number 0, Variable "CHA"]
       , Function (BuiltIn "max") [ Variable "CHA",Variable "STR" ] ]
 
+-- "max(floor((var(\"SKILLRANK=Concentration\")-5)/20))*SynergyBonus"
+testEvaluation = evalJEPFormula
+                 (M.fromList [  ("SKILLRANK=Concentration", 20)
+                             , ("SynergyBonus", 2) ])
+                 (Function Multiply
+                    [ Function (BuiltIn "max")
+                      [ Function (BuiltIn "floor")
+                        [ Function Divide
+                          [ Group
+                            (Function Subtract [ Variable "SKILLRANK=Concentration"
+                                               , Number 5])
+                          , Number 20 ] ] ]
+                    , Variable "SynergyBonus"]) @?=
+                 0
+
 formulaTests :: Test
 formulaTests = TestList [ "parse integer" ~: testInt
                         , "parse unsigned integer" ~: testSignedInt
@@ -92,4 +108,5 @@ formulaTests = TestList [ "parse integer" ~: testInt
                         , "parse function with nested infix function" ~: testNestedInfixFunc
                         , "parse miscellaneous formulas" ~: testMisc
                         , "parse quoted string" ~: testQS
+                        , "evaluate formula" ~: testEvaluation
                         ]

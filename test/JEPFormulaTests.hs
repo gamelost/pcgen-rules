@@ -1,5 +1,6 @@
 module JEPFormulaTests where
 
+import qualified Data.Map.Strict as M
 import Text.Parsec.Prim
 import Control.Applicative
 import Test.HUnit
@@ -81,6 +82,21 @@ testMisc = do
       [ Function Subtract [ Number 0, Variable "CHA"]
       , Function (BuiltIn "max") [ Variable "CHA",Variable "STR" ] ]
 
+-- "max(floor((var(\"SKILLRANK=Concentration\")-5)/20))*SynergyBonus"
+testEvaluation = evalJEPFormula
+                 (M.fromList [  ("SKILLRANK=Concentration", 20)
+                             , ("SynergyBonus", 2) ])
+                 (Function Multiply
+                    [ Function (BuiltIn "max")
+                      [ Function (BuiltIn "floor")
+                        [ Function Divide
+                          [ Group
+                            (Function Subtract [ Variable "SKILLRANK=Concentration"
+                                               , Number 5])
+                          , Number 20 ] ] ]
+                    , Variable "SynergyBonus"]) @?=
+                 0
+
 formulaTests :: Test
 formulaTests = TestList [ "parse integer" ~: testInt
                         , "parse unsigned integer" ~: testSignedInt
@@ -92,4 +108,5 @@ formulaTests = TestList [ "parse integer" ~: testInt
                         , "parse function with nested infix function" ~: testNestedInfixFunc
                         , "parse miscellaneous formulas" ~: testMisc
                         , "parse quoted string" ~: testQS
+                        , "evaluate formula" ~: testEvaluation
                         ]

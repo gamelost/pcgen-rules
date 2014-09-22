@@ -44,7 +44,7 @@
 - [X] SKILL (158/163)
 - [ ] COMPANIONMOD (block-based) (0/54)
 - [ ] DEITY (block-based) (0/71)
-- [X] DOMAIN (9/60)
+- [X] DOMAIN (20/60)
 - [ ] EQUIPMENTMOD (0/135)
 - [ ] EQUIPMENT (0/850)
 - [ ] SPELL (0/235)

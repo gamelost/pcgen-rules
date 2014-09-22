@@ -16,14 +16,13 @@
 ** TODO PRERULE should be matching against known rules, not accepting any string
 ** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
 ** TODO consolidate PREVAR tags
-* skill [0/2]
+* skill [0/1]
 ** TODO 5 failures
 - PRE:.CLEAR 1
 - remaining failure is a bad merge, cannot fix
 - Tactics.COPY 1
 - ADD:FEAT 1
 - AUTO:EQUIP 1
-** TODO fix test failures in BonusTests
 * JEP [0/0]
 * weaponprof [0/1]
 ** TODO 1 failures
@@ -37,7 +36,7 @@
 - [ ] STAT:INT=...|
 - [X] BONUS:<category>|<group>|<formula>
 ** how many starting pcc files are there?
-* parsing lst types [5/18]
+* parsing lst types [6/18]
 - [X] LANGUAGE (87/87)
 - [X] SHIELDPROF (32/32)
 - [X] WEAPONPROF (151/152)
@@ -45,7 +44,7 @@
 - [X] SKILL (158/163)
 - [ ] COMPANIONMOD (block-based) (0/54)
 - [ ] DEITY (block-based) (0/71)
-- [ ] DOMAIN (0/60)
+- [X] DOMAIN (9/60)
 - [ ] EQUIPMENTMOD (0/135)
 - [ ] EQUIPMENT (0/850)
 - [ ] SPELL (0/235)

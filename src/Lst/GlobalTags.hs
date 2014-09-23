@@ -62,7 +62,7 @@ parseDefine = do
   varFormula <- char '|' *> parseFormula
   vars <- get
   let varValue = evalJEPFormula vars varFormula
-  put $ M.fromList [(varName, varValue)]
+  put $ M.insert varName varValue vars
   return . Define $ NewVariable { .. }
 
 data AbilityNature = Normal | Automatic | Virtual deriving (Eq, Show)

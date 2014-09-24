@@ -18,9 +18,13 @@ data Bonus = BonusSkill Skill
            | BonusWeaponProficency BonusWeaponProf
            | BonusWeaponProperty BonusWeaponProp
            | BonusAbilityPool BonusAbility
+           | BonusCasterLevel CasterLevel
            | BonusDescription String
            | TemporaryBonus TempBonus
              deriving (Show, Eq)
+
+bonusTag :: String -> PParser String
+bonusTag t = labeled $ t ++ "|"
 
 -- BONUS:ABILITYPOOL|x|y
 --   x is ability category
@@ -29,16 +33,51 @@ data BonusAbility = BonusAbility { abilityCategory :: String
                                  , abilityPoolFormula :: Formula }
                   deriving (Show, Eq)
 
-
-bonusTag :: String -> PParser String
-bonusTag t = labeled $ t ++ "|"
-
 parseBonusAbilityPool :: PParser BonusAbility
 parseBonusAbilityPool = do
   _ <- bonusTag "ABILITYPOOL"
   abilityCategory <- parseString
   abilityPoolFormula <- char '|' *> parseFormula
   return BonusAbility { .. }
+
+-- BONUS:CASTERLEVEL|SUBSCHOOL.Creation|1|PRERULE:1,SYS_DOMAIN
+
+-- BONUS:CASTERLEVEL|x|y
+--   x is class, spell, domain, race, school, spell, subschool, or class type
+--   y is number, variable, formula
+data CasterLevelType = CLAllSpells
+                     | CLDescriptor String
+                     | CLDomain String
+                     | CLName String
+                     | CLRace String
+                     | CLSchool String
+                     | CLSpell String
+                     | CLSubSchool String
+                     | CLType String
+                       deriving (Show, Eq)
+
+data CasterLevel = CasterLevel { casterLevel :: CasterLevelType
+                               , casterFormula :: Formula
+                               , casterRestrictions :: [Restriction] }
+                 deriving (Show, Eq)
+
+parseBonusCasterLevel :: PParser CasterLevel
+parseBonusCasterLevel = do
+  _ <- bonusTag "CASTERLEVEL"
+  casterLevel <- parseCasterLevelType
+  casterFormula <- char '|' *> parseFormula
+  casterRestrictions <- option [] parseAdditionalRestrictions
+  return CasterLevel { .. } where
+    parseCasterLevelType :: PParser CasterLevelType
+    parseCasterLevelType = (labeled "ALLSPELLS" >> return CLAllSpells)
+                       <|> (labeled "DESCRIPTOR." >> CLDescriptor <$> parseString)
+                       <|> (labeled "DOMAIN." >> CLDomain <$> parseString)
+                       <|> (labeled "RACE." >> CLRace <$> parseString)
+                       <|> (labeled "SCHOOL." >> CLSchool <$> parseString)
+                       <|> (labeled "SPELL." >> CLSpell <$> parseString)
+                       <|> (labeled "SUBSCHOOL." >> CLSubSchool <$> parseString)
+                       <|> (labeled "TYPE." >> CLType <$> parseString)
+                       <|> CLName <$> parseString
 
 -- BONUS:SKILL:x,x,...|y
 --   x is LIST, ALL, skill name, stat name (STAT.x), skill type (TYPE=x)
@@ -274,6 +313,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusVariable <$> parseBonusVariable
             <|> BonusSkill <$> parseBonusSkill
             <|> BonusAbilityPool <$> parseBonusAbilityPool
+            <|> BonusCasterLevel <$> parseBonusCasterLevel
             <|> BonusWeaponProficency <$> parseBonusWeaponProf
             <|> BonusWeaponProperty <$> parseBonusWeaponProp
 

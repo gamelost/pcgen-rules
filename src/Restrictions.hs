@@ -124,7 +124,7 @@ parsePreDomain = do
   _ <- char ','
   domains <- parseDomain `sepBy` char ','
   return PreDomain { domainNumber = textToInt n, .. } where
-    parseDomain = (labeled "ANY" >> return DomainAny)
+    parseDomain = labeled "ANY" >> return DomainAny
               <|> DomainName <$> parseStringNoCommas
     parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
 

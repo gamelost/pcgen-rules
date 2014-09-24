@@ -3,7 +3,7 @@ PCGEN=./dist/build/pcgen-rules/pcgen-rules # calling `cabal run` repeatedly is s
 LST_TYPE:=$(shell echo $(TYPE) | tr '[:lower:]' '[:upper:]')
 
 all:
-	cabal build
+	cabal build pcgen-rules
 
 .PHONY: all
 

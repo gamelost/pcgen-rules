@@ -15,6 +15,7 @@ data Restriction = PreClassRestriction PreClass
                  | PreVarRestriction PreVar
                  | PreAlignRestriction PreAlign
                  | PreAbilityRestriction PreAbility
+                 | PreDeityRestriction PreDeity
                  | PreDomainRestriction PreDomain
                  | PreFeatRestriction PreFeat
                  | PreItemRestriction PreItem
@@ -107,6 +108,31 @@ parsePreClassSkill = do
     parseClassSkill = ClassSkillType <$> (labeled "TYPE=" >> parseString)
                   <|> ClassSkillName <$> parseString
 
+-- PREDEITY:x,y
+--   x is number of required deities or pantheons
+--   y is Y, N, name, or PANTHEON.name
+data Deity = Worship
+           | NoWorship
+           | DeityName String
+           | PantheonName String
+              deriving (Show, Eq)
+
+data PreDeity = PreDeity { deityNumber :: Int
+                         , deities :: [Deity] }
+              deriving (Show, Eq)
+
+parsePreDeity :: PParser PreDeity
+parsePreDeity = do
+  n <- tag "PREDEITY" >> manyNumbers
+  _ <- char ','
+  deities <- parseDeity `sepBy` char ','
+  return PreDeity { deityNumber = textToInt n, .. } where
+    parseDeity = (labeled "Y" >> return Worship)
+             <|> (labeled "N" >> return NoWorship)
+             <|> PantheonName <$> (labeled "PANTHEON." >> parseStringNoCommas)
+             <|> DeityName <$> parseStringNoCommas
+    parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
+
 -- PREDOMAIN:x,y,y...
 --   x is number of required deity's domains
 --   y is domain names or ANY
@@ -124,7 +150,7 @@ parsePreDomain = do
   _ <- char ','
   domains <- parseDomain `sepBy` char ','
   return PreDomain { domainNumber = textToInt n, .. } where
-    parseDomain = labeled "ANY" >> return DomainAny
+    parseDomain = (labeled "ANY" >> return DomainAny)
               <|> DomainName <$> parseStringNoCommas
     parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
 
@@ -323,6 +349,7 @@ parsePossibleRestriction :: PParser Restriction
 parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreClassSkillRestriction <$> parsePreClassSkill
                        <|> PreClassRestriction <$> parsePreClass
+                       <|> PreDeityRestriction <$> parsePreDeity
                        <|> PreDomainRestriction <$> parsePreDomain
                        <|> PreAbilityRestriction <$> parsePreAbility
                        <|> PreFeatRestriction <$> parsePreFeat

@@ -97,6 +97,12 @@ testEvaluation = evalJEPFormula
                     , Variable "SynergyBonus"]) @?=
                  0
 
+testNArity = parseJEP "10+(DomainGoodLVL/2)+WIS" @?=
+    Function Add
+      [ Number 10
+      , Group (Function Divide [ Variable "DomainGoodLVL", Number 2 ])
+      , Variable "WIS" ]
+
 formulaTests :: Test
 formulaTests = TestList [ "parse integer" ~: testInt
                         , "parse unsigned integer" ~: testSignedInt
@@ -108,5 +114,6 @@ formulaTests = TestList [ "parse integer" ~: testInt
                         , "parse function with nested infix function" ~: testNestedInfixFunc
                         , "parse miscellaneous formulas" ~: testMisc
                         , "parse quoted string" ~: testQS
+                        , "parse n-arity" ~: testNArity
                         , "evaluate formula" ~: testEvaluation
                         ]

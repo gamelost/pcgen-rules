@@ -44,6 +44,7 @@ data Formula = Number Int
 varBuiltins :: [String]
 varBuiltins = [ "SynergyBonus"
               , "Reputation"
+              , "DomainLVL"
               , "INT"
               , "DEX"
               , "STR"

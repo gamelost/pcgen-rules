@@ -15,6 +15,7 @@ data Restriction = PreClassRestriction PreClass
                  | PreVarRestriction PreVar
                  | PreAlignRestriction PreAlign
                  | PreAbilityRestriction PreAbility
+                 | PreDomainRestriction PreDomain
                  | PreFeatRestriction PreFeat
                  | PreItemRestriction PreItem
                  | PreRaceRestriction PreRace
@@ -105,6 +106,27 @@ parsePreClassSkill = do
   return PreClassSkill { classSkillNumber = textToInt n, .. } where
     parseClassSkill = ClassSkillType <$> (labeled "TYPE=" >> parseString)
                   <|> ClassSkillName <$> parseString
+
+-- PREDOMAIN:x,y,y...
+--   x is number of required deity's domains
+--   y is domain names or ANY
+data Domain = DomainName String
+            | DomainAny
+              deriving (Show, Eq)
+
+data PreDomain = PreDomain { domainNumber :: Int
+                           , domains :: [Domain] }
+               deriving (Show, Eq)
+
+parsePreDomain :: PParser PreDomain
+parsePreDomain = do
+  n <- tag "PREDOMAIN" >> manyNumbers
+  _ <- char ','
+  domains <- parseDomain `sepBy` char ','
+  return PreDomain { domainNumber = textToInt n, .. } where
+    parseDomain = (labeled "ANY" >> return DomainAny)
+              <|> DomainName <$> parseStringNoCommas
+    parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
 
 -- PREFEAT:x,y,z,z,..
 --   x is number of required feats
@@ -301,6 +323,7 @@ parsePossibleRestriction :: PParser Restriction
 parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreClassSkillRestriction <$> parsePreClassSkill
                        <|> PreClassRestriction <$> parsePreClass
+                       <|> PreDomainRestriction <$> parsePreDomain
                        <|> PreAbilityRestriction <$> parsePreAbility
                        <|> PreFeatRestriction <$> parsePreFeat
                        <|> PreItemRestriction <$> parsePreItem

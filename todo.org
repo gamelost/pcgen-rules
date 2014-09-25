@@ -1,6 +1,6 @@
 * general [0/3]
 ** TODO add catch-all for tags (with optional trace)
-** TODO narrow down parseString: way too general
+** TODO narrow down parseString*: way too general
 ** TODO look at data/zen-test/... -- is this something we can use?
 * pcc [0/2]
 ** TODO implement INCLUDE for lst files

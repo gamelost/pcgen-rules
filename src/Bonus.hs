@@ -139,7 +139,6 @@ parseBonusSkill = do
     parseSkillName = BonusSkillName <$> parseStringNoCommas
     parseSkillFormulaType = SkillFormula <$> try parseFormula
                         <|> SkillText <$> parseStringNoCommas
-    parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~"
 
 -- BONUS:SKILLRANK|x,x,...|y
 --   x is skill name, skill type (TYPE=x)
@@ -166,7 +165,6 @@ parseBonusSkillRank = do
     parseSkillName = SkillRankName <$> parseStringNoCommas
     parseSkillFormulaType = SkillFormula <$> parseFormula
                         <|> SkillText <$> (labeled "SKILLRANK=" >> parseStringNoCommas)
-    parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~"
 
 -- BONUS:VAR|x,x,...|y
 --   x is variable name

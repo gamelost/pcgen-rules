@@ -39,8 +39,8 @@ data Formula = Number Int
              | Function Operand [Formula]
                deriving (Show, Eq)
 
--- since we don't have variables yet, hard-code some to get past the
--- parser verification process
+-- since we don't fully parse all variables yet, hard-code some to get
+-- past the parser verification process
 varBuiltins :: [String]
 varBuiltins = [ "SynergyBonus"
               , "Reputation"

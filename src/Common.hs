@@ -40,6 +40,12 @@ parseWord = many1 $ satisfy $ inClass "-A-Za-z"
 parseString :: PParser String
 parseString = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()[]~" -- do not put in '=' or '|'
 
+parseStringNoCommas :: PParser String
+parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~"
+
+parseStringNoCommasBrackets :: PParser String
+parseStringNoCommasBrackets = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
+
 allCaps :: PParser String
 allCaps = many1 upper
 

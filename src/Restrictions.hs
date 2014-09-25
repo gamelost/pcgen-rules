@@ -129,9 +129,8 @@ parsePreDeity = do
   return PreDeity { deityNumber = textToInt n, .. } where
     parseDeity = (labeled "Y" >> return Worship)
              <|> (labeled "N" >> return NoWorship)
-             <|> PantheonName <$> (labeled "PANTHEON." >> parseStringNoCommas)
-             <|> DeityName <$> parseStringNoCommas
-    parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
+             <|> PantheonName <$> (labeled "PANTHEON." >> parseStringNoCommasBrackets)
+             <|> DeityName <$> parseStringNoCommasBrackets
 
 -- PREDOMAIN:x,y,y...
 --   x is number of required deity's domains
@@ -151,8 +150,7 @@ parsePreDomain = do
   domains <- parseDomain `sepBy` char ','
   return PreDomain { domainNumber = textToInt n, .. } where
     parseDomain = (labeled "ANY" >> return DomainAny)
-              <|> DomainName <$> parseStringNoCommas
-    parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
+              <|> DomainName <$> parseStringNoCommasBrackets
 
 -- PREFEAT:x,y,z,z,..
 --   x is number of required feats
@@ -176,9 +174,8 @@ parsePreFeat = do
   feats <- parseFeat `sepBy` char ','
   let cannotHave = False -- not implemented
   return PreFeat { featNumber = textToInt n, .. } where
-    parseFeat = FeatType <$> (labeled "TYPE=" >> parseStringNoCommas)
-            <|> FeatName <$> parseStringNoCommas
-    parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
+    parseFeat = FeatType <$> (labeled "TYPE=" >> parseStringNoCommasBrackets)
+            <|> FeatName <$> parseStringNoCommasBrackets
 
 -- PREITEM:x,y,y,...
 --   x is number of items a character must possess
@@ -334,7 +331,7 @@ parsePreVar = do
   return PreVar { operator = convertOperator op, .. } where
     prefixes = tryStrings ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"]
     parsePreVarType = PreVarFormula <$> try parseFormula
-                  <|> PreVarText <$> parseStringNoCommas
+                  <|> PreVarText <$> parseStringNoCommasBrackets
     convertOperator :: String -> Operator
     convertOperator "EQ" = EQ
     convertOperator "GTEQ" = GTEQ
@@ -343,7 +340,6 @@ parsePreVar = do
     convertOperator "LT" = LT
     convertOperator "NEQ" = NEQ
     convertOperator _ = error "invalid PREVAR operator"
-    parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
 
 parsePossibleRestriction :: PParser Restriction
 parsePossibleRestriction = PreVarRestriction <$> parsePreVar

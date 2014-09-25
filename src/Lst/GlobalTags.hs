@@ -152,10 +152,9 @@ parseSpecialAbilityName = do
   _ <- tag "SAB"
   ability <- parseSpecialAbility
   return ability where
-    parseSpecialAbility = ClearAbilityName <$> (labeled ".CLEAR." >> parseStringNoCommas)
+    parseSpecialAbility = ClearAbilityName <$> (labeled ".CLEAR." >> parseStringNoCommasBrackets)
                       <|> (labeled ".CLEAR" >> return ClearAbility)
-                      <|> SpecialAbilityName <$> parseStringNoCommas
-    parseStringNoCommas = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~"
+                      <|> SpecialAbilityName <$> parseStringNoCommasBrackets
 
 parseVirtualFeat :: PParser [String]
 parseVirtualFeat = tag "VFEAT" *> parseString `sepBy` char '|'

@@ -43,9 +43,9 @@ parseTypes = do
 parseLanguageTag :: PParser LanguageDefinition
 parseLanguageTag = parseKey
                <|> parseTypes
-               <|> Global <$> parseGlobalTags
                <|> LanguageBonus <$> parseBonus
                <|> Restricted <$> parseRestriction
+               <|> Global <$> parseGlobalTags
 
 parseLanguageDefinition :: String -> PParser [LanguageDefinition]
 parseLanguageDefinition name = do

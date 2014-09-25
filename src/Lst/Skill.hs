@@ -93,9 +93,9 @@ parseSkillTag = parseArmorCheck
             <|> parseExclusive
             <|> parseVisibility
             <|> parseUniqueKey
-            <|> Global <$> parseGlobalTags
             <|> SkillBonus <$> parseBonus
             <|> Restricted <$> parseRestriction
+            <|> Global <$> parseGlobalTags
 
 parseSkillDefinition :: String -> PParser [SkillDefinition]
 parseSkillDefinition name = do

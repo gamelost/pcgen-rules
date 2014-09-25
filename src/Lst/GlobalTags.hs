@@ -27,6 +27,7 @@ data GlobalTag = KeyStat String
                | ClassSkill [String]
                | ChooseLanguageTag [ChooseLanguage]
                | ChooseSkillTag [ChooseSkill]
+               | Unknown (String, String)
                  deriving (Eq, Show)
 
 parseSortKey :: PParser String
@@ -159,7 +160,12 @@ parseSpecialAbilityName = do
 parseVirtualFeat :: PParser [String]
 parseVirtualFeat = tag "VFEAT" *> parseString `sepBy` char '|'
 
--- TODO: catchall
+parseUnknownTag :: PParser (String, String)
+parseUnknownTag = do
+  tagName <- allCaps <* char ':'
+  rest <- restOfTag
+  _ <- warning ("unknown tag: " ++ tagName ++ " with contents: " ++ rest) $ return ()
+  return $ (tagName, rest)
 
 parseGlobalTags :: PParser GlobalTag
 parseGlobalTags = KeyStat <$> parseKeyStat
@@ -178,3 +184,4 @@ parseGlobalTags = KeyStat <$> parseKeyStat
               <|> ClassSkill <$> parseClassSkill
               <|> SpecialAbilityTag <$> parseSpecialAbilityName
               <|> VirtualFeatTag <$> parseVirtualFeat
+              <|> Unknown <$> parseUnknownTag -- must be the very LAST thing tried

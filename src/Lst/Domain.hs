@@ -40,9 +40,9 @@ parseSpellLevel = do
 parseDomainTag :: PParser DomainDefinition
 parseDomainTag = Description <$> parseDescription
              <|> DomainSpellLevel <$> parseSpellLevel
-             <|> Global <$> parseGlobalTags
              <|> DomainBonus <$> parseBonus
              <|> Restricted <$> parseRestriction
+             <|> Global <$> parseGlobalTags
 
 parseDomain :: String -> PParser [DomainDefinition]
 parseDomain domainName = do

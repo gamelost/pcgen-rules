@@ -41,9 +41,9 @@ parseWeaponProficencyTag :: PParser WeaponProficency
 parseWeaponProficencyTag = parseWeaponType
                        <|> try parseWeaponHandsRestriction
                        <|> try parseWeaponHands
-                       <|> Global <$> parseGlobalTags
                        <|> WeaponBonus <$> parseBonus
                        <|> Restricted <$> parseRestriction
+                       <|> Global <$> parseGlobalTags
 
 parseWeaponProficency :: String -> PParser [WeaponProficency]
 parseWeaponProficency weaponName = do

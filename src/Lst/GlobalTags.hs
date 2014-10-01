@@ -66,7 +66,7 @@ parseDefine = do
   vars <- get
   let varValue = evalJEPFormula vars varFormula
   put $ M.insert varName varValue vars
-  return $ NewVariable { .. }
+  return NewVariable { .. }
 
 data AbilityNature = Normal | Automatic | Virtual deriving (Eq, Show)
 
@@ -86,7 +86,7 @@ parseAbility = do
   abilityNature <- char '|' *> parseAbilityNature
   abilityName <- char '|' *> parseString
   abilityRestrictions <- option [] parseAdditionalRestrictions
-  return $ Ability { .. } where
+  return Ability { .. } where
     parseWordandSpace = many1 $ satisfy $ inClass "-A-Za-z "
     parseAbilityNature = (labeled "NORMAL" >> return Normal)
                      <|> (labeled "AUTOMATIC" >> return Automatic)
@@ -119,8 +119,7 @@ data ChooseLanguage = ChoiceLanguage String
 parseChooseLanguage :: PParser [ChooseLanguage]
 parseChooseLanguage = do
   _ <- labeled "CHOOSE:LANG|"
-  languages <- parseChoice `sepBy` char ','
-  return languages where
+  parseChoice `sepBy` char ',' where
     parseChoice = ChoiceLanguageType <$> (labeled "TYPE=" *> parseString)
               <|> ChoiceLanguage <$> parseString
 
@@ -132,16 +131,14 @@ data ChooseSkill = ChoiceSkill String
 parseChooseSkill :: PParser [ChooseSkill]
 parseChooseSkill = do
   _ <- labeled "CHOOSE:SKILL|"
-  skills <- parseChoice `sepBy` char ','
-  return skills where
+  parseChoice `sepBy` char ',' where
     parseChoice = ChoiceSkillType <$> (labeled "TYPE=" *> parseString)
               <|> ChoiceSkill <$> parseString
 
 parseClassSkill :: PParser [String]
 parseClassSkill = do
   _ <- tag "CSKILL"
-  cskills <- parseString `sepBy` char '|'
-  return cskills
+  parseString `sepBy` char '|'
 
 data SpecialAbility = SpecialAbilityName String
                     | ClearAbilityName String
@@ -151,8 +148,7 @@ data SpecialAbility = SpecialAbilityName String
 parseSpecialAbilityName :: PParser SpecialAbility
 parseSpecialAbilityName = do
   _ <- tag "SAB"
-  ability <- parseSpecialAbility
-  return ability where
+  parseSpecialAbility where
     parseSpecialAbility = ClearAbilityName <$> (labeled ".CLEAR." >> parseStringNoCommasBrackets)
                       <|> (labeled ".CLEAR" >> return ClearAbility)
                       <|> SpecialAbilityName <$> parseStringNoCommasBrackets
@@ -165,7 +161,7 @@ parseUnknownTag = do
   tagName <- allCaps <* char ':'
   rest <- restOfTag
   _ <- warning ("unknown tag: " ++ tagName ++ " with contents: " ++ rest) $ return ()
-  return $ (tagName, rest)
+  return (tagName, rest)
 
 parseGlobalTags :: PParser GlobalTag
 parseGlobalTags = KeyStat <$> parseKeyStat

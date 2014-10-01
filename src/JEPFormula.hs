@@ -77,12 +77,18 @@ functionParsers = tryStrings listOfFunctions
 evalJEPFormula :: Variables -> Formula -> Int
 evalJEPFormula vars f = floor $ evalJEPFormulae vars f
 
+fdivide :: [Rational] -> Rational
+fdivide arr = head arr * product (map (\x -> 1/x) $ tail arr)
+
+fsubtract :: [Rational] -> Rational
+fsubtract arr = head arr + sum (map negate $ tail arr)
+
 -- Because of the way we parse the infix functions, we are
 -- guaranteed there are only two parameters.
 actualFunction :: Operand -> [Rational] -> Rational
-actualFunction Divide = foldr (/) 1.0
+actualFunction Divide = fdivide
 actualFunction Multiply = product
-actualFunction Subtract = foldr (-) 0.0
+actualFunction Subtract = fsubtract
 actualFunction Add = sum
 -- Built-in functions, however, can have any arity.
 actualFunction (BuiltIn f) = builtInFunction f

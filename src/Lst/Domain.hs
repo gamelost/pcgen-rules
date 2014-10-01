@@ -28,8 +28,7 @@ parseDescription = tag "DESC" *> parseString
 parseSpellLevel :: PParser [DomainSpell]
 parseSpellLevel = do
   _ <- labeled "SPELLLEVEL:DOMAIN|"
-  spells <- parseSpell `sepBy` char '|'
-  return spells where
+  parseSpell `sepBy` char '|' where
     parseSpell :: PParser DomainSpell
     parseSpell = do
       word <- parseString <* char '='

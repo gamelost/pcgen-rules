@@ -23,12 +23,12 @@ testSignedInt = parseJEP "-4" @?=
                 Number (-4)
 
 testFuncWithVar = parseJEP "floor(SynergyBonus/2)" @?=
-                  Function (BuiltIn "floor")
+                  Function "floor"
                     [ Function Divide [ Variable "SynergyBonus"
                                       , Number 2 ] ]
 
 testNestedInfixFunc = parseJEP "max(0,Reputation-INT)" @?=
-                      Function (BuiltIn "max")
+                      Function "max"
                         [ Number 0
                         , Function Subtract
                           [ Variable "Reputation"
@@ -45,7 +45,7 @@ testSkillInfoFunc = do
 
 testNestedFunc = parseJEP "floor((var(\"MOVE[Walk]\")-30)/10)*4" @?=
                  Function Multiply [
-                   Function (BuiltIn "floor")
+                   Function "floor"
                      [ Function Divide
                        [ Group
                          (Function Subtract [ Variable "MOVE[Walk]"
@@ -55,8 +55,8 @@ testNestedFunc = parseJEP "floor((var(\"MOVE[Walk]\")-30)/10)*4" @?=
 
 testNestedFunc2 = parseJEP "max(floor((var(\"SKILLRANK=Concentration\")-5)/20))*SynergyBonus" @?=
                   Function Multiply
-                    [ Function (BuiltIn "max")
-                      [ Function (BuiltIn "floor")
+                    [ Function "max"
+                      [ Function "floor"
                         [ Function Divide
                           [ Group
                             (Function Subtract [ Variable "SKILLRANK=Concentration"
@@ -80,15 +80,15 @@ testMisc = do
   parseJEP "-CHA+max(CHA,STR)" @?=
     Function Add
       [ Function Subtract [ Number 0, Variable "CHA"]
-      , Function (BuiltIn "max") [ Variable "CHA",Variable "STR" ] ]
+      , Function "max" [ Variable "CHA",Variable "STR" ] ]
 
 -- "max(floor((var(\"SKILLRANK=Concentration\")-5)/20))*SynergyBonus"
 testEvaluation = evalJEPFormula
                  (M.fromList [  ("SKILLRANK=Concentration", 20)
                              , ("SynergyBonus", 2) ])
                  (Function Multiply
-                    [ Function (BuiltIn "max")
-                      [ Function (BuiltIn "floor")
+                    [ Function "max"
+                      [ Function "floor"
                         [ Function Divide
                           [ Group
                             (Function Subtract [ Variable "SKILLRANK=Concentration"

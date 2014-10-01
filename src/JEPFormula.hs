@@ -98,7 +98,7 @@ evalJEPFormulae _ (LookupSkill _) =
   warning "evaluating skillinfo() is not implemented"
   0
 evalJEPFormulae vars (Negate f) =
-  0 - evalJEPFormulae vars f
+  negate $ evalJEPFormulae vars f
 evalJEPFormulae vars (Arithmetic op f1 f2) =
   (case op of
      Divide -> (/)
@@ -175,7 +175,7 @@ table = [ [ Prefix negateFormula ]
   multiplyFormula = operand '*' Multiply
   subtractFormula = operand '-' Subtract
   divideFormula = operand '/' Divide
-  addFormula = operand '*' Add
+  addFormula = operand '+' Add
   operand c o = try $ char c >> return (Arithmetic o)
   negateFormula = try $ char '-' >> return Negate
 

@@ -10,6 +10,7 @@ import Restrictions
 import Lst.GlobalTags
 import Common
 import Bonus(parseBonus, Bonus)
+import Debug.Trace(trace)
 
 type DomainSpell = (String, Int, String)
 
@@ -34,6 +35,7 @@ parseSpellLevel = do
       word <- parseString <* char '='
       level <- manyNumbers <* char '|'
       description <- parseString
+      _ <- trace ("got " ++ show word ++ " " ++ show level ++ " " ++ show description) $ return ()
       return (word, textToInt level, description)
 
 parseDomainTag :: PParser DomainDefinition

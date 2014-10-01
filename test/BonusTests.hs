@@ -163,7 +163,7 @@ testTempBonus = do
             [ BonusSkill
                 Skill
                   { bonusToSkills = [ BonusSkillName "Craft (Fletcher)" ]
-                  , skillFormula = SkillFormula (Number (-2))
+                  , skillFormula = SkillFormula (Negate (Number 2))
                   , skillType = Just ("Circumstance", False)
                   , skillRestrictions =
                       [ Invert $ PreItemRestriction

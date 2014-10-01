@@ -10,15 +10,15 @@ module JEPFormula ( Formula(..)
 
 import Text.Parsec.Char
 import Text.Parsec.Combinator
-import Text.Parsec.Prim hiding ((<|>))
+import Text.Parsec.Expr
+import Text.Parsec.Prim hiding ((<|>), State)
 import Control.Applicative hiding (optional, many)
 import Control.Monad.State
 import qualified Data.Map as M
 import Common
 import Debug.Trace(trace)
 
-data Operand = BuiltIn String
-             | Divide
+data Operand = Divide
              | Multiply
              | Subtract
              | Add
@@ -35,8 +35,10 @@ data SkillType = RANK
 data Formula = Number Int
              | Variable String
              | LookupSkill (SkillType, String)
+             | Function String [Formula]
              | Group Formula
-             | Function Operand [Formula]
+             | Negate Formula
+             | Arithmetic Operand Formula Formula
                deriving (Show, Eq)
 
 -- since we don't fully parse all variables yet, hard-code some to get
@@ -77,22 +79,6 @@ functionParsers = tryStrings listOfFunctions
 evalJEPFormula :: Variables -> Formula -> Int
 evalJEPFormula vars f = floor $ evalJEPFormulae vars f
 
-fdivide :: [Rational] -> Rational
-fdivide arr = head arr * product (map (\x -> 1/x) $ tail arr)
-
-fsubtract :: [Rational] -> Rational
-fsubtract arr = head arr + sum (map negate $ tail arr)
-
--- Because of the way we parse the infix functions, we are
--- guaranteed there are only two parameters.
-actualFunction :: Operand -> [Rational] -> Rational
-actualFunction Divide = fdivide
-actualFunction Multiply = product
-actualFunction Subtract = fsubtract
-actualFunction Add = sum
--- Built-in functions, however, can have any arity.
-actualFunction (BuiltIn f) = builtInFunction f
-
 builtInFunction :: String -> [Rational] -> Rational
 builtInFunction "min" = minimum
 builtInFunction "max" = maximum
@@ -111,8 +97,18 @@ evalJEPFormulae _ (Number x) = toRational x
 evalJEPFormulae _ (LookupSkill _) =
   warning "evaluating skillinfo() is not implemented"
   0
-evalJEPFormulae vars (Function operand formulas) =
-  let f = actualFunction operand in
+evalJEPFormulae vars (Negate f) =
+  negate $ evalJEPFormulae vars f
+evalJEPFormulae vars (Arithmetic op f1 f2) =
+  (case op of
+     Divide -> (/)
+     Multiply -> (*)
+     Subtract -> (-)
+     Add -> (+))
+  (evalJEPFormulae vars f1)
+  (evalJEPFormulae vars f2)
+evalJEPFormulae vars (Function what formulas) =
+  let f = builtInFunction what in
   let args = map (evalJEPFormulae vars) formulas in
   f args
 evalJEPFormulae vars (Group f) = evalJEPFormulae vars f
@@ -120,7 +116,7 @@ evalJEPFormulae vars (Variable v) =
   case M.lookup v vars of
     Just n -> toRational n
     Nothing ->
-      (warning $ "variable \"" ++ v ++ "\" was not found")
+      --(warning $ "variable \"" ++ v ++ "\" was not found")
       0
 
 parseNumber :: PParser Formula
@@ -130,11 +126,6 @@ parseNumber = Number <$> parseSignedNumber where
 
 parseVariable :: PParser Formula
 parseVariable = Variable <$> variableParsers
-
--- ugly; unfortunately, this does show up.
-parseNegativeVariable :: PParser Formula
-parseNegativeVariable = char '-' >> variableParsers >>= embed where
-    embed v = return $ Function Subtract [ Number 0, Variable v ]
 
 parseGroup :: PParser Formula
 parseGroup = Group <$> (char '(' >> parseFormula <* char ')')
@@ -170,43 +161,35 @@ parseSkillInfoFunction = do
     parseProperty "TOTAL" = TOTAL
     parseProperty _ = error "No such skillinfo property"
 
-parseInfixFunction :: PParser Formula
-parseInfixFunction = do
-  -- only support infix 2 for now
-  first <- parsers
-  op <- many space >> choice (map char "/*-+") <* many space
-  second <- parsers
-  return $ Function (operandMap op) [first, second] where
-    operandMap :: Char -> Operand
-    operandMap '/' = Divide
-    operandMap '*' = Multiply
-    operandMap '-' = Subtract
-    operandMap '+' = Add
-    operandMap _ = error "No such infix function"
-    parsers = try parseVariable
-          <|> try parseNegativeVariable
-          <|> try parseNumber
-          <|> try parseVarFunction
-          <|> try parseSkillInfoFunction
-          <|> try parseFunction
-          <|> parseGroup
-
 parseFunction :: PParser Formula
 parseFunction = do
-  f <- BuiltIn <$> choice functionParsers
+  f <- choice functionParsers
   args <- char '(' >> parseFormula `sepBy` char ',' <* char ')'
   return $ Function f args
 
+table :: [[Operator String () (State Variables) Formula]]
+table = [ [ Prefix negateFormula ]
+        , [ Infix multiplyFormula AssocLeft, Infix divideFormula AssocLeft ]
+        , [ Infix addFormula AssocLeft, Infix subtractFormula AssocLeft ]
+        ] where
+  multiplyFormula = operand '*' Multiply
+  subtractFormula = operand '-' Subtract
+  divideFormula = operand '/' Divide
+  addFormula = operand '+' Add
+  operand c o = try $ char c >> return (Arithmetic o)
+  negateFormula = try $ char '-' >> return Negate
+
 parseFormula :: PParser Formula
-parseFormula = try parseInfixFunction
-           <|> try parseFunction
-           <|> try parseGroup
-           <|> try parseVarFunction
-           <|> try parseSkillInfoFunction
-           <|> try parseNumber
-           <|> try parseVariable
-           <|> parseNegativeVariable
+parseFormula = buildExpressionParser table parseExpression
 -- parseFormula = _traceFormula
+
+parseExpression :: PParser Formula
+parseExpression = try parseFunction
+              <|> try parseGroup
+              <|> try parseVarFunction
+              <|> try parseSkillInfoFunction
+              <|> try parseNumber
+              <|> try parseVariable
 
 _traceFormula :: PParser Formula
 _traceFormula = do

@@ -20,19 +20,19 @@ testInt = parseJEP "2" @?=
           Number 2
 
 testSignedInt = parseJEP "-4" @?=
-                Number (-4)
+                Negate (Number 4)
 
 testFuncWithVar = parseJEP "floor(SynergyBonus/2)" @?=
-                  Function (BuiltIn "floor")
-                    [ Function Divide [ Variable "SynergyBonus"
-                                      , Number 2 ] ]
+                  Function "floor"
+                    [ Arithmetic Divide (Variable "SynergyBonus")
+                                        (Number 2) ]
 
 testNestedInfixFunc = parseJEP "max(0,Reputation-INT)" @?=
-                      Function (BuiltIn "max")
+                      Function "max"
                         [ Number 0
-                        , Function Subtract
-                          [ Variable "Reputation"
-                          , Variable "INT" ] ]
+                        , Arithmetic Subtract
+                          (Variable "Reputation")
+                          (Variable "INT") ]
 
 testVarFunc = parseJEP "var(\"SKILL.Perception (Dim Light).MISC\")" @?=
               Variable "SKILL.Perception (Dim Light).MISC"
@@ -44,64 +44,64 @@ testSkillInfoFunc = do
     LookupSkill (TOTAL, "Martial Arts")
 
 testNestedFunc = parseJEP "floor((var(\"MOVE[Walk]\")-30)/10)*4" @?=
-                 Function Multiply [
-                   Function (BuiltIn "floor")
-                     [ Function Divide
-                       [ Group
-                         (Function Subtract [ Variable "MOVE[Walk]"
-                                            , Number 30 ])
-                         , Number 10 ] ]
-                   , Number 4 ]
+                 Arithmetic Multiply
+                   (Function "floor"
+                     [ Arithmetic Divide
+                       (Group
+                         (Arithmetic Subtract (Variable "MOVE[Walk]")
+                                              (Number 30)))
+                         (Number 10) ])
+                   (Number 4)
 
 testNestedFunc2 = parseJEP "max(floor((var(\"SKILLRANK=Concentration\")-5)/20))*SynergyBonus" @?=
-                  Function Multiply
-                    [ Function (BuiltIn "max")
-                      [ Function (BuiltIn "floor")
-                        [ Function Divide
-                          [ Group
-                            (Function Subtract [ Variable "SKILLRANK=Concentration"
-                                               , Number 5])
-                          , Number 20 ] ] ]
-                    , Variable "SynergyBonus"]
+                  Arithmetic Multiply
+                    (Function "max"
+                      [ Function "floor"
+                        [ Arithmetic Divide
+                          (Group
+                            (Arithmetic Subtract (Variable "SKILLRANK=Concentration")
+                                                 (Number 5)))
+                          (Number 20) ] ])
+                    (Variable "SynergyBonus")
 
 testMisc = do
   parseJEP "(1+skillinfo(\"TOTAL\",\"Martial Arts\"))/2" @?=
-    Function Divide
-      [ Group (Function Add
-          [ Number 1
-          , LookupSkill ( TOTAL, "Martial Arts" ) ] )
-      , Number 2 ]
+    Arithmetic Divide
+      (Group (Arithmetic Add
+        (Number 1)
+        (LookupSkill ( TOTAL, "Martial Arts" ))))
+      (Number 2)
   parseJEP "skillinfo(\"MODIFIER\", \"Jump\")-STR" @?=
-    Function Subtract
-      [ LookupSkill ( MODIFIER , "Jump" )
-      , Variable "STR" ]
+    Arithmetic Subtract
+      (LookupSkill ( MODIFIER , "Jump" ))
+      (Variable "STR")
   parseJEP "INT-DEX" @?=
-    Function Subtract [ Variable "INT", Variable "DEX" ]
+    Arithmetic Subtract (Variable "INT") (Variable "DEX")
   parseJEP "-CHA+max(CHA,STR)" @?=
-    Function Add
-      [ Function Subtract [ Number 0, Variable "CHA"]
-      , Function (BuiltIn "max") [ Variable "CHA",Variable "STR" ] ]
+    Arithmetic Add
+      (Negate (Variable "CHA"))
+      (Function "max" [Variable "CHA",Variable "STR"])
 
 -- "max(floor((var(\"SKILLRANK=Concentration\")-5)/20))*SynergyBonus"
 testEvaluation = evalJEPFormula
                  (M.fromList [  ("SKILLRANK=Concentration", 20)
                              , ("SynergyBonus", 2) ])
-                 (Function Multiply
-                    [ Function (BuiltIn "max")
-                      [ Function (BuiltIn "floor")
-                        [ Function Divide
-                          [ Group
-                            (Function Subtract [ Variable "SKILLRANK=Concentration"
-                                               , Number 5])
-                          , Number 20 ] ] ]
-                    , Variable "SynergyBonus"]) @?=
+                 (Arithmetic Multiply
+                    (Function "max"
+                      [ Function "floor"
+                        [ Arithmetic Divide
+                          (Group
+                            (Arithmetic Subtract (Variable "SKILLRANK=Concentration") (Number 5)))
+                          (Number 20) ] ])
+                    (Variable "SynergyBonus")) @?=
                  0
 
-testNArity = parseJEP "10+(DomainGoodLVL/2)+WIS" @?=
-    Function Add
-      [ Number 10
-      , Group (Function Divide [ Variable "DomainGoodLVL", Number 2 ])
-      , Variable "WIS" ]
+testNArity = parseJEP "10+(STR/2)+WIS" @?=
+    Arithmetic Add
+      (Arithmetic Add
+         (Number 10)
+         (Group (Arithmetic Divide (Variable "STR") (Number 2))))
+      (Variable "WIS")
 
 formulaTests :: Test
 formulaTests = TestList [ "parse integer" ~: testInt

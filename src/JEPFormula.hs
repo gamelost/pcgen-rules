@@ -47,6 +47,8 @@ varBuiltins :: [String]
 varBuiltins = [ "SynergyBonus"
               , "Reputation"
               , "DomainLVL"
+              , "DomainPowerTimes"
+              , "DomainAbilityTriggerLVL"
               , "INT"
               , "DEX"
               , "STR"

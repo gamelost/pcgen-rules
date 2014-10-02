@@ -19,6 +19,7 @@ data Bonus = BonusSkill Skill
            | BonusWeaponProperty BonusWeaponProp
            | BonusAbilityPool BonusAbility
            | BonusCasterLevel CasterLevel
+           | BonusCheck Checks
            | BonusDescription String
            | TemporaryBonus TempBonus
              deriving (Show, Eq)
@@ -78,6 +79,29 @@ parseBonusCasterLevel = do
                        <|> (labeled "SUBSCHOOL." >> CLSubSchool <$> parseString)
                        <|> (labeled "TYPE." >> CLType <$> parseString)
                        <|> CLName <$> parseString
+
+-- BONUS:CHECKS|x,x|y
+--   x is ALL, BASE.check name, or check name
+--   y is number, variable or formula
+data CheckName = CheckAll
+               | CheckBase String
+               | CheckName String
+                 deriving (Show, Eq)
+
+data Checks = Checks { checks :: [CheckName]
+                     , checkFormula :: Formula }
+              deriving (Show, Eq)
+
+parseBonusCheck :: PParser Checks
+parseBonusCheck = do
+  _ <- bonusTag "CHECKS"
+  checks <- parseChecks `sepBy` char ','
+  checkFormula <- parseFormula
+  return Checks { .. } where
+    parseChecks :: PParser CheckName
+    parseChecks = (labeled "ALL" >> return CheckAll)
+              <|> (labeled "BASE." >> CheckBase <$> parseString)
+              <|> CheckName <$> parseString
 
 -- BONUS:SKILL:x,x,...|y
 --   x is LIST, ALL, skill name, stat name (STAT.x), skill type (TYPE=x)
@@ -312,6 +336,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusSkill <$> parseBonusSkill
             <|> BonusAbilityPool <$> parseBonusAbilityPool
             <|> BonusCasterLevel <$> parseBonusCasterLevel
+            <|> BonusCheck <$> parseBonusCheck
             <|> BonusWeaponProficency <$> parseBonusWeaponProf
             <|> BonusWeaponProperty <$> parseBonusWeaponProp
 

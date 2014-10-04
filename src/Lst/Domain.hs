@@ -24,7 +24,8 @@ data DomainDefinition = Name String
                         deriving Show
 
 parseDescription :: PParser String
-parseDescription = tag "DESC" *> parseString
+parseDescription = tag "DESC" *> parseStringWithQuotes where
+  parseStringWithQuotes = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()[]~\";"
 
 parseSpellLevel :: PParser [DomainSpell]
 parseSpellLevel = do

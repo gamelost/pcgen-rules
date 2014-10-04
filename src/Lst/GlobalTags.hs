@@ -72,7 +72,7 @@ data AbilityNature = Normal | Automatic | Virtual deriving (Eq, Show)
 
 data Ability = Ability { abilityCategory :: String
                        , abilityNature :: AbilityNature
-                       , abilityName :: String
+                       , abilityNames :: [String]
                        , abilityRestrictions :: [Restriction] } deriving (Eq, Show)
 
 -- ABILITY:x|y|z
@@ -84,7 +84,7 @@ parseAbility = do
   _ <- tag "ABILITY"
   abilityCategory <- parseWordandSpace
   abilityNature <- char '|' *> parseAbilityNature
-  abilityName <- char '|' *> parseString
+  abilityNames <- many1 $ char '|' *> parseString
   abilityRestrictions <- option [] parseAdditionalRestrictions
   return Ability { .. } where
     parseWordandSpace = many1 $ satisfy $ inClass "-A-Za-z "

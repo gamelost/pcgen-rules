@@ -89,19 +89,22 @@ data CheckName = CheckAll
                  deriving (Show, Eq)
 
 data Checks = Checks { checks :: [CheckName]
-                     , checkFormula :: Formula }
+                     , checkFormula :: Formula
+                     , checkType :: Maybe String }
               deriving (Show, Eq)
 
 parseBonusCheck :: PParser Checks
 parseBonusCheck = do
   _ <- bonusTag "CHECKS"
   checks <- parseChecks `sepBy` char ','
-  checkFormula <- parseFormula
+  checkFormula <- char '|' *> parseFormula
+  checkType <- tryOption (char '|' *> parseCheckType)
   return Checks { .. } where
     parseChecks :: PParser CheckName
     parseChecks = (labeled "ALL" >> return CheckAll)
               <|> (labeled "BASE." >> CheckBase <$> parseString)
               <|> CheckName <$> parseString
+    parseCheckType = labeled "TYPE=" *> parseString
 
 -- BONUS:SKILL:x,x,...|y
 --   x is LIST, ALL, skill name, stat name (STAT.x), skill type (TYPE=x)

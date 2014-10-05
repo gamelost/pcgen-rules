@@ -28,7 +28,7 @@ data LanguageDefinition = Name String
                           deriving Show
 
 parseKey :: PParser LanguageDefinition
-parseKey = Key <$> (tag "KEY" >> parseString)
+parseKey = Key <$> (tag "KEY" >> restOfTag)
 
 parseTypes :: PParser LanguageDefinition
 parseTypes = do

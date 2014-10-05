@@ -4,6 +4,7 @@ module Lst.GlobalTags (GlobalTag, parseGlobalTags) where
 
 import Text.Parsec.Char
 import Text.Parsec.Combinator
+import Text.Parsec.Prim hiding (State, (<|>))
 import Control.Applicative
 import Restrictions(Restriction, parseAdditionalRestrictions)
 import Control.Monad.State
@@ -20,7 +21,7 @@ data GlobalTag = KeyStat String
                | OutputName String
                | AbilityTag Ability
                | Select Formula
-               | SpecialAbilityTag SpecialAbility
+               | SpecialAbilityTag String
                | VirtualFeatTag [String]
                | Define NewVariable
                | AutoLanguageTag AutoLanguage
@@ -31,22 +32,22 @@ data GlobalTag = KeyStat String
                  deriving (Eq, Show)
 
 parseSortKey :: PParser String
-parseSortKey = tag "SORTKEY" >> parseString
+parseSortKey = tag "SORTKEY" >> restOfTag
 
 parseKeyStat :: PParser String
-parseKeyStat = tag "KEYSTAT" >> parseString
+parseKeyStat = tag "KEYSTAT" >> restOfTag
 
 parseUseUntrained :: PParser Bool
 parseUseUntrained = tag "USEUNTRAINED" >> yesOrNo
 
 parseSourcePage :: PParser String
-parseSourcePage  = tag "SOURCEPAGE" >> parseString
+parseSourcePage  = tag "SOURCEPAGE" >> restOfTag
 
 parseProductIdentity :: PParser Bool
 parseProductIdentity = tag "NAMEISPI" >> yesOrNo
 
 parseOutputName :: PParser String
-parseOutputName = tag "OUTPUTNAME" >> parseString
+parseOutputName = tag "OUTPUTNAME" >> restOfTag
 
 parseSelect :: PParser Formula
 parseSelect = tag "SELECT" >> parseFormula
@@ -61,8 +62,8 @@ data NewVariable = NewVariable { varName :: String
 
 parseDefine :: PParser NewVariable
 parseDefine = do
-  varName <- tag "DEFINE" *> parseString
-  varFormula <- char '|' *> parseFormula
+  varName <- tag "DEFINE" *> parseTill '|'
+  varFormula <- parseFormula
   vars <- get
   let varValue = evalJEPFormula vars varFormula
   put $ M.insert varName varValue vars
@@ -84,7 +85,7 @@ parseAbility = do
   _ <- tag "ABILITY"
   abilityCategory <- parseWordandSpace
   abilityNature <- char '|' *> parseAbilityNature
-  abilityNames <- many1 $ char '|' *> parseString
+  abilityNames <- many1 $ try (char '|' *> parseString)
   abilityRestrictions <- option [] parseAdditionalRestrictions
   return Ability { .. } where
     parseWordandSpace = many1 $ satisfy $ inClass "-A-Za-z "
@@ -140,18 +141,10 @@ parseClassSkill = do
   _ <- tag "CSKILL"
   parseString `sepBy` char '|'
 
-data SpecialAbility = SpecialAbilityName String
-                    | ClearAbilityName String
-                    | ClearAbility
-                    deriving (Show, Eq)
-
-parseSpecialAbilityName :: PParser SpecialAbility
+parseSpecialAbilityName :: PParser String
 parseSpecialAbilityName = do
   _ <- tag "SAB"
-  parseSpecialAbility where
-    parseSpecialAbility = ClearAbilityName <$> (labeled ".CLEAR." >> parseStringNoCommasBrackets)
-                      <|> (labeled ".CLEAR" >> return ClearAbility)
-                      <|> SpecialAbilityName <$> parseStringNoCommasBrackets
+  parseStringNoCommasBrackets
 
 parseVirtualFeat :: PParser [String]
 parseVirtualFeat = tag "VFEAT" *> parseString `sepBy` char '|'

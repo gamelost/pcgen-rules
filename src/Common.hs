@@ -89,6 +89,9 @@ parseCommentLine = char '#' >> option "" (try $ spaces >> restOfLine)
 parseWordAndNumber :: PParser String
 parseWordAndNumber = many1 $ satisfy $ inClass "-A-Za-z0-9"
 
+parseTill :: Char -> PParser String
+parseTill c = manyTill anyChar $ char c
+
 yesOrNo :: PParser Bool
 yesOrNo = liftM (== "YES") allCaps
 

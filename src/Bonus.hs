@@ -37,8 +37,8 @@ data BonusAbility = BonusAbility { abilityCategory :: String
 parseBonusAbilityPool :: PParser BonusAbility
 parseBonusAbilityPool = do
   _ <- bonusTag "ABILITYPOOL"
-  abilityCategory <- parseString
-  abilityPoolFormula <- char '|' *> parseFormula
+  abilityCategory <- parseTill '|'
+  abilityPoolFormula <- parseFormula
   return BonusAbility { .. }
 
 -- BONUS:CASTERLEVEL|SUBSCHOOL.Creation|1|PRERULE:1,SYS_DOMAIN
@@ -66,19 +66,20 @@ parseBonusCasterLevel :: PParser CasterLevel
 parseBonusCasterLevel = do
   _ <- bonusTag "CASTERLEVEL"
   casterLevel <- parseCasterLevelType
-  casterFormula <- char '|' *> parseFormula
+  casterFormula <- parseFormula
   casterRestrictions <- option [] parseAdditionalRestrictions
   return CasterLevel { .. } where
     parseCasterLevelType :: PParser CasterLevelType
     parseCasterLevelType = (labeled "ALLSPELLS" >> return CLAllSpells)
-                       <|> (labeled "DESCRIPTOR." >> CLDescriptor <$> parseString)
-                       <|> (labeled "DOMAIN." >> CLDomain <$> parseString)
-                       <|> (labeled "RACE." >> CLRace <$> parseString)
-                       <|> (labeled "SCHOOL." >> CLSchool <$> parseString)
-                       <|> (labeled "SPELL." >> CLSpell <$> parseString)
-                       <|> (labeled "SUBSCHOOL." >> CLSubSchool <$> parseString)
-                       <|> (labeled "TYPE." >> CLType <$> parseString)
-                       <|> CLName <$> parseString
+                       <|> (labeled "DESCRIPTOR." >> CLDescriptor <$> parseRest)
+                       <|> (labeled "DOMAIN." >> CLDomain <$> parseRest)
+                       <|> (labeled "RACE." >> CLRace <$> parseRest)
+                       <|> (labeled "SCHOOL." >> CLSchool <$> parseRest)
+                       <|> (labeled "SPELL." >> CLSpell <$> parseRest)
+                       <|> (labeled "SUBSCHOOL." >> CLSubSchool <$> parseRest)
+                       <|> (labeled "TYPE." >> CLType <$> parseRest)
+                       <|> CLName <$> parseRest
+    parseRest = parseTill '|'
 
 -- BONUS:CHECKS|x,x|y
 --   x is ALL, BASE.check name, or check name

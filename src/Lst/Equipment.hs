@@ -48,8 +48,7 @@ parseEquipmentType = tag "TYPE" *> parseWordAndNumbers `sepBy1` char '.' where
   parseWordAndNumbers = many1 $ satisfy $ inClass "-A-Za-z0-9"
 
 parseDescription :: PParser String
-parseDescription = tag "DESC" *> parseStringWithQuotes where
-  parseStringWithQuotes = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()[]~\";"
+parseDescription = tag "DESC" *> restOfTag
 
 parseEquipmentTag :: PParser EquipmentDefinition
 parseEquipmentTag = Description <$> parseDescription

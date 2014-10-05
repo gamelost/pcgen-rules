@@ -25,7 +25,7 @@ class LSTObject a where
 
 parseStart :: PParser (String, Operation)
 parseStart = do
-  what <- parseString
+  what <- restOfTag
   return . fromJust $ matchSuffixes what where
     matchSuffixes str = (\x -> (x, Modify)) <$> stripSuffix ".MOD" str
                     <|> (\x -> (x, Forget)) <$> stripSuffix ".FORGET" str

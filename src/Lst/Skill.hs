@@ -49,7 +49,7 @@ parseExclusive :: SkillTag
 parseExclusive = Exclusive <$> (tag "EXCLUSIVE" >> yesOrNo)
 
 parseUniqueKey :: SkillTag
-parseUniqueKey  = UniqueKey <$> (tag "KEY" >> parseString)
+parseUniqueKey  = UniqueKey <$> (tag "KEY" >> restOfTag)
 
 parseType :: SkillTag
 parseType = Type <$> (tag "TYPE" >> parseString `sepBy` char '.')

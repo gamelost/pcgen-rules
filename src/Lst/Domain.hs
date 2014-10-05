@@ -24,8 +24,7 @@ data DomainDefinition = Name String
                         deriving Show
 
 parseDescription :: PParser String
-parseDescription = tag "DESC" *> parseStringWithQuotes where
-  parseStringWithQuotes = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()[]~\";"
+parseDescription = tag "DESC" *> restOfTag
 
 parseSpellLevel :: PParser [DomainSpell]
 parseSpellLevel = do
@@ -33,10 +32,9 @@ parseSpellLevel = do
   parseSpell `sepBy` char '|' where
     parseSpell :: PParser DomainSpell
     parseSpell = do
-      word <- parseString <* char '='
+      word <- parseTill '='
       level <- manyNumbers <* char '|'
       description <- parseString
-      _ <- trace ("got " ++ show word ++ " " ++ show level ++ " " ++ show description) $ return ()
       return (word, textToInt level, description)
 
 parseDomainTag :: PParser DomainDefinition

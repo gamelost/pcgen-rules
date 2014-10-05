@@ -9,16 +9,14 @@
 ** TODO implement CLASS:x.FORGET
 ** TODO CLASS:.COPY
 ** TODO SKILL.COPY= ...
-* restrictions [0/6]
+* restrictions [0/5]
 ** TODO pull out per-line restrictions into LSTLine
-** TODO implement PRE:.CLEAR
 ** TODO PREFEAT is not fully implemented
 ** TODO PRERULE should be matching against known rules, not accepting any string
 ** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
 ** TODO consolidate PREVAR tags
 * skill [0/1]
-** TODO 5 failures
-- PRE:.CLEAR 1
+** TODO 4 failures
 - remaining failure is a bad merge, cannot fix
 - Tactics.COPY 1
 - ADD:FEAT 1

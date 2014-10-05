@@ -9,8 +9,8 @@ import Modifications
 import Restrictions
 import Lst.GlobalTags
 import Common
+import Clear(parseClear, ClearTag(..))
 import Bonus(parseBonus, Bonus)
-import Debug.Trace(trace)
 
 type DomainSpell = (String, Int, String)
 
@@ -20,6 +20,7 @@ data DomainDefinition = Name String
                       -- shared tags
                       | Global GlobalTag
                       | DomainBonus Bonus
+                      | DomainClear ClearTag
                       | Restricted Restriction
                         deriving Show
 
@@ -38,7 +39,8 @@ parseSpellLevel = do
       return (word, textToInt level, description)
 
 parseDomainTag :: PParser DomainDefinition
-parseDomainTag = Description <$> parseDescription
+parseDomainTag = DomainClear <$> parseClear
+             <|> Description <$> parseDescription
              <|> DomainSpellLevel <$> parseSpellLevel
              <|> DomainBonus <$> parseBonus
              <|> Restricted <$> parseRestriction

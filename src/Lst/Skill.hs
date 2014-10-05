@@ -11,6 +11,7 @@ import Restrictions(Restriction, parseRestriction)
 import Modifications
 import Lst.GlobalTags
 import Common
+import Clear(parseClear, ClearTag(..))
 import Bonus(parseBonus, Bonus)
 
 data ArmorCheck = Double
@@ -38,6 +39,7 @@ data SkillDefinition = Name String
                      | UniqueKey String
                      | Visibility (Visible, Bool)
                      -- shared tags
+                     | SkillClear ClearTag
                      | Global GlobalTag
                      | SkillBonus Bonus
                      | Restricted Restriction
@@ -87,7 +89,8 @@ parseVisibility = do
     matchVisibility _ = Always
 
 parseSkillTag :: SkillTag
-parseSkillTag = parseArmorCheck
+parseSkillTag = SkillClear <$> parseClear
+            <|> parseArmorCheck
             <|> parseType
             <|> parseClasses
             <|> parseExclusive

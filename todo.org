@@ -54,7 +54,7 @@
 - [ ] STAT:INT=...|
 - [X] BONUS:<category>|<group>|<formula>
 ** how many starting pcc files are there?
-* parsing lst types [6/18]
+* parsing lst types [7/18]
 - [X] LANGUAGE (76/76)
 - [X] SHIELDPROF (28/28)
 - [X] WEAPONPROF (129/130)
@@ -64,7 +64,7 @@
 - [ ] DEITY (block-based) (0/62)
 - [X] DOMAIN (34/49)
 - [ ] EQUIPMOD (0/115)
-- [ ] EQUIPMENT (0/709)
+- [X] EQUIPMENT (131/709)
 - [ ] SPELL (0/209)
 - [ ] FEAT (0/347)
 - [ ] RACE (0/281)

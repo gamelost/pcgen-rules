@@ -44,7 +44,7 @@ parseSourceDate :: PParser Header
 parseSourceDate = SourceDate <$> (tag "SOURCEDATE" >> restOfTag)
 
 parseHeaders :: PParser [Header]
-parseHeaders = header `sepBy1` tabs where
+parseHeaders = many1 $ header <* tabs where -- trailing tabs, ugh
   header = parseSourceLong
        <|> parseSourceShort
        <|> parseSourceWeb

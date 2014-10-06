@@ -92,7 +92,9 @@ parseAbility = do
     parseAbilityNature = (labeled "NORMAL" >> return Normal)
                      <|> (labeled "AUTOMATIC" >> return Automatic)
                      <|> (labeled "VIRTUAL" >> return Virtual)
-    parseAbilityString = try (char '|' *> notFollowedBy (string "PRE") *> parseString)
+    parseAbilityString = try (char '|' *> disallowed *> parseString)
+    -- TODO: ugly hack
+    disallowed = notFollowedBy (string "PRE") *> notFollowedBy (string "!PRE")
 
 -- AUTO:LANG|x|x...
 --   x is language, language type, ALL, LIST, CLEAR.

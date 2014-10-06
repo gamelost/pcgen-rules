@@ -11,6 +11,7 @@ import Modifications
 import Restrictions
 import Lst.GlobalTags
 import Common
+import Clear(parseClear, ClearTag(..))
 import Bonus(parseBonus, Bonus)
 
 data WeaponProficency = Name String
@@ -19,6 +20,7 @@ data WeaponProficency = Name String
                       | WeaponHandsRestriction Int
                       -- shared tags
                       | WeaponBonus Bonus
+                      | WeaponClear ClearTag
                       | Global GlobalTag
                       | Restricted Restriction
                         deriving Show
@@ -38,7 +40,8 @@ parseWeaponHandsRestriction = do
   return . WeaponHandsRestriction $ textToInt n
 
 parseWeaponProficencyTag :: PParser WeaponProficency
-parseWeaponProficencyTag = parseWeaponType
+parseWeaponProficencyTag = WeaponClear <$> parseClear
+                       <|> parseWeaponType
                        <|> try parseWeaponHandsRestriction
                        <|> try parseWeaponHands
                        <|> WeaponBonus <$> parseBonus

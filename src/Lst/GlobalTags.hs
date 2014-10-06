@@ -21,7 +21,7 @@ data GlobalTag = KeyStat String
                | OutputName String
                | AbilityTag Ability
                | Select Formula
-               | SpecialAbilityTag String
+               | SpecialAbilityTag [String]
                | VirtualFeatTag [String]
                | Define NewVariable
                | AutoEquipTag [String]
@@ -42,7 +42,7 @@ parseUseUntrained :: PParser Bool
 parseUseUntrained = tag "USEUNTRAINED" >> yesOrNo
 
 parseSourcePage :: PParser String
-parseSourcePage  = tag "SOURCEPAGE" >> restOfTag
+parseSourcePage = tag "SOURCEPAGE" >> restOfTag
 
 parseProductIdentity :: PParser Bool
 parseProductIdentity = tag "NAMEISPI" >> yesOrNo
@@ -150,10 +150,10 @@ parseClassSkill = do
   _ <- tag "CSKILL"
   parseString `sepBy` char '|'
 
-parseSpecialAbilityName :: PParser String
+parseSpecialAbilityName :: PParser [String]
 parseSpecialAbilityName = do
   _ <- tag "SAB"
-  parseStringNoCommasBrackets
+  parseStringNoCommasBrackets `sepBy` char '|'
 
 parseVirtualFeat :: PParser [String]
 parseVirtualFeat = tag "VFEAT" *> parseString `sepBy` char '|'

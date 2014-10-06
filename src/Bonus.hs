@@ -282,7 +282,7 @@ parseBonusWeaponProf = do
   bonusWeaponProfProperties <- char '|' *> parseWeaponProperty `sepBy` char ','
   bonusWeaponProfFormula <- char '|' *> parseFormula
   return BonusWeaponProf { .. } where
-    parseWeaponProficiency = labeled "TYPE=" >> (WeaponType <$> parseString)
+    parseWeaponProficiency = (labeled "TYPE=" >> (WeaponType <$> parseString))
                          <|> WeaponName <$> parseString
     parseWeaponProperty = (labeled "CRITMULTADD" >> return CRITMULTADD)
                       <|> (labeled "CRITRANGEADD" >> return CRITRANGEADD)

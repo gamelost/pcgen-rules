@@ -22,6 +22,9 @@ type PParser a = ParsecT String () (State Variables) a
 warning :: String -> a -> a
 warning x = trace $ "Warning: " ++ x
 
+traceM :: Monad m => String -> m ()
+traceM str = trace str $ return ()
+
 -- conversion from attoparsec -> parsec
 inClass :: String -> Char -> Bool
 inClass "" = const False
@@ -78,7 +81,7 @@ restOfLine :: PParser String
 restOfLine = manyTill anyChar eol
 
 restOfTag :: PParser String
-restOfTag = manyTill anyChar $ satisfy $ inClass "\n\r\t"
+restOfTag = manyTill anyChar . lookAhead . satisfy $ inClass "\n\r\t"
 
 parseTabs :: PParser [String]
 parseTabs = restOfTag `sepBy` tabs

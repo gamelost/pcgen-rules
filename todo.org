@@ -40,21 +40,20 @@
 - VISION:Darkvision (60')
 * JEP [0/0]
 * weaponprof [0/1]
-** TODO 1 failures
-- TYPE:.CLEAR in bloodandblades_weaponprofs.lst
+** TODO 2 failures
 * questions
 ** when are JEPs used? [2/6]
-- [ ] EVAL()
+- [ ] EVAL() (only in KIT files)
 - [X] SELECT:
-- [ ] QTY:
-- [ ] LOOKUP:...,
+- [ ] QTY: (only in KIT files)
+- [ ] LOOKUP:..., (only in KIT files)
 - [ ] STAT:INT=...|
 - [X] BONUS:<category>|<group>|<formula>
 ** how many starting pcc files are there?
 * parsing lst types [7/18]
 - [X] LANGUAGE (76/76)
 - [X] SHIELDPROF (28/28)
-- [X] WEAPONPROF (129/130)
+- [X] WEAPONPROF (128/130)
 - [X] ARMORPROF (50/50)
 - [X] SKILL (137/139)
 - [ ] COMPANIONMOD (block-based) (0/51)

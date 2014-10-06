@@ -76,22 +76,22 @@ data Ability = Ability { abilityCategory :: String
                        , abilityNames :: [String]
                        , abilityRestrictions :: [Restriction] } deriving (Eq, Show)
 
--- ABILITY:x|y|z
+-- ABILITY:x|y|z|z|...
 --   x is ability category
 --   y is ability nature
 --   z is ability name or key
 parseAbility :: PParser Ability
 parseAbility = do
   _ <- tag "ABILITY"
-  abilityCategory <- parseWordandSpace
-  abilityNature <- char '|' *> parseAbilityNature
-  abilityNames <- many1 $ try (char '|' *> parseString)
+  abilityCategory <- parseTill '|'
+  abilityNature <- parseAbilityNature
+  abilityNames <- many1 parseAbilityString
   abilityRestrictions <- option [] parseAdditionalRestrictions
   return Ability { .. } where
-    parseWordandSpace = many1 $ satisfy $ inClass "-A-Za-z "
     parseAbilityNature = (labeled "NORMAL" >> return Normal)
                      <|> (labeled "AUTOMATIC" >> return Automatic)
                      <|> (labeled "VIRTUAL" >> return Virtual)
+    parseAbilityString = try (char '|' *> notFollowedBy (string "PRE") *> parseString)
 
 -- AUTO:LANG|x|x...
 --   x is language, language type, ALL, LIST, CLEAR.

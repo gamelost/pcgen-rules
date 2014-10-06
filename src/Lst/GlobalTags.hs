@@ -17,6 +17,8 @@ data GlobalTag = KeyStat String
                | SortKey String
                | SourcePage String
                | SourceWeb String
+               | SourceLong String
+               | SourceShort String
                | ProductIdentity Bool
                | OutputName String
                | AbilityTag Ability
@@ -44,6 +46,15 @@ parseUseUntrained = tag "USEUNTRAINED" >> yesOrNo
 parseSourcePage :: PParser String
 parseSourcePage = tag "SOURCEPAGE" >> restOfTag
 
+parseSourceWeb :: PParser String
+parseSourceWeb = tag "SOURCEWEB" >> restOfTag
+
+parseSourceLong :: PParser String
+parseSourceLong = tag "SOURCELONG" >> restOfTag
+
+parseSourceShort :: PParser String
+parseSourceShort = tag "SOURCESHORT" >> restOfTag
+
 parseProductIdentity :: PParser Bool
 parseProductIdentity = tag "NAMEISPI" >> yesOrNo
 
@@ -52,9 +63,6 @@ parseOutputName = tag "OUTPUTNAME" >> restOfTag
 
 parseSelect :: PParser Formula
 parseSelect = tag "SELECT" >> parseFormula
-
-parseSourceWeb :: PParser String
-parseSourceWeb = tag "SOURCEWEB" >> restOfTag
 
 data NewVariable = NewVariable { varName :: String
                                , varFormula :: Formula
@@ -182,10 +190,12 @@ parseGlobalTags = KeyStat <$> parseKeyStat
               <|> SortKey <$> parseSortKey
               <|> UseUntrained <$> parseUseUntrained
               <|> SourcePage <$> parseSourcePage
+              <|> SourceWeb <$> parseSourceWeb
+              <|> SourceShort <$> parseSourceShort
+              <|> SourceLong <$> parseSourceLong
               <|> ProductIdentity <$> parseProductIdentity
               <|> OutputName <$> parseOutputName
               <|> Select <$> parseSelect
-              <|> SourceWeb <$> parseSourceWeb
               <|> Define <$> parseDefine
               <|> AbilityTag <$> parseAbility
               <|> AutoEquipTag <$> parseAutoEquip

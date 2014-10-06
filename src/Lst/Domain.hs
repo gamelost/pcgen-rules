@@ -15,8 +15,11 @@ import Bonus(parseBonus, Bonus)
 type DomainSpell = (String, Int, String)
 
 data DomainDefinition = Name String
-                      | Description String
+                      | DomainDescription String
                       | DomainSpellLevel [DomainSpell]
+                      | DomainType String
+                      | DomainKey String
+                      | DomainVision String
                       -- shared tags
                       | Global GlobalTag
                       | DomainBonus Bonus
@@ -26,6 +29,15 @@ data DomainDefinition = Name String
 
 parseDescription :: PParser String
 parseDescription = tag "DESC" *> restOfTag
+
+parseType :: PParser String
+parseType = tag "TYPE" *> restOfTag
+
+parseKey :: PParser String
+parseKey = tag "KEY" *> restOfTag
+
+parseVision :: PParser String
+parseVision = tag "VISION" *> parseString
 
 parseSpellLevel :: PParser [DomainSpell]
 parseSpellLevel = do
@@ -40,7 +52,10 @@ parseSpellLevel = do
 
 parseDomainTag :: PParser DomainDefinition
 parseDomainTag = DomainClear <$> parseClear
-             <|> Description <$> parseDescription
+             <|> DomainDescription <$> parseDescription
+             <|> DomainType <$> parseType
+             <|> DomainKey <$> parseKey
+             <|> DomainVision <$> parseVision
              <|> DomainSpellLevel <$> parseSpellLevel
              <|> DomainBonus <$> parseBonus
              <|> Restricted <$> parseRestriction

@@ -38,23 +38,13 @@
 - Tactics.COPY 1 (parses successfully though)
 - ADD:FEAT 1
 * domain
-** TODO failures
-- ADD:ABILITY|3|Special Ability|VIRTUAL|ArtificerSkills
-- ADD:FEAT|Blind-Fight
-- AUTO:FEAT|Blind Fight (x3)
-- AUTO:FEAT|Weapon Focus(%LIST)
-- AUTO:WEAPONPROF|%LIST
-- CHOOSE:NUMCHOICES=1|WEAPONPROFICIENCY|DEITYWEAPON
-- KEY:Charm (ES)
-- SPELLS:Class|TIMES=1|Calm Emotions (x2)
-- SPELLS:Class|TIMES=1|CASTERLEVEL=max(TL,1)|Speak with Animals,11+WIS
-- SPELLS:Class|TIMES=1|CASTERLEVEL=TL|Comprehend Languages,11+WIS
-- SPELLS:Innate|TIMES=1|CASTERLEVEL=1|Spells Test,20
-- SPELLS:YourTest|TIMES=3|CASTERLEVEL=1|Same Spell Test
-- TYPE:PFSLegal
-- TYPE:TestDomain
-- TYPE:TestDomainExtra (x2)
-- VISION:Darkvision (60')
+** TODO unparsed tags
+- ADD:ABILITY
+- ADD:FEAT
+- AUTO:FEAT
+- SPELLS
+- VISION
+- CHOOSE
 * JEP [0/0]
 * questions
 ** when are JEPs used? [2/6]

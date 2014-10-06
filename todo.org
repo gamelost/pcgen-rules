@@ -29,12 +29,10 @@
 ** TODO implement CLASS:x.FORGET
 ** TODO CLASS:.COPY
 ** TODO SKILL.COPY= ...
-* restrictions [0/5]
+* restrictions [0/3]
 ** TODO pull out per-line restrictions into LSTLine
 ** TODO PREFEAT is not fully implemented
 ** TODO PRERULE should be matching against known rules, not accepting any string
-** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
-** TODO consolidate PREVAR tags
 * skill [0/1]
 ** TODO 2 failures
 - Tactics.COPY 1 (parses successfully though)

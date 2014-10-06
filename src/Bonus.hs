@@ -20,7 +20,11 @@ data Bonus = BonusSkill Skill
            | BonusAbilityPool BonusAbility
            | BonusCasterLevel CasterLevel
            | BonusCheck Checks
+           | BonusDifficultyClass BonusDC
+           | BonusVision BonusVisionData
+           | BonusMovement BonusMove
            | BonusDescription String
+           | BonusCharacterStat BonusStat
            | TemporaryBonus TempBonus
              deriving (Show, Eq)
 
@@ -106,6 +110,60 @@ parseBonusCheck = do
               <|> (labeled "BASE." >> CheckBase <$> parseString)
               <|> CheckName <$> parseString
     parseCheckType = labeled "TYPE=" *> parseString
+
+-- BONUS:DC|x|y
+--   x is spell, class, domain
+--   y is formula
+data BonusDCType = SpellName String
+                 | SpellDescriptor String
+                 | AllSpells
+                 | ClassName String
+                 | DomainName String
+                 | FeatBonus
+                 | SchoolName String
+                 | SubSchoolName String
+                 | SpellType String
+                   deriving (Show, Eq)
+
+data BonusDC = BonusDC { difficultyFocus :: BonusDCType
+                       , difficultyFormula :: Formula }
+             deriving (Show, Eq)
+
+parseBonusDC :: PParser BonusDC
+parseBonusDC = do
+  _ <- bonusTag "DC"
+  difficultyFocus <- parseDifficultyFocus
+  difficultyFormula <- char '|' *> parseFormula
+  return BonusDC { .. } where
+    parseDifficultyFocus = (labeled "ALLSPELLS" >> return AllSpells)
+                       <|> (labeled "FEATBONUS" >> return FeatBonus)
+                       <|> (labeled "SPELL." >> SpellName <$> parseString)
+                       <|> (labeled "CLASS." >> ClassName <$> parseString)
+                       <|> (labeled "DOMAIN." >> DomainName <$> parseString)
+                       <|> (labeled "SCHOOL." >> SchoolName <$> parseString)
+                       <|> (labeled "SUBSCHOOL." >> SubSchoolName <$> parseString)
+                       <|> (labeled "DESCRIPTOR." >> SpellDescriptor <$> parseString)
+                       <|> (labeled "TYPE." >> SpellType <$> parseString)
+
+-- BONUS:MOVEADD|x|y
+--   x is movement type or all
+--   y is formula
+data BonusMoveType = Movement String
+                   | AllMovement
+                     deriving (Show, Eq)
+
+data BonusMove = BonusMove { bonusMoveType :: BonusMoveType
+                           , bonusMoveFormula :: Formula }
+               deriving (Show, Eq)
+
+parseBonusMoveAdd :: PParser BonusMove
+parseBonusMoveAdd = do
+  _ <- bonusTag "MOVEADD"
+  bonusMoveType <- parseBonusMoveType
+  bonusMoveFormula <- char '|' *> parseFormula
+  return BonusMove { .. } where
+    parseBonusMoveType = (labeled "TYPE.All" >> return AllMovement)
+                     <|> (labeled "TYPE." >> Movement <$> parseString)
 
 -- BONUS:SKILL:x,x,...|y
 --   x is LIST, ALL, skill name, stat name (STAT.x), skill type (TYPE=x)
@@ -194,6 +252,20 @@ parseBonusSkillRank = do
     parseSkillFormulaType = SkillFormula <$> parseFormula
                         <|> SkillText <$> (labeled "SKILLRANK=" >> parseStringNoCommas)
 
+-- BONUS:STAT|x,x|y
+--   x is stat name
+--   y is formula
+data BonusStat = BonusStat { bonusStatNames :: [String]
+                           , bonusStatFormula :: Formula }
+               deriving (Show, Eq)
+
+parseBonusStat :: PParser BonusStat
+parseBonusStat = do
+  _ <- bonusTag "STAT"
+  bonusStatNames <- parseStringNoCommas `sepBy` char ','
+  bonusStatFormula <- char '|' *> parseFormula
+  return BonusStat { .. }
+
 -- BONUS:VAR|x,x,...|y
 --   x is variable name
 --   y is number, variable, or formula to adjust variable by
@@ -210,6 +282,21 @@ parseBonusVariable = do
   adjustBy <- char '|' *> parseFormula
   (bonusVarRestrictions, bonusVarType) <- parseBonusRestrictionsAndType
   return BonusVar { .. }
+
+-- BONUS:VISION|x|y
+--   x is vision type
+--   y is formula
+
+data BonusVisionData = BonusVisionData { bonusVisionType :: String
+                                       , bonusVisionFormula :: Formula }
+                 deriving (Show, Eq)
+
+parseBonusVision :: PParser BonusVisionData
+parseBonusVision = do
+  _ <- bonusTag "VISION"
+  bonusVisionType <- parseTill '|'
+  bonusVisionFormula <- parseFormula
+  return BonusVisionData { .. }
 
 -- BONUS:WEAPON=x,x|y
 --   x is weapon property
@@ -341,6 +428,10 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusAbilityPool <$> parseBonusAbilityPool
             <|> BonusCasterLevel <$> parseBonusCasterLevel
             <|> BonusCheck <$> parseBonusCheck
+            <|> BonusDifficultyClass <$> parseBonusDC
+            <|> BonusMovement <$> parseBonusMoveAdd
+            <|> BonusVision <$> parseBonusVision
+            <|> BonusCharacterStat <$> parseBonusStat
             <|> BonusWeaponProficency <$> parseBonusWeaponProf
             <|> BonusWeaponProperty <$> parseBonusWeaponProp
 

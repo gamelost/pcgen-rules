@@ -24,6 +24,7 @@ data GlobalTag = KeyStat String
                | SpecialAbilityTag String
                | VirtualFeatTag [String]
                | Define NewVariable
+               | AutoEquipTag [String]
                | AutoLanguageTag AutoLanguage
                | ClassSkill [String]
                | ChooseLanguageTag [ChooseLanguage]
@@ -112,6 +113,14 @@ parseAutoLanguage = labeled "AUTO:LANG|" >> parseLanguages where
                <|> Invert <$> (char '!' >> parseLanguages)
                <|> Language <$> parseString
 
+-- AUTO:EQUIP|x|x...
+--   x is equipment name
+parseAutoEquip :: PParser [String]
+parseAutoEquip = do
+  _ <- labeled "AUTO:EQUIP"
+  many1 parseEquipmentText where
+    parseEquipmentText = try (char '|' *> notFollowedBy (string "PRE") *> parseString)
+
 -- not fully implemented
 data ChooseLanguage = ChoiceLanguage String
                     | ChoiceLanguageType String
@@ -167,6 +176,7 @@ parseGlobalTags = KeyStat <$> parseKeyStat
               <|> SourceWeb <$> parseSourceWeb
               <|> Define <$> parseDefine
               <|> AbilityTag <$> parseAbility
+              <|> AutoEquipTag <$> parseAutoEquip
               <|> AutoLanguageTag <$> parseAutoLanguage
               <|> ChooseLanguageTag <$> parseChooseLanguage
               <|> ChooseSkillTag <$> parseChooseSkill

@@ -1,7 +1,8 @@
-* general [0/3]
+* general [0/4]
 ** TODO add catch-all for tags (with optional trace)
 ** TODO narrow down parseString*: way too general
 ** TODO look at data/zen-test/... -- is this something we can use?
+** TODO data/35e/rpg_objects/legends_of_the_ancients/macedon/loam_skills.lst is messed up
 * pcc [0/2]
 ** TODO implement INCLUDE for lst files
 ** TODO implement EXCLUDE for lst files
@@ -16,11 +17,9 @@
 ** TODO PREABILITY may not be doing the right thing (test for "Perspicacity ~ War Master")
 ** TODO consolidate PREVAR tags
 * skill [0/1]
-** TODO 4 failures
-- remaining failure is a bad merge, cannot fix
+** TODO 2 failures
 - Tactics.COPY 1
 - ADD:FEAT 1
-- AUTO:EQUIP 1
 * domain
 ** TODO failures
 - ADD:ABILITY|3|Special Ability|VIRTUAL|ArtificerSkills
@@ -57,7 +56,7 @@
 - [X] SHIELDPROF (28/28)
 - [X] WEAPONPROF (129/130)
 - [X] ARMORPROF (50/50)
-- [X] SKILL (134/139)
+- [X] SKILL (137/139)
 - [ ] COMPANIONMOD (block-based) (0/51)
 - [ ] DEITY (block-based) (0/62)
 - [X] DOMAIN (34/49)

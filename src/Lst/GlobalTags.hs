@@ -26,7 +26,7 @@ data GlobalTag = KeyStat String
                | Define NewVariable
                | AutoEquipTag [String]
                | AutoLanguageTag AutoLanguage
-               | ClassSkill [String]
+               | ClassSkill [ClassSkillType]
                | ChooseLanguageTag [ChooseLanguage]
                | ChooseSkillTag [ChooseSkill]
                | Unknown (String, String)
@@ -147,10 +147,20 @@ parseChooseSkill = do
     parseChoice = ChoiceSkillType <$> (labeled "TYPE=" *> parseString)
               <|> ChoiceSkill <$> parseString
 
-parseClassSkill :: PParser [String]
+data ClassSkillType = CSkillName String
+                    | CSkillType String
+                    | CSkillAll
+                    | CSkillList
+                      deriving (Show, Eq)
+
+parseClassSkill :: PParser [ClassSkillType]
 parseClassSkill = do
   _ <- tag "CSKILL"
-  parseString `sepBy` char '|'
+  parseCSkill `sepBy` char '|' where
+    parseCSkill = (labeled "ALL" >> return CSkillAll)
+              <|> (labeled "LIST" >> return CSkillList)
+              <|> (labeled "TYPE=" >> CSkillType <$> parseString)
+              <|> CSkillName <$> parseString
 
 parseSpecialAbilityName :: PParser [String]
 parseSpecialAbilityName = do

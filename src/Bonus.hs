@@ -164,6 +164,9 @@ parseBonusMoveAdd = do
   return BonusMove { .. } where
     parseBonusMoveType = (labeled "TYPE.All" >> return AllMovement)
                      <|> (labeled "TYPE." >> Movement <$> parseString)
+                     -- apg_domains.lst has "BONUS:MOVEADD|TYPE=Walk|10" so
+                     -- add this as a 'typo' parser
+                     <|> (labeled "TYPE=" >> Movement <$> parseString)
 
 -- BONUS:SKILL:x,x,...|y
 --   x is LIST, ALL, skill name, stat name (STAT.x), skill type (TYPE=x)

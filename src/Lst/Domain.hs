@@ -19,7 +19,6 @@ data DomainDefinition = Name String
                       | DomainSpellLevel [DomainSpell]
                       | DomainType String
                       | DomainKey String
-                      | DomainVision String
                       -- shared tags
                       | Global GlobalTag
                       | DomainBonus Bonus
@@ -35,9 +34,6 @@ parseType = tag "TYPE" *> restOfTag
 
 parseKey :: PParser String
 parseKey = tag "KEY" *> restOfTag
-
-parseVision :: PParser String
-parseVision = tag "VISION" *> parseString
 
 parseSpellLevel :: PParser [DomainSpell]
 parseSpellLevel = do
@@ -55,7 +51,6 @@ parseDomainTag = DomainClear <$> parseClear
              <|> DomainDescription <$> parseDescription
              <|> DomainType <$> parseType
              <|> DomainKey <$> parseKey
-             <|> DomainVision <$> parseVision
              <|> DomainSpellLevel <$> parseSpellLevel
              <|> DomainBonus <$> parseBonus
              <|> Restricted <$> parseRestriction

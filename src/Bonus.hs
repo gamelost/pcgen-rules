@@ -35,7 +35,9 @@ bonusTag t = labeled $ t ++ "|"
 --   x is ability category
 --   y is formula added to pool (not number!)
 data BonusAbility = BonusAbility { abilityCategory :: String
-                                 , abilityPoolFormula :: Formula }
+                                 , abilityPoolFormula :: Formula
+                                 , abilityType :: Maybe (String, Bool)
+                                 , abilityRestrictions :: [Restriction] }
                   deriving (Show, Eq)
 
 parseBonusAbilityPool :: PParser BonusAbility
@@ -43,6 +45,7 @@ parseBonusAbilityPool = do
   _ <- bonusTag "ABILITYPOOL"
   abilityCategory <- parseTill '|'
   abilityPoolFormula <- parseFormula
+  (abilityRestrictions, abilityType) <- parseBonusRestrictionsAndType
   return BonusAbility { .. }
 
 -- BONUS:CASTERLEVEL|SUBSCHOOL.Creation|1|PRERULE:1,SYS_DOMAIN
@@ -152,15 +155,18 @@ data BonusMoveType = Movement String
                    | AllMovement
                      deriving (Show, Eq)
 
-data BonusMove = BonusMove { bonusMoveType :: BonusMoveType
-                           , bonusMoveFormula :: Formula }
+data BonusMove = BonusMove { bonusMove :: BonusMoveType
+                           , bonusMoveFormula :: Formula
+                           , bonusMoveType :: Maybe (String, Bool)
+                           , bonusMoveRestrictions :: [Restriction] }
                deriving (Show, Eq)
 
 parseBonusMoveAdd :: PParser BonusMove
 parseBonusMoveAdd = do
   _ <- bonusTag "MOVEADD"
-  bonusMoveType <- parseBonusMoveType
+  bonusMove <- parseBonusMoveType
   bonusMoveFormula <- char '|' *> parseFormula
+  (bonusMoveRestrictions, bonusMoveType) <- parseBonusRestrictionsAndType
   return BonusMove { .. } where
     parseBonusMoveType = (labeled "TYPE.All" >> return AllMovement)
                      <|> (labeled "TYPE." >> Movement <$> parseString)
@@ -289,16 +295,18 @@ parseBonusVariable = do
 -- BONUS:VISION|x|y
 --   x is vision type
 --   y is formula
-
-data BonusVisionData = BonusVisionData { bonusVisionType :: String
-                                       , bonusVisionFormula :: Formula }
+data BonusVisionData = BonusVisionData { bonusVision :: String
+                                       , bonusVisionFormula :: Formula
+                                       , bonusVisionType :: Maybe (String, Bool)
+                                       , bonusVisionRestrictions :: [Restriction] }
                  deriving (Show, Eq)
 
 parseBonusVision :: PParser BonusVisionData
 parseBonusVision = do
   _ <- bonusTag "VISION"
-  bonusVisionType <- parseTill '|'
+  bonusVision <- parseTill '|'
   bonusVisionFormula <- parseFormula
+  (bonusVisionRestrictions, bonusVisionType) <- parseBonusRestrictionsAndType
   return BonusVisionData { .. }
 
 -- BONUS:WEAPON=x,x|y

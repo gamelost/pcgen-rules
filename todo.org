@@ -43,7 +43,6 @@
 - ADD:FEAT
 - AUTO:FEAT
 - SPELLS
-- VISION
 - CHOOSE
 * JEP [0/0]
 * questions

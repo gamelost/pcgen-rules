@@ -22,6 +22,7 @@ data GlobalTag = KeyStat String
                | ProductIdentity Bool
                | OutputName String
                | AbilityTag Ability
+               | VisionTag Vision
                | Select Formula
                | SpecialAbilityTag [String]
                | VirtualFeatTag [String]
@@ -63,6 +64,17 @@ parseOutputName = tag "OUTPUTNAME" >> restOfTag
 
 parseSelect :: PParser Formula
 parseSelect = tag "SELECT" >> parseFormula
+
+data Vision = Vision { visionType :: String
+                     , visionRestrictions :: [Restriction] }
+              deriving (Eq, Show)
+
+parseVision :: PParser Vision
+parseVision = do
+  _ <- tag "VISION"
+  visionType <- parseString
+  visionRestrictions <- option [] parseAdditionalRestrictions
+  return Vision { .. }
 
 data NewVariable = NewVariable { varName :: String
                                , varFormula :: Formula
@@ -205,4 +217,5 @@ parseGlobalTags = KeyStat <$> parseKeyStat
               <|> ClassSkill <$> parseClassSkill
               <|> SpecialAbilityTag <$> parseSpecialAbilityName
               <|> VirtualFeatTag <$> parseVirtualFeat
+              <|> VisionTag <$> parseVision
               <|> Unknown <$> parseUnknownTag -- must be the very LAST thing tried

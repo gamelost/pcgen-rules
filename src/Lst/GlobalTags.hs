@@ -27,7 +27,9 @@ data GlobalTag = KeyStat String
                | SpecialAbilityTag [String]
                | VirtualFeatTag [String]
                | Define NewVariable
+               | AddFeatTag AddFeat
                | AutoEquipTag [String]
+               | AutoFeatTag AutoFeat
                | AutoLanguageTag AutoLanguage
                | ClassSkill [ClassSkillType]
                | ChooseLanguageTag [ChooseLanguage]
@@ -116,6 +118,26 @@ parseAbility = do
     -- TODO: ugly hack
     disallowed = notFollowedBy (string "PRE") *> notFollowedBy (string "!PRE")
 
+-- ADD:FEAT|x|y,y...
+data FeatType = AllFeats
+              | FeatType String
+              | FeatName String
+                deriving (Show, Eq)
+
+data AddFeat = AddFeat { featChoices :: Int
+                       , featTypes :: [FeatType] }
+             deriving (Show, Eq)
+
+parseAddFeat :: PParser AddFeat
+parseAddFeat = do
+  _ <- labeled "ADD:FEAT|"
+  featChoices <- option 1 (textToInt <$> manyNumbers)
+  featTypes <- parseFeatTypes `sepBy` char ','
+  return AddFeat { .. } where
+    parseFeatTypes = (labeled "ALL" >> return AllFeats)
+                 <|> (labeled "TYPE=" >> FeatType <$> parseStringNoCommas)
+                 <|> (FeatName <$> parseStringNoCommas)
+
 -- AUTO:LANG|x|x...
 --   x is language, language type, ALL, LIST, CLEAR.
 data AutoLanguage = Language String
@@ -142,6 +164,19 @@ parseAutoEquip = do
   _ <- labeled "AUTO:EQUIP"
   many1 parseEquipmentText where
     parseEquipmentText = try (char '|' *> notFollowedBy (string "PRE") *> parseString)
+
+-- AUTO:FEAT|x|x...
+--   x is feat name
+data AutoFeat = AutoFeat { featNames :: [String]
+                         , featRestrictions :: [Restriction] }
+                deriving (Eq, Show)
+
+parseAutoFeat :: PParser AutoFeat
+parseAutoFeat = do
+  _ <- labeled "AUTO:FEAT|"
+  featNames <- parseString `sepBy` char '|'
+  featRestrictions <- option [] parseAdditionalRestrictions
+  return AutoFeat { .. }
 
 -- not fully implemented
 data ChooseLanguage = ChoiceLanguage String
@@ -210,7 +245,9 @@ parseGlobalTags = KeyStat <$> parseKeyStat
               <|> Select <$> parseSelect
               <|> Define <$> parseDefine
               <|> AbilityTag <$> parseAbility
+              <|> AddFeatTag <$> parseAddFeat
               <|> AutoEquipTag <$> parseAutoEquip
+              <|> AutoFeatTag <$> parseAutoFeat
               <|> AutoLanguageTag <$> parseAutoLanguage
               <|> ChooseLanguageTag <$> parseChooseLanguage
               <|> ChooseSkillTag <$> parseChooseSkill

@@ -3,7 +3,7 @@
 - [X] SHIELDPROF (28/28)
 - [X] WEAPONPROF (130/130)
 - [X] ARMORPROF (50/50)
-- [X] SKILL (138/139)
+- [X] SKILL (139/139)
 - [ ] COMPANIONMOD (block-based) (0/51)
 - [ ] DEITY (block-based) (0/62)
 - [X] DOMAIN (30/49)
@@ -33,15 +33,15 @@
 ** TODO pull out per-line restrictions into LSTLine
 ** TODO PREFEAT is not fully implemented
 ** TODO PRERULE should be matching against known rules, not accepting any string
+* choose
+** TODO should be its own file?
+- fairly complicated; do I need this yet?
 * skill [0/1]
-** TODO 2 failures
+** TODO 1 failures
 - Tactics.COPY 1 (parses successfully though)
-- ADD:FEAT 1
 * domain
 ** TODO unparsed tags
 - ADD:ABILITY
-- ADD:FEAT
-- AUTO:FEAT
 - SPELLS
 - CHOOSE
 * JEP [0/0]

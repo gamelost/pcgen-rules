@@ -31,7 +31,9 @@ data GlobalTag = KeyStat String
                | AutoEquipTag [String]
                | AutoFeatTag AutoFeat
                | AutoLanguageTag AutoLanguage
+               | AutoWeaponProfTag [AutoWeaponProf]
                | ClassSkill [ClassSkillType]
+               | SpellTag Spell
                | ChooseLanguageTag [ChooseLanguage]
                | ChooseSkillTag [ChooseSkill]
                | Unknown (String, String)
@@ -178,6 +180,22 @@ parseAutoFeat = do
   featRestrictions <- option [] parseAdditionalRestrictions
   return AutoFeat { .. }
 
+-- AUTO:WEAPONPROF|x|x...
+--   x is weapon name, type or deity's favored weapon
+data AutoWeaponProf = WeaponName String
+                    | WeaponType String
+                    | WeaponOfDeity
+                      deriving (Show, Eq)
+
+parseAutoWeaponProf :: PParser [AutoWeaponProf]
+parseAutoWeaponProf = do
+  _ <- labeled "AUTO:WEAPONPROF|"
+  parseAutoWeaponProfType `sepBy` char '|' where
+    parseAutoWeaponProfType = (labeled "DEITYWEAPONS" >> return WeaponOfDeity)
+                      <|> (labeled "TYPE=" >> WeaponType <$> parseString)
+                      <|> (labeled "TYPE." >> WeaponType <$> parseString)
+                      <|> (WeaponName <$> parseString)
+
 -- not fully implemented
 data ChooseLanguage = ChoiceLanguage String
                     | ChoiceLanguageType String
@@ -222,6 +240,44 @@ parseSpecialAbilityName = do
   _ <- tag "SAB"
   parseStringNoCommasBrackets `sepBy` char '|'
 
+-- SPELLS:s|u|v|w|x,y|x,y|z|z
+--   s is name of spellbook (or .CLEARALL, not implemented)
+--   u is times
+--   v is time unit
+--   w is caster level
+--   x is spell name
+--   y is formula
+--   z is restrictions
+data Spell = Spell { spellBook :: String
+                   , spellTimes :: Formula
+                   , spellTimeUnit :: String
+                   , spellCasterLevel :: Formula
+                   , spellNames :: [(String, Maybe Formula)]
+                   , spellRestrictions :: [Restriction] }
+           deriving (Eq, Show)
+
+parseSpells :: PParser Spell
+parseSpells = do
+  _ <- tag "SPELLS"
+  spellBook <- parseString
+  spellTimes <- option (Number 1) parseTimes
+  spellTimeUnit <- option "Day" parseTimeUnit
+  spellCasterLevel <- option (Number 1) parseCasterLevel
+  spellNames <- char '|' *> parseNames `sepBy` char '|'
+  spellRestrictions <- option [] parseAdditionalRestrictions
+  return Spell { .. } where
+    parseTimes = labeled "|TIMES=" >> parseFormula
+    parseTimeUnit = labeled "|TIMEUNIT=" >> parseString
+    parseCasterLevel = labeled "|CASTERLEVEL=" >> parseFormula
+    parseNames = (try parseNameAndDC) <|> parseNameOnly
+    parseNameAndDC = do
+      name <- parseStringNoCommas <* char ','
+      spellDC <- parseFormula
+      return (name, Just spellDC)
+    parseNameOnly = do
+      name <- parseStringNoCommas
+      return (name, Nothing)
+
 parseVirtualFeat :: PParser [String]
 parseVirtualFeat = tag "VFEAT" *> parseString `sepBy` char '|'
 
@@ -249,9 +305,11 @@ parseGlobalTags = KeyStat <$> parseKeyStat
               <|> AutoEquipTag <$> parseAutoEquip
               <|> AutoFeatTag <$> parseAutoFeat
               <|> AutoLanguageTag <$> parseAutoLanguage
+              <|> AutoWeaponProfTag <$> parseAutoWeaponProf
               <|> ChooseLanguageTag <$> parseChooseLanguage
               <|> ChooseSkillTag <$> parseChooseSkill
               <|> ClassSkill <$> parseClassSkill
+              <|> SpellTag <$> parseSpells
               <|> SpecialAbilityTag <$> parseSpecialAbilityName
               <|> VirtualFeatTag <$> parseVirtualFeat
               <|> VisionTag <$> parseVision

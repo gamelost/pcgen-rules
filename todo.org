@@ -6,7 +6,7 @@
 - [X] SKILL (139/139)
 - [ ] COMPANIONMOD (block-based) (0/51)
 - [ ] DEITY (block-based) (0/62)
-- [X] DOMAIN (43/49)
+- [X] DOMAIN (47/49)
 - [ ] EQUIPMOD (0/115)
 - [X] EQUIPMENT (133/709)
 - [ ] SPELL (0/209)
@@ -36,6 +36,7 @@
 * choose
 ** TODO should be its own file?
 - fairly complicated; do I need this yet?
+- generic catch-all?
 * skill [0/1]
 ** TODO 1 failures
 - Tactics.COPY 1 (parses successfully though)

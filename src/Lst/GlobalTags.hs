@@ -35,6 +35,7 @@ data GlobalTag = KeyStat String
                | ClassSkill [ClassSkillType]
                | SpellTag Spell
                | ChooseLanguageTag [ChooseLanguage]
+               | ChooseNumberTag Choices
                | ChooseSkillTag [ChooseSkill]
                | Unknown (String, String)
                  deriving (Eq, Show)
@@ -209,6 +210,18 @@ parseChooseLanguage = do
               <|> ChoiceLanguage <$> parseString
 
 -- not fully implemented
+data Choices = Choices { choiceNumber :: Int
+                       , choices :: [String] }
+                   deriving (Show, Eq)
+
+parseChooseNumChoices :: PParser Choices
+parseChooseNumChoices = do
+  _ <- labeled "CHOOSE:NUMCHOICES="
+  choiceNumber <- textToInt <$> manyNumbers
+  choices <- char '|' *> parseString `sepBy` char '|'
+  return Choices { .. }
+
+-- not fully implemented
 data ChooseSkill = ChoiceSkill String
                  | ChoiceSkillType String
                    deriving (Show, Eq)
@@ -307,6 +320,7 @@ parseGlobalTags = KeyStat <$> parseKeyStat
               <|> AutoLanguageTag <$> parseAutoLanguage
               <|> AutoWeaponProfTag <$> parseAutoWeaponProf
               <|> ChooseLanguageTag <$> parseChooseLanguage
+              <|> ChooseNumberTag <$> parseChooseNumChoices
               <|> ChooseSkillTag <$> parseChooseSkill
               <|> ClassSkill <$> parseClassSkill
               <|> SpellTag <$> parseSpells

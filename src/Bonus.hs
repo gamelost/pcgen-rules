@@ -77,7 +77,7 @@ parseBonusCasterLevel = do
   casterRestrictions <- option [] parseAdditionalRestrictions
   return CasterLevel { .. } where
     parseCasterLevelType :: PParser CasterLevelType
-    parseCasterLevelType = (labeled "ALLSPELLS" >> return CLAllSpells)
+    parseCasterLevelType = (CLAllSpells <$ labeled "ALLSPELLS")
                        <|> (labeled "DESCRIPTOR." >> CLDescriptor <$> parseRest)
                        <|> (labeled "DOMAIN." >> CLDomain <$> parseRest)
                        <|> (labeled "RACE." >> CLRace <$> parseRest)
@@ -109,7 +109,7 @@ parseBonusCheck = do
   checkType <- tryOption (char '|' *> parseCheckType)
   return Checks { .. } where
     parseChecks :: PParser CheckName
-    parseChecks = (labeled "ALL" >> return CheckAll)
+    parseChecks = (CheckAll <$ labeled "ALL")
               <|> (labeled "BASE." >> CheckBase <$> parseString)
               <|> CheckName <$> parseString
     parseCheckType = labeled "TYPE=" *> parseString
@@ -138,8 +138,8 @@ parseBonusDC = do
   difficultyFocus <- parseDifficultyFocus
   difficultyFormula <- char '|' *> parseFormula
   return BonusDC { .. } where
-    parseDifficultyFocus = (labeled "ALLSPELLS" >> return AllSpells)
-                       <|> (labeled "FEATBONUS" >> return FeatBonus)
+    parseDifficultyFocus = (AllSpells <$ labeled "ALLSPELLS")
+                       <|> (FeatBonus <$ labeled "FEATBONUS")
                        <|> (labeled "SPELL." >> SpellName <$> parseString)
                        <|> (labeled "CLASS." >> ClassName <$> parseString)
                        <|> (labeled "DOMAIN." >> DomainName <$> parseString)
@@ -168,7 +168,7 @@ parseBonusMoveAdd = do
   bonusMoveFormula <- char '|' *> parseFormula
   (bonusMoveRestrictions, bonusMoveType) <- parseBonusRestrictionsAndType
   return BonusMove { .. } where
-    parseBonusMoveType = (labeled "TYPE.All" >> return AllMovement)
+    parseBonusMoveType = (AllMovement <$ labeled "TYPE.All")
                      <|> (labeled "TYPE." >> Movement <$> parseString)
                      -- apg_domains.lst has "BONUS:MOVEADD|TYPE=Walk|10" so
                      -- add this as a 'typo' parser
@@ -227,8 +227,8 @@ parseBonusSkill = do
                    <|> parseSkillType
                    <|> parseStatName
                    <|> parseSkillName
-    parseList = labeled "LIST" >> return List
-    parseAll = labeled "ALL" >> return All
+    parseList = List <$ labeled "LIST"
+    parseAll = All <$ labeled "ALL"
     parseSkillType = labeled "TYPE=" >> (BonusSkillType <$> parseStringNoCommas)
     parseStatName = labeled "STAT." >> (StatName <$> parseStringNoCommas)
     parseSkillName = BonusSkillName <$> parseStringNoCommas
@@ -334,16 +334,16 @@ parseBonusWeaponProp = do
   bonusWeaponProperties <- parseWeaponProperty `sepBy` char ','
   bonusWeaponFormula <- char '|' *> parseFormula
   return BonusWeaponProp { .. } where
-    parseWeaponProperty = (labeled "ATTACKS" >> return ATTACKS)
-                      <|> (labeled "ATTACKSPROGRESS" >> return ATTACKSPROGRESS)
-                      <|> (labeled "DAMAGE" >> return P_DAMAGE)
-                      <|> (labeled "DAMAGEMULT" >> return P_DAMAGEMULT)
-                      <|> (labeled "DAMAGESIZE" >> return P_DAMAGESIZE)
-                      <|> (labeled "DAMAGE-SHORTRANGE" >> return P_DAMAGESHORTRANGE)
-                      <|> (labeled "TOHIT" >> return P_TOHIT)
-                      <|> (labeled "TOHIT-SHORTRANGE" >> return P_TOHITSHORTRANGE)
-                      <|> (labeled "WEAPONBAB" >> return WEAPONBAB)
-                      <|> (labeled "WEAPONCATEGORY" >> return WEAPONCATEGORY)
+    parseWeaponProperty = (ATTACKS <$ labeled "ATTACKS")
+                      <|> (ATTACKSPROGRESS <$ labeled "ATTACKSPROGRESS")
+                      <|> (P_DAMAGE <$ labeled "DAMAGE")
+                      <|> (P_DAMAGEMULT <$ labeled "DAMAGEMULT")
+                      <|> (P_DAMAGESIZE <$ labeled "DAMAGESIZE")
+                      <|> (P_DAMAGESHORTRANGE <$ labeled "DAMAGE-SHORTRANGE")
+                      <|> (P_TOHIT <$ labeled "TOHIT")
+                      <|> (P_TOHITSHORTRANGE <$ labeled "TOHIT-SHORTRANGE")
+                      <|> (WEAPONBAB <$ labeled "WEAPONBAB")
+                      <|> (WEAPONCATEGORY <$ labeled "WEAPONCATEGORY")
 
 -- BONUS:WEAPONPROF=x|y,y...|z
 --   x is weapon proficiency name or type
@@ -382,19 +382,19 @@ parseBonusWeaponProf = do
   return BonusWeaponProf { .. } where
     parseWeaponProficiency = (labeled "TYPE=" >> (WeaponType <$> parseString))
                          <|> WeaponName <$> parseString
-    parseWeaponProperty = (labeled "CRITMULTADD" >> return CRITMULTADD)
-                      <|> (labeled "CRITRANGEADD" >> return CRITRANGEADD)
-                      <|> (labeled "CRITRANGEDOUBLE" >> return CRITRANGEDOUBLE)
-                      <|> (labeled "DAMAGE" >> return DAMAGE)
-                      <|> (labeled "DAMAGEMULT" >> return DAMAGEMULT)
-                      <|> (labeled "DAMAGESIZE" >> return DAMAGESIZE)
-                      <|> (labeled "DAMAGESHORTRANGE" >> return DAMAGESHORTRANGE)
-                      <|> (labeled "PCSIZE" >> return PCSIZE)
-                      <|> (labeled "REACH" >> return REACH)
-                      <|> (labeled "TOHIT" >> return TOHIT)
-                      <|> (labeled "TOHITSHORTRANGE" >> return TOHITSHORTRANGE)
-                      <|> (labeled "TOHITOVERSIZE" >> return TOHITOVERSIZE)
-                      <|> (labeled "WIELDCATEGORY" >> return WIELDCATEGORY)
+    parseWeaponProperty = (CRITMULTADD <$ labeled "CRITMULTADD")
+                      <|> (CRITRANGEADD <$ labeled "CRITRANGEADD")
+                      <|> (CRITRANGEDOUBLE <$ labeled "CRITRANGEDOUBLE")
+                      <|> (DAMAGE <$ labeled "DAMAGE")
+                      <|> (DAMAGEMULT <$ labeled "DAMAGEMULT")
+                      <|> (DAMAGESIZE <$ labeled "DAMAGESIZE")
+                      <|> (DAMAGESHORTRANGE <$ labeled "DAMAGESHORTRANGE")
+                      <|> (PCSIZE <$ labeled "PCSIZE")
+                      <|> (REACH <$ labeled "REACH")
+                      <|> (TOHIT <$ labeled "TOHIT")
+                      <|> (TOHITSHORTRANGE <$ labeled "TOHITSHORTRANGE")
+                      <|> (TOHITOVERSIZE <$ labeled "TOHITOVERSIZE")
+                      <|> (WIELDCATEGORY <$ labeled "WIELDCATEGORY")
 
 -- TEMPBONUS:x,x,...|y|z
 --   x is PC, ANYPC, or EQ
@@ -420,9 +420,9 @@ parseTemporaryBonus = do
   additionalRestrictions <- option [] parseAdditionalRestrictions
   return TempBonus { .. } where
     parseTarget :: PParser Target
-    parseTarget = (labeled "PC" >> return PC)
-              <|> (labeled "ANYPC" >> return ANYPC)
-              <|> (labeled "EQ" >> return EQUIPMENT)
+    parseTarget = (PC <$ labeled "PC")
+              <|> (ANYPC <$ labeled "ANYPC")
+              <|> (EQUIPMENT <$ labeled "EQ")
     parseEquipmentType EQUIPMENT = parseString
     parseEquipmentType _ = string "\t" -- better way to do this?
     bonuses = char '|' >> parseAnyBonus

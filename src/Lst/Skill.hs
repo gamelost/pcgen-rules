@@ -59,8 +59,8 @@ parseType = Type <$> (tag "TYPE" >> parseString `sepBy` char '.')
 parseClasses :: SkillTag
 parseClasses = Classes <$> (tag "CLASSES" >> parseClass) where
   parseClass :: PParser Class
-  parseClass = try (labeled "ALL" >> return AllClasses) <|>
-               (Subset <$> (parseString `sepBy` char '|'))
+  parseClass = try (AllClasses <$ labeled "ALL")
+           <|> (Subset <$> (parseString `sepBy` char '|'))
 
 parseArmorCheck :: SkillTag
 parseArmorCheck = do
@@ -77,7 +77,7 @@ parseArmorCheck = do
 parseVisibility :: SkillTag
 parseVisibility = do
   v <- tag "VISIBLE" >> liftM matchVisibility allCaps
-  ro <- option False (labeled "|READONLY" >> return True)
+  ro <- option False (True <$ labeled "|READONLY")
   return $ Visibility (v, ro) where
     matchVisibility :: String -> Visible
     matchVisibility "ALWAYS" = Always

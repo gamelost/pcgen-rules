@@ -129,7 +129,7 @@ evalJEPFormulae vars (Variable v) =
 parseNumber :: PParser Formula
 parseNumber = Number <$> parseSignedNumber where
   parseSignedNumber = sign <*> (textToInt <$> manyNumbers)
-  sign = (char '-' >> return negate) <|> (optional (char '+') >> return id)
+  sign = (negate <$ char '-') <|> (id <$ optional (char '+'))
 
 parseVariable :: PParser Formula
 parseVariable = Variable <$> variableParsers
@@ -183,8 +183,8 @@ table = [ [ Prefix negateFormula ]
   subtractFormula = operand '-' Subtract
   divideFormula = operand '/' Divide
   addFormula = operand '+' Add
-  operand c o = try $ char c >> return (Arithmetic o)
-  negateFormula = try $ char '-' >> return Negate
+  operand c o = try $ Arithmetic o <$ char c
+  negateFormula = try $ Negate <$ char '-'
 
 parseFormula :: PParser Formula
 parseFormula = buildExpressionParser table parseExpression

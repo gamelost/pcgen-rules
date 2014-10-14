@@ -127,8 +127,8 @@ parsePreDeity = do
   _ <- char ','
   deities <- parseDeity `sepBy` char ','
   return PreDeity { deityNumber = textToInt n, .. } where
-    parseDeity = (labeled "Y" >> return Worship)
-             <|> (labeled "N" >> return NoWorship)
+    parseDeity = (Worship <$ labeled "Y")
+             <|> (NoWorship <$ labeled "N")
              <|> PantheonName <$> (labeled "PANTHEON." >> parseStringNoCommasBrackets)
              <|> DeityName <$> parseStringNoCommasBrackets
 
@@ -149,7 +149,7 @@ parsePreDomain = do
   _ <- char ','
   domains <- parseDomain `sepBy` char ','
   return PreDomain { domainNumber = textToInt n, .. } where
-    parseDomain = (labeled "ANY" >> return DomainAny)
+    parseDomain = (DomainAny <$ labeled "ANY")
               <|> DomainName <$> parseStringNoCommasBrackets
 
 -- PREFEAT:x,y,z,z,..
@@ -170,7 +170,7 @@ parsePreFeat :: PParser PreFeat
 parsePreFeat = do
   n <- tag "PREFEAT" >> manyNumbers
   _ <- char ','
-  countSeparately <- option False (labeled "CHECKMULT," >> return True)
+  countSeparately <- option False (True <$ labeled "CHECKMULT,")
   feats <- parseFeat `sepBy` char ','
   let cannotHave = False -- not implemented
   return PreFeat { featNumber = textToInt n, .. } where
@@ -195,7 +195,7 @@ parsePreItem = do
   items <- char ',' >> parseItems `sepBy` char ','
   return PreItem { itemNumber = textToInt n, .. } where
     parseItems = ItemType <$> (labeled "TYPE=" >> parseString)
-             <|> (char '%' >> return AnyItem)
+             <|> (AnyItem <$ char '%')
              <|> ItemType <$> parseString
 
 -- PREMOVE:x,y=z,y=z...

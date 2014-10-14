@@ -114,9 +114,9 @@ parseAbility = do
   abilityNames <- many1 parseAbilityString
   abilityRestrictions <- option [] parseAdditionalRestrictions
   return Ability { .. } where
-    parseAbilityNature = (labeled "NORMAL" >> return Normal)
-                     <|> (labeled "AUTOMATIC" >> return Automatic)
-                     <|> (labeled "VIRTUAL" >> return Virtual)
+    parseAbilityNature = (Normal <$ labeled "NORMAL")
+                     <|> (Automatic <$ labeled "AUTOMATIC")
+                     <|> (Virtual <$ labeled "VIRTUAL")
     parseAbilityString = try (char '|' *> disallowed *> parseString)
     -- TODO: ugly hack
     disallowed = notFollowedBy (string "PRE") *> notFollowedBy (string "!PRE")
@@ -137,7 +137,7 @@ parseAddFeat = do
   featChoices <- option 1 (textToInt <$> manyNumbers)
   featTypes <- parseFeatTypes `sepBy` char ','
   return AddFeat { .. } where
-    parseFeatTypes = (labeled "ALL" >> return AllFeats)
+    parseFeatTypes = (AllFeats <$ labeled "ALL")
                  <|> (labeled "TYPE=" >> FeatType <$> parseStringNoCommas)
                  <|> (FeatName <$> parseStringNoCommas)
 
@@ -154,9 +154,9 @@ data AutoLanguage = Language String
 parseAutoLanguage :: PParser AutoLanguage
 parseAutoLanguage = labeled "AUTO:LANG|" >> parseLanguages where
   parseLanguages = LanguageType <$> (labeled "TYPE=" *> parseString)
-               <|> (labeled "ALL" >> return AllLanguages)
-               <|> (labeled "%LIST" >> return ListLanguages)
-               <|> (labeled "CLEAR" >> return ClearLanguages)
+               <|> (AllLanguages <$ labeled "ALL")
+               <|> (ListLanguages <$ labeled "%LIST")
+               <|> (ClearLanguages <$ labeled "CLEAR")
                <|> Invert <$> (char '!' >> parseLanguages)
                <|> Language <$> parseString
 
@@ -192,7 +192,7 @@ parseAutoWeaponProf :: PParser [AutoWeaponProf]
 parseAutoWeaponProf = do
   _ <- labeled "AUTO:WEAPONPROF|"
   parseAutoWeaponProfType `sepBy` char '|' where
-    parseAutoWeaponProfType = (labeled "DEITYWEAPONS" >> return WeaponOfDeity)
+    parseAutoWeaponProfType = (WeaponOfDeity <$ labeled "DEITYWEAPONS")
                       <|> (labeled "TYPE=" >> WeaponType <$> parseString)
                       <|> (labeled "TYPE." >> WeaponType <$> parseString)
                       <|> (WeaponName <$> parseString)
@@ -243,8 +243,8 @@ parseClassSkill :: PParser [ClassSkillType]
 parseClassSkill = do
   _ <- tag "CSKILL"
   parseCSkill `sepBy` char '|' where
-    parseCSkill = (labeled "ALL" >> return CSkillAll)
-              <|> (labeled "LIST" >> return CSkillList)
+    parseCSkill = (CSkillAll <$ labeled "ALL")
+              <|> (CSkillList <$ labeled "LIST")
               <|> (labeled "TYPE=" >> CSkillType <$> parseString)
               <|> CSkillName <$> parseString
 
@@ -282,7 +282,7 @@ parseSpells = do
     parseTimes = labeled "|TIMES=" >> parseFormula
     parseTimeUnit = labeled "|TIMEUNIT=" >> parseString
     parseCasterLevel = labeled "|CASTERLEVEL=" >> parseFormula
-    parseNames = (try parseNameAndDC) <|> parseNameOnly
+    parseNames = try parseNameAndDC <|> parseNameOnly
     parseNameAndDC = do
       name <- parseStringNoCommas <* char ','
       spellDC <- parseFormula

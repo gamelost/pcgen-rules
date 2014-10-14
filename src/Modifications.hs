@@ -21,7 +21,7 @@ class LSTObject a where
     (name, operation) <- parseStart <* tabs
     tags <- parseLine name <* ending
     return LSTLine { .. } where
-      ending = eol <|> (eof >> return '\0')
+      ending = eol <|> ('\0' <$ eof)
 
 parseStart :: PParser (String, Operation)
 parseStart = do

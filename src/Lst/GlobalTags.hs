@@ -2,13 +2,15 @@
 
 module Lst.GlobalTags (GlobalTag, parseGlobalTags) where
 
-import Text.Parsec.Char
-import Text.Parsec.Combinator
-import Text.Parsec.Prim hiding (State, (<|>))
-import Control.Applicative
-import Restrictions(Restriction, parseAdditionalRestrictions)
-import Control.Monad.State
 import qualified Data.Map as M
+
+import Text.Parsec.Char (char, string)
+import Text.Parsec.Combinator (sepBy, many1, notFollowedBy, option)
+import Text.Parsec.Prim (try)
+import Control.Monad.State (get, put)
+import ClassyPrelude hiding (try)
+
+import Restrictions (Restriction, parseAdditionalRestrictions)
 import JEPFormula
 import Common
 

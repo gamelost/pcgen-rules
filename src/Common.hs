@@ -12,7 +12,6 @@ import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Text.Parsec.String()
 import Text.Parsec.Prim hiding (State)
-import Data.List(stripPrefix)
 import qualified Data.Map.Strict as M
 import Debug.Trace(trace)
 
@@ -97,11 +96,6 @@ parseTill c = manyTill anyChar $ char c
 
 yesOrNo :: PParser Bool
 yesOrNo = liftM (== "YES") allCaps
-
-stripSuffix :: String -> String -> Maybe String
-stripSuffix sfx rest = case stripPrefix (reverse sfx) (reverse rest) of
-  Just ys -> Just (reverse ys)
-  Nothing -> Nothing
 
 parseResult :: Show a => PParser a -> FilePath -> String -> a
 parseResult parser filename contents =

@@ -2,14 +2,15 @@
 
 module Bonus where
 
-import Text.Parsec.Char
-import Text.Parsec.Combinator
-import Text.Parsec.Prim hiding ((<|>))
-import Control.Applicative hiding (optional, many)
-import Control.Exception hiding (try)
-import Data.Maybe
+import Text.Parsec.Char (char, space, string)
+import Text.Parsec.Combinator (sepBy, option)
+import Text.Parsec.Prim (many, try)
+-- import Control.Exception hiding (try)
+-- import Data.Maybe
+import ClassyPrelude hiding (try)
+
+import Restrictions (Restriction, parseAdditionalRestrictions)
 import JEPFormula
-import Restrictions(Restriction, parseAdditionalRestrictions)
 import Common
 
 data Bonus = BonusSkill Skill

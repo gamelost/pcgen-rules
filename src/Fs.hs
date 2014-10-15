@@ -5,6 +5,7 @@ module Fs (getFullPath, Location(..)) where
 import Control.Monad (forM, msum)
 import System.Directory (doesDirectoryExist, getDirectoryContents)
 import System.FilePath ((</>), takeFileName)
+import Prelude
 
 data Location = Data | Vendor | Any deriving Show
 

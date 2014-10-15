@@ -2,14 +2,15 @@
 
 module Lst.Language where
 
-import Text.Parsec.Char
-import Text.Parsec.Combinator
-import Control.Applicative
+import Text.Parsec.Char (char)
+import Text.Parsec.Combinator (sepBy)
+import ClassyPrelude hiding (try)
+
 import Restrictions
 import Modifications
 import Lst.GlobalTags
-import Common
 import Bonus(parseBonus, Bonus)
+import Common
 
 -- we only define the most common language types here
 data LanguageType = Read

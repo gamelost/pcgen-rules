@@ -8,15 +8,17 @@ module JEPFormula ( Formula(..)
                   , evalJEPFormula
                   ) where
 
-import Text.Parsec.Char
-import Text.Parsec.Combinator
-import Text.Parsec.Expr
-import Text.Parsec.Prim hiding ((<|>), State)
-import Control.Applicative hiding (optional, many)
-import Control.Monad.State
 import qualified Data.Map as M
+
+import Text.Parsec.Char (char, space, anyChar, satisfy)
+import Text.Parsec.Combinator (manyTill, choice, sepBy, optional)
+import Text.Parsec.Expr (Assoc(..), Operator(..), buildExpressionParser)
+import Text.Parsec.Prim (many, try)
+import Control.Monad.State (State, get, msum)
+import ClassyPrelude hiding (try, minimum, maximum, head)
+import Prelude(minimum, maximum, head)
+
 import Common
-import Debug.Trace(trace)
 
 data Operand = Divide
              | Multiply

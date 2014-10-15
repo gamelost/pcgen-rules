@@ -2,17 +2,17 @@
 
 module Lst.WeaponProf where
 
-import Text.Parsec.Char
-import Text.Parsec.Combinator
-import Text.Parsec.Prim hiding ((<|>))
-import Control.Monad(liftM)
-import Control.Applicative
+import Text.Parsec.Char (char, satisfy)
+import Text.Parsec.Combinator (sepBy, sepBy1, many1)
+import Text.Parsec.Prim (try)
+import ClassyPrelude hiding (try)
+
 import Modifications
 import Restrictions
 import Lst.GlobalTags
-import Common
 import Clear(parseClear, ClearTag(..))
 import Bonus(parseBonus, Bonus)
+import Common
 
 data WeaponProficency = Name String
                       | WeaponType [String]

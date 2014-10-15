@@ -2,15 +2,16 @@
 
 module Lst.Domain where
 
-import Text.Parsec.Char
-import Text.Parsec.Combinator
-import Control.Applicative
+import Text.Parsec.Char (char)
+import Text.Parsec.Combinator (sepBy)
+import ClassyPrelude
+
 import Modifications
 import Restrictions
 import Lst.GlobalTags
-import Common
 import Clear(parseClear, ClearTag(..))
 import Bonus(parseBonus, Bonus)
+import Common
 
 type DomainSpell = (String, Int, String)
 

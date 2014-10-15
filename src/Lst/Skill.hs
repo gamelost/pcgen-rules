@@ -2,17 +2,17 @@
 
 module Lst.Skill where
 
-import Text.Parsec.Char
-import Text.Parsec.Combinator
-import Text.Parsec.Prim hiding ((<|>))
-import Control.Monad(liftM)
-import Control.Applicative
-import Restrictions(Restriction, parseRestriction)
-import Modifications
+import Text.Parsec.Char (char)
+import Text.Parsec.Combinator (sepBy, option)
+import Text.Parsec.Prim (try)
+import ClassyPrelude hiding (try)
+
 import Lst.GlobalTags
-import Common
 import Clear(parseClear, ClearTag(..))
 import Bonus(parseBonus, Bonus)
+import Restrictions(Restriction, parseRestriction)
+import Modifications
+import Common
 
 data ArmorCheck = Double
                 | Proficient

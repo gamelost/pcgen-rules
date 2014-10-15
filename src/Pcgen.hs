@@ -2,11 +2,14 @@
 
 module Main where
 
-import System.Environment(getArgs)
 import qualified Data.Map as M
 import qualified Text.Show.Pretty as Pretty
-import Data.Maybe(mapMaybe)
-import System.FilePath(splitExtension)
+
+import System.Environment(getArgs)
+import Data.Maybe (mapMaybe)
+import System.FilePath (splitExtension)
+import Prelude
+
 import Pcc
 import Lst
 import Fs

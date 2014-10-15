@@ -2,9 +2,11 @@ module Clear ( ClearTag(..)
              , parseClear
              ) where
 
+import Text.Parsec.Combinator (choice)
+import Data.Maybe (fromJust)
+import ClassyPrelude
+
 import Common
-import Text.Parsec.Combinator
-import Data.Maybe
 
 data ClearTag = Clear String
               deriving (Show, Eq)

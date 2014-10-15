@@ -1,7 +1,8 @@
 module Lst.ArmorProf where
 
-import Text.Parsec.Combinator
-import Control.Applicative
+import Text.Parsec.Combinator (sepBy)
+import ClassyPrelude
+
 import Modifications
 import Restrictions
 import Common

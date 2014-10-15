@@ -2,10 +2,11 @@
 
 module Modifications where
 
-import Text.Parsec.Combinator(eof)
-import Control.Applicative
+import Text.Parsec.Combinator (eof)
+import Data.Maybe (fromJust)
+import ClassyPrelude
+
 import Common
-import Data.Maybe
 
 data Operation = Add | Copy | Modify | Forget deriving Show
 

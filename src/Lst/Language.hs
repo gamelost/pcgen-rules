@@ -4,12 +4,9 @@ module Lst.Language where
 
 import Text.Parsec.Char (char)
 import Text.Parsec.Combinator (sepBy)
-import ClassyPrelude hiding (try)
+import ClassyPrelude
 
-import Restrictions
 import Modifications
-import Lst.GlobalTags
-import Bonus(parseBonus, Bonus)
 import Common
 
 -- we only define the most common language types here
@@ -19,13 +16,8 @@ data LanguageType = Read
                   | Other String
                     deriving Show
 
-data LanguageDefinition = Name String
-                        | Key String
+data LanguageDefinition = Key String
                         | LanguageTypes [LanguageType]
-                        | LanguageBonus Bonus
-                        -- shared tags
-                        | Global GlobalTag
-                        | Restricted Restriction
                           deriving Show
 
 parseKey :: PParser LanguageDefinition
@@ -44,14 +36,6 @@ parseTypes = do
 parseLanguageTag :: PParser LanguageDefinition
 parseLanguageTag = parseKey
                <|> parseTypes
-               <|> LanguageBonus <$> parseBonus
-               <|> Restricted <$> parseRestriction
-               <|> Global <$> parseGlobalTags
-
-parseLanguageDefinition :: String -> PParser [LanguageDefinition]
-parseLanguageDefinition name = do
-  languageTags <- parseLanguageTag `sepBy` tabs
-  return $ languageTags ++ [Name name]
 
 instance LSTObject LanguageDefinition where
-  parseLine = parseLanguageDefinition
+  parseSpecificTags = parseLanguageTag

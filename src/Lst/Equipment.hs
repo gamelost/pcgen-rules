@@ -3,28 +3,20 @@
 module Lst.Equipment where
 
 import Text.Parsec.Char (char, satisfy)
-import Text.Parsec.Combinator (sepBy, sepBy1, option, many1)
+import Text.Parsec.Combinator (sepBy1, option, many1)
 import Text.Parsec.Prim (try)
 import ClassyPrelude hiding (try)
 import Prelude (read)
 
 import Modifications
-import Restrictions
 import JEPFormula
-import Lst.GlobalTags
-import Bonus(parseBonus, Bonus)
 import Common
 
-data EquipmentDefinition = Name String
-                         | Description String
+data EquipmentDefinition = Description String
                          | Cost Float
                          | Weight Float
                          | ACCheck Formula
                          | EquipmentType [String]
-                         -- shared tags
-                         | Global GlobalTag
-                         | EquipmentBonus Bonus
-                         | Restricted Restriction
                            deriving Show
 
 textToFloat :: String -> Float
@@ -58,14 +50,6 @@ parseEquipmentTag = Description <$> parseDescription
                 <|> Cost <$> parseCost
                 <|> ACCheck <$> parseACCheck
                 <|> EquipmentType <$> parseEquipmentType
-                <|> EquipmentBonus <$> parseBonus
-                <|> Restricted <$> parseRestriction
-                <|> Global <$> parseGlobalTags
-
-parseEquipment :: String -> PParser [EquipmentDefinition]
-parseEquipment equipmentName = do
-  equipmentTags <- tabs *> parseEquipmentTag `sepBy` tabs
-  return $ Name equipmentName : equipmentTags
 
 instance LSTObject EquipmentDefinition where
-  parseLine = parseEquipment
+  parseSpecificTags = parseEquipmentTag

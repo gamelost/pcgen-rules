@@ -7,10 +7,6 @@ import Text.Parsec.Combinator (sepBy, option)
 import Text.Parsec.Prim (try)
 import ClassyPrelude hiding (try)
 
-import Lst.GlobalTags
-import Clear(parseClear, ClearTag(..))
-import Bonus(parseBonus, Bonus)
-import Restrictions(Restriction, parseRestriction)
 import Modifications
 import Common
 
@@ -31,18 +27,12 @@ data Class = AllClasses
            | Subset [String]
              deriving Show
 
-data SkillDefinition = Name String
-                     | Type [String]
+data SkillDefinition = Type [String]
                      | ArmorClassCheck ArmorCheck
                      | Classes Class
                      | Exclusive Bool
                      | UniqueKey String
                      | Visibility (Visible, Bool)
-                     -- shared tags
-                     | SkillClear ClearTag
-                     | Global GlobalTag
-                     | SkillBonus Bonus
-                     | Restricted Restriction
                        deriving Show
 
 type SkillTag = PParser SkillDefinition
@@ -89,21 +79,12 @@ parseVisibility = do
     matchVisibility _ = Always
 
 parseSkillTag :: SkillTag
-parseSkillTag = SkillClear <$> parseClear
-            <|> parseArmorCheck
+parseSkillTag = parseArmorCheck
             <|> parseType
             <|> parseClasses
             <|> parseExclusive
             <|> parseVisibility
             <|> parseUniqueKey
-            <|> SkillBonus <$> parseBonus
-            <|> Restricted <$> parseRestriction
-            <|> Global <$> parseGlobalTags
-
-parseSkillDefinition :: String -> PParser [SkillDefinition]
-parseSkillDefinition name = do
-  skillTags <- parseSkillTag `sepBy` tabs
-  return $ skillTags ++ [Name name]
 
 instance LSTObject SkillDefinition where
-  parseLine = parseSkillDefinition
+  parseSpecificTags = parseSkillTag

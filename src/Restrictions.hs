@@ -10,23 +10,23 @@ import Control.Applicative
 import JEPFormula
 import Common
 
-data Restriction = PreClassRestriction PreClass
-                 | PreClassSkillRestriction PreClassSkill
-                 | PreVarRestriction PreVar
-                 | PreAlignRestriction PreAlign
-                 | PreAbilityRestriction PreAbility
-                 | PreDeityRestriction PreDeity
-                 | PreDomainRestriction PreDomain
-                 | PreFeatRestriction PreFeat
-                 | PreItemRestriction PreItem
-                 | PreRaceRestriction PreRace
-                 | PreMoveRestriction PreMove
-                 | PreSkillRestriction PreSkill
-                 | PreSkillTotalRestriction PreSkillTot
-                 | PreRuleRestriction PreRule
-                 | PreMultipleRestriction PreMult
-                 | Invert Restriction
-                   deriving (Show, Eq)
+data RestrictionTag = PreClassRestriction PreClass
+                    | PreClassSkillRestriction PreClassSkill
+                    | PreVarRestriction PreVar
+                    | PreAlignRestriction PreAlign
+                    | PreAbilityRestriction PreAbility
+                    | PreDeityRestriction PreDeity
+                    | PreDomainRestriction PreDomain
+                    | PreFeatRestriction PreFeat
+                    | PreItemRestriction PreItem
+                    | PreRaceRestriction PreRace
+                    | PreMoveRestriction PreMove
+                    | PreSkillRestriction PreSkill
+                    | PreSkillTotalRestriction PreSkillTot
+                    | PreRuleRestriction PreRule
+                    | PreMultipleRestriction PreMult
+                    | Invert RestrictionTag
+                      deriving (Show, Eq)
 
 -- PREABILITY:x,CATEGORY=y,z,z,z...
 --   x is the number of abilities needed
@@ -220,7 +220,7 @@ parsePreMove = do
 --   x is number of restrictions to pass
 --   y is any restriction in square brackets
 data PreMult = PreMult { restrictionNumber :: Int
-                       , restrictionsToPass :: [Restriction] }
+                       , restrictionsToPass :: [RestrictionTag] }
              deriving (Show, Eq)
 
 parsePreMult :: PParser PreMult
@@ -341,7 +341,7 @@ parsePreVar = do
     convertOperator "NEQ" = NEQ
     convertOperator _ = error "invalid PREVAR operator"
 
-parsePossibleRestriction :: PParser Restriction
+parsePossibleRestriction :: PParser RestrictionTag
 parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreClassSkillRestriction <$> parsePreClassSkill
                        <|> PreClassRestriction <$> parsePreClass
@@ -358,12 +358,12 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreSkillRestriction <$> parsePreSkill
                        <|> PreMultipleRestriction <$> parsePreMult
 
-parseRestriction :: PParser Restriction
+parseRestriction :: PParser RestrictionTag
 parseRestriction = parseInvertedRestriction parsePossibleRestriction
                                         <|> parsePossibleRestriction where
   parseInvertedRestriction p = char '!' >> Invert <$> p
 
 -- for chained restrictions (e.g., BONUS tags)
-parseAdditionalRestrictions :: PParser [Restriction]
+parseAdditionalRestrictions :: PParser [RestrictionTag]
 parseAdditionalRestrictions = many $ try restrictions where
   restrictions = char '|' >> parseRestriction

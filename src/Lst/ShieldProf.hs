@@ -1,23 +1,12 @@
 module Lst.ShieldProf where
 
-import Text.Parsec.Combinator (sepBy)
+import Text.Parsec.Prim (parserZero)
 import ClassyPrelude
 
 import Modifications
-import Restrictions
-import Common
 
-data ShieldProficency = Name String
-                      | Restricted Restriction
-                        deriving Show
-
-parseShieldProficencyTag :: PParser ShieldProficency
-parseShieldProficencyTag = Restricted <$> parseRestriction
-
-parseShieldProficency :: String -> PParser [ShieldProficency]
-parseShieldProficency shieldName = do
-  shieldTags <- tabs *> parseShieldProficencyTag `sepBy` tabs
-  return $ shieldTags ++ [Name shieldName]
+-- no shield specific tags!
+data ShieldProficency = Void deriving Show
 
 instance LSTObject ShieldProficency where
-  parseLine = parseShieldProficency
+  parseSpecificTags = parserZero

@@ -7,24 +7,14 @@ import Text.Parsec.Combinator (sepBy)
 import ClassyPrelude
 
 import Modifications
-import Restrictions
-import Lst.GlobalTags
-import Clear(parseClear, ClearTag(..))
-import Bonus(parseBonus, Bonus)
 import Common
 
 type DomainSpell = (String, Int, String)
 
-data DomainDefinition = Name String
-                      | DomainDescription String
+data DomainDefinition = DomainDescription String
                       | DomainSpellLevel [DomainSpell]
                       | DomainType String
                       | DomainKey String
-                      -- shared tags
-                      | Global GlobalTag
-                      | DomainBonus Bonus
-                      | DomainClear ClearTag
-                      | Restricted Restriction
                         deriving Show
 
 parseDescription :: PParser String
@@ -48,19 +38,10 @@ parseSpellLevel = do
       return (word, textToInt level, description)
 
 parseDomainTag :: PParser DomainDefinition
-parseDomainTag = DomainClear <$> parseClear
-             <|> DomainDescription <$> parseDescription
+parseDomainTag = DomainDescription <$> parseDescription
              <|> DomainType <$> parseType
              <|> DomainKey <$> parseKey
              <|> DomainSpellLevel <$> parseSpellLevel
-             <|> DomainBonus <$> parseBonus
-             <|> Restricted <$> parseRestriction
-             <|> Global <$> parseGlobalTags
-
-parseDomain :: String -> PParser [DomainDefinition]
-parseDomain domainName = do
-  domainTags <- tabs *> parseDomainTag `sepBy` tabs
-  return $ Name domainName : domainTags
 
 instance LSTObject DomainDefinition where
-  parseLine = parseDomain
+  parseSpecificTags = parseDomainTag

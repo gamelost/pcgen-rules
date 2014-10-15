@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 
-module Lst.GlobalTags (GlobalTag, parseGlobalTags) where
+module Lst.GlobalTags (GlobalTag, parseGlobal) where
 
 import qualified Data.Map as M
 
@@ -10,7 +10,7 @@ import Text.Parsec.Prim (try)
 import Control.Monad.State (get, put)
 import ClassyPrelude hiding (try)
 
-import Restrictions (Restriction, parseAdditionalRestrictions)
+import Restrictions (RestrictionTag, parseAdditionalRestrictions)
 import JEPFormula
 import Common
 
@@ -73,7 +73,7 @@ parseSelect :: PParser Formula
 parseSelect = tag "SELECT" >> parseFormula
 
 data Vision = Vision { visionType :: String
-                     , visionRestrictions :: [Restriction] }
+                     , visionRestrictions :: [RestrictionTag] }
               deriving (Eq, Show)
 
 parseVision :: PParser Vision
@@ -102,7 +102,8 @@ data AbilityNature = Normal | Automatic | Virtual deriving (Eq, Show)
 data Ability = Ability { abilityCategory :: String
                        , abilityNature :: AbilityNature
                        , abilityNames :: [String]
-                       , abilityRestrictions :: [Restriction] } deriving (Eq, Show)
+                       , abilityRestrictions :: [RestrictionTag] }
+               deriving (Eq, Show)
 
 -- ABILITY:x|y|z|z|...
 --   x is ability category
@@ -173,7 +174,7 @@ parseAutoEquip = do
 -- AUTO:FEAT|x|x...
 --   x is feat name
 data AutoFeat = AutoFeat { featNames :: [String]
-                         , featRestrictions :: [Restriction] }
+                         , featRestrictions :: [RestrictionTag] }
                 deriving (Eq, Show)
 
 parseAutoFeat :: PParser AutoFeat
@@ -268,7 +269,7 @@ data Spell = Spell { spellBook :: String
                    , spellTimeUnit :: String
                    , spellCasterLevel :: Formula
                    , spellNames :: [(String, Maybe Formula)]
-                   , spellRestrictions :: [Restriction] }
+                   , spellRestrictions :: [RestrictionTag] }
            deriving (Eq, Show)
 
 parseSpells :: PParser Spell
@@ -303,30 +304,30 @@ parseUnknownTag = do
   _ <- warning ("unknown tag: " ++ tagName ++ " with contents: " ++ rest) $ return ()
   return (tagName, rest)
 
-parseGlobalTags :: PParser GlobalTag
-parseGlobalTags = KeyStat <$> parseKeyStat
-              <|> SortKey <$> parseSortKey
-              <|> UseUntrained <$> parseUseUntrained
-              <|> SourcePage <$> parseSourcePage
-              <|> SourceWeb <$> parseSourceWeb
-              <|> SourceShort <$> parseSourceShort
-              <|> SourceLong <$> parseSourceLong
-              <|> ProductIdentity <$> parseProductIdentity
-              <|> OutputName <$> parseOutputName
-              <|> Select <$> parseSelect
-              <|> Define <$> parseDefine
-              <|> AbilityTag <$> parseAbility
-              <|> AddFeatTag <$> parseAddFeat
-              <|> AutoEquipTag <$> parseAutoEquip
-              <|> AutoFeatTag <$> parseAutoFeat
-              <|> AutoLanguageTag <$> parseAutoLanguage
-              <|> AutoWeaponProfTag <$> parseAutoWeaponProf
-              <|> ChooseLanguageTag <$> parseChooseLanguage
-              <|> ChooseNumberTag <$> parseChooseNumChoices
-              <|> ChooseSkillTag <$> parseChooseSkill
-              <|> ClassSkill <$> parseClassSkill
-              <|> SpellTag <$> parseSpells
-              <|> SpecialAbilityTag <$> parseSpecialAbilityName
-              <|> VirtualFeatTag <$> parseVirtualFeat
-              <|> VisionTag <$> parseVision
-              <|> Unknown <$> parseUnknownTag -- must be the very LAST thing tried
+parseGlobal :: PParser GlobalTag
+parseGlobal = KeyStat <$> parseKeyStat
+          <|> SortKey <$> parseSortKey
+          <|> UseUntrained <$> parseUseUntrained
+          <|> SourcePage <$> parseSourcePage
+          <|> SourceWeb <$> parseSourceWeb
+          <|> SourceShort <$> parseSourceShort
+          <|> SourceLong <$> parseSourceLong
+          <|> ProductIdentity <$> parseProductIdentity
+          <|> OutputName <$> parseOutputName
+          <|> Select <$> parseSelect
+          <|> Define <$> parseDefine
+          <|> AbilityTag <$> parseAbility
+          <|> AddFeatTag <$> parseAddFeat
+          <|> AutoEquipTag <$> parseAutoEquip
+          <|> AutoFeatTag <$> parseAutoFeat
+          <|> AutoLanguageTag <$> parseAutoLanguage
+          <|> AutoWeaponProfTag <$> parseAutoWeaponProf
+          <|> ChooseLanguageTag <$> parseChooseLanguage
+          <|> ChooseNumberTag <$> parseChooseNumChoices
+          <|> ChooseSkillTag <$> parseChooseSkill
+          <|> ClassSkill <$> parseClassSkill
+          <|> SpellTag <$> parseSpells
+          <|> SpecialAbilityTag <$> parseSpecialAbilityName
+          <|> VirtualFeatTag <$> parseVirtualFeat
+          <|> VisionTag <$> parseVision
+          <|> Unknown <$> parseUnknownTag -- must be the very LAST thing tried

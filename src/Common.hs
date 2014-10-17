@@ -2,18 +2,19 @@
 
 module Common where
 
-import Prelude
 import qualified Data.ByteString as B
-import Data.ByteString.UTF8(toString)
-import Control.Monad(liftM)
-import Control.Monad.State(State, runState)
-import Control.Applicative((<*), (*>))
-import Text.Parsec.Char
-import Text.Parsec.Combinator
-import Text.Parsec.String()
-import Text.Parsec.Prim hiding (State)
 import qualified Data.Map.Strict as M
+
+import Data.ByteString.UTF8 (toString)
+import Control.Monad (liftM)
+import Control.Monad.State (State, runState)
+import Control.Applicative ((<*), (*>), (<|>))
+import Text.Parsec.Char (char, string, anyChar, satisfy, spaces, tab, newline, upper, digit)
+import Text.Parsec.Combinator (many1, sepBy, manyTill, option, optionMaybe, skipMany1, eof)
+import Text.Parsec.Prim (try, skipMany, ParsecT, (<?>), runParserT, lookAhead)
+import Text.Parsec.String ()
 import Debug.Trace(trace)
+import Prelude
 
 type Variables = M.Map String Int
 type PParser a = ParsecT String () (State Variables) a

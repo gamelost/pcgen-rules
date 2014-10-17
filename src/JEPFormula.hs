@@ -125,7 +125,7 @@ evalJEPFormulae vars (Variable v) =
   case M.lookup v vars of
     Just n -> toRational n
     Nothing ->
-      --(warning $ "variable \"" ++ v ++ "\" was not found")
+      (warning $ "variable \"" ++ v ++ "\" was not found")
       0
 
 parseNumber :: PParser Formula

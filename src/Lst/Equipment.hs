@@ -16,6 +16,7 @@ data EquipmentDefinition = Description String
                          | Cost Float
                          | Weight Float
                          | ACCheck Formula
+                         | Size EquipmentSize
                          | EquipmentType [String]
                            deriving Show
 
@@ -44,11 +45,39 @@ parseEquipmentType = tag "TYPE" *> parseWordAndNumbers `sepBy1` char '.' where
 parseDescription :: PParser String
 parseDescription = tag "DESC" *> restOfTag
 
+data EquipmentSize = Fine
+                   | Diminutive
+                   | Tiny
+                   | Small
+                   | Medium
+                   | Large
+                   | Huge
+                   | Gargantuan
+                   | Colossal
+                   | PC
+                   | OtherSize String
+                     deriving (Show, Eq)
+
+parseSize :: PParser EquipmentSize
+parseSize = tag "SIZE" *> parseEquipmentSize where
+  parseEquipmentSize = (Fine <$ labeled "F")
+                   <|> (Diminutive <$ labeled "D")
+                   <|> (Tiny <$ labeled "T")
+                   <|> (Small <$ labeled "S")
+                   <|> (Medium <$ labeled "M")
+                   <|> (Large <$ labeled "L")
+                   <|> (Huge <$ labeled "H")
+                   <|> (Gargantuan <$ labeled "G")
+                   <|> (Colossal <$ labeled "C")
+                   <|> (PC <$ labeled "PC")
+                   <|> (OtherSize <$> parseString)
+
 parseEquipmentTag :: PParser EquipmentDefinition
 parseEquipmentTag = Description <$> parseDescription
                 <|> Weight <$> parseWeight
                 <|> Cost <$> parseCost
                 <|> ACCheck <$> parseACCheck
+                <|> Size <$> parseSize
                 <|> EquipmentType <$> parseEquipmentType
 
 instance LSTObject EquipmentDefinition where

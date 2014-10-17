@@ -3,15 +3,17 @@
 module JEPFormula ( Formula(..)
                   , Operand(..)
                   , SkillType(..)
+                  , Roll(..)
                   , parseFormula
                   , parseQuotedString
+                  , parseRoll
                   , evalJEPFormula
                   ) where
 
 import qualified Data.Map as M
 
 import Text.Parsec.Char (char, space, anyChar, satisfy)
-import Text.Parsec.Combinator (manyTill, choice, sepBy, optional)
+import Text.Parsec.Combinator (manyTill, choice, sepBy, optional, option)
 import Text.Parsec.Expr (Assoc(..), Operator(..), buildExpressionParser)
 import Text.Parsec.Prim (many, try)
 import Control.Monad.State (State, get, msum)
@@ -19,6 +21,11 @@ import ClassyPrelude hiding (try, minimum, maximum, head)
 import Prelude(minimum, maximum, head)
 
 import Common
+
+data Roll = Roll { number :: Int
+                 , sides :: Int
+                 , modifier :: Int }
+            deriving (Show, Eq)
 
 data Operand = Divide
              | Multiply
@@ -127,6 +134,15 @@ evalJEPFormulae vars (Variable v) =
     Nothing ->
       (warning $ "variable \"" ++ v ++ "\" was not found")
       0
+
+parseRoll :: PParser Roll
+parseRoll = do
+  number <- textToInt <$> manyNumbers
+  _ <- optional $ char 'd'
+  sides <- option 0 $ textToInt <$> manyNumbers
+  _ <- optional $ char '+'
+  modifier <- option 0 $ textToInt <$> manyNumbers
+  return Roll { .. }
 
 parseNumber :: PParser Formula
 parseNumber = Number <$> parseSignedNumber where

@@ -38,6 +38,9 @@ data GlobalTag = KeyStat String
                | SpellTag Spell
                | ChooseLanguageTag [ChooseLanguage]
                | ChooseNumberTag Choices
+               | Damage Roll
+               | SecondaryDamage Roll
+               | CriticalRange Int
                | ChooseSkillTag [ChooseSkill]
                | Unknown (String, String)
                  deriving (Eq, Show)
@@ -71,6 +74,15 @@ parseOutputName = tag "OUTPUTNAME" >> restOfTag
 
 parseSelect :: PParser Formula
 parseSelect = tag "SELECT" >> parseFormula
+
+parseDamage :: PParser Roll
+parseDamage = tag "DAMAGE" *> parseRoll
+
+parseAltDamage :: PParser Roll
+parseAltDamage = tag "ALTDAMAGE" *> parseRoll
+
+parseCritRange :: PParser Int
+parseCritRange = tag "CRITRANGE" *> (textToInt <$> manyNumbers)
 
 data Vision = Vision { visionType :: String
                      , visionRestrictions :: [RestrictionTag] }
@@ -322,6 +334,9 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> AutoFeatTag <$> parseAutoFeat
           <|> AutoLanguageTag <$> parseAutoLanguage
           <|> AutoWeaponProfTag <$> parseAutoWeaponProf
+          <|> Damage <$> parseDamage
+          <|> SecondaryDamage <$> parseAltDamage
+          <|> CriticalRange <$> parseCritRange
           <|> ChooseLanguageTag <$> parseChooseLanguage
           <|> ChooseNumberTag <$> parseChooseNumChoices
           <|> ChooseSkillTag <$> parseChooseSkill

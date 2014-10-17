@@ -5,8 +5,6 @@ module Bonus where
 import Text.Parsec.Char (char, space, string)
 import Text.Parsec.Combinator (sepBy, option)
 import Text.Parsec.Prim (many, try)
--- import Control.Exception hiding (try)
--- import Data.Maybe
 import ClassyPrelude hiding (try)
 
 import Restrictions (RestrictionTag, parseAdditionalRestrictions)
@@ -20,6 +18,7 @@ data BonusTag = BonusSkill Skill
               | BonusWeaponProperty BonusWeaponProp
               | BonusAbilityPool BonusAbility
               | BonusCasterLevel CasterLevel
+              | BonusCombat Combat
               | BonusCheck Checks
               | BonusDifficultyClass BonusDC
               | BonusVision BonusVisionData
@@ -114,6 +113,68 @@ parseBonusCheck = do
               <|> (labeled "BASE." >> CheckBase <$> parseString)
               <|> CheckName <$> parseString
     parseCheckType = labeled "TYPE=" *> parseString
+
+-- BONUS:COMBAT|x|y
+--   x is combat bonus type
+--   y is formula
+data BonusCombatCategory = BC_AC
+                         | BC_ATTACKS
+                         | BC_BAB
+                         | BC_BASEAB
+                         | BC_DAMAGE_TYPE String
+                         | BC_DAMAGEMULT_OFFHAND -- 0
+                         | BC_DAMAGEMULT_PRIMARY -- 1
+                         | BC_DAMAGEMULT_TWO_HAND -- 2
+                         | BC_DAMAGESIZE
+                         | BC_DAMAGE_SHORTRANGE
+                         | BC_EPICAB
+                         | BC_INITIATIVE
+                         | BC_REACH
+                         | BC_RANGEPENALTY
+                         | BC_SECONDARYATTACKS
+                         | BC_SECONDARYDAMAGE
+                         | BC_TOHIT
+                         | BC_TOHIT_TYPE String
+                         | BC_TOHIT_PRIMARY
+                         | BC_TOHIT_SECONDARY
+                         | BC_TOHIT_SHORTRANGE
+                           deriving (Show, Eq)
+
+data Combat = Combat { combatCategory :: BonusCombatCategory
+                     , combatFormula :: Formula
+                     , combatType :: Maybe (String, Bool)
+                     , combatRestrictions :: [RestrictionTag] }
+              deriving (Show, Eq)
+
+
+parseBonusCombat :: PParser Combat
+parseBonusCombat = do
+  _ <- bonusTag "COMBAT"
+  combatCategory <- parseCombatType
+  combatFormula <- char '|' *> parseFormula
+  (combatRestrictions, combatType) <- parseBonusRestrictionsAndType
+  return Combat { .. } where
+    parseCombatType = (BC_AC <$ labeled "AC")
+                  <|> (BC_ATTACKS <$ labeled "ATTACKS")
+                  <|> (BC_BAB <$ labeled "BAB")
+                  <|> (BC_BASEAB <$ labeled "BASEAB")
+                  <|> (labeled "DAMAGE." >> BC_DAMAGE_TYPE <$> parseString)
+                  <|> (BC_DAMAGEMULT_OFFHAND <$ labeled "DAMAGEMULT:0")
+                  <|> (BC_DAMAGEMULT_PRIMARY <$ labeled "DAMAGEMULT:1")
+                  <|> (BC_DAMAGEMULT_TWO_HAND <$ labeled "DAMAGEMULT:2")
+                  <|> (BC_DAMAGESIZE <$ labeled "DAMAGESIZE")
+                  <|> (BC_DAMAGE_SHORTRANGE <$ labeled "DAMAGE-SHORTRANGE")
+                  <|> (BC_EPICAB <$ labeled "EPICAB")
+                  <|> (BC_INITIATIVE <$ labeled "INITIATIVE")
+                  <|> (BC_REACH <$ labeled "REACH")
+                  <|> (BC_RANGEPENALTY <$ labeled "RANGEPENALTY")
+                  <|> (BC_SECONDARYATTACKS <$ labeled "SECONDARYATTACKS")
+                  <|> (BC_SECONDARYDAMAGE <$ labeled "SECONDARYDAMAGE")
+                  <|> (BC_TOHIT <$ labeled "TOHIT")
+                  <|> (labeled "TOHIT." >> BC_TOHIT_TYPE <$> parseString)
+                  <|> (BC_TOHIT_PRIMARY <$ labeled "TOHIT-PRIMARY")
+                  <|> (BC_TOHIT_SECONDARY <$ labeled "TOHIT-SECONDARY")
+                  <|> (BC_TOHIT_SHORTRANGE <$ labeled "TOHIT-SHORTRANGE")
 
 -- BONUS:DC|x|y
 --   x is spell, class, domain
@@ -440,6 +501,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusAbilityPool <$> parseBonusAbilityPool
             <|> BonusCasterLevel <$> parseBonusCasterLevel
             <|> BonusCheck <$> parseBonusCheck
+            <|> BonusCombat <$> parseBonusCombat
             <|> BonusDifficultyClass <$> parseBonusDC
             <|> BonusMovement <$> parseBonusMoveAdd
             <|> BonusVision <$> parseBonusVision

@@ -1,9 +1,8 @@
-{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Modifications where
 
-import Text.Parsec.Combinator (sepBy)
-import Text.Parsec.Combinator (eof)
+import Text.Parsec.Combinator (sepBy, eof)
 import Data.Maybe (fromJust)
 import ClassyPrelude
 

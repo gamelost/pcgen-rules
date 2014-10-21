@@ -4,20 +4,23 @@ module Common where
 
 import qualified Data.ByteString as B
 import qualified Data.Map.Strict as M
+import qualified Data.Text as T
 
-import Data.ByteString.UTF8 (toString)
+import Data.Text.Encoding (decodeUtf8With)
+import Data.Text.Encoding.Error (lenientDecode)
 import Control.Monad (liftM)
 import Control.Monad.State (State, runState)
 import Control.Applicative ((<*), (*>), (<|>))
+import Text.Parsec.Text()
 import Text.Parsec.Char (char, string, anyChar, satisfy, spaces, tab, newline, upper, digit)
 import Text.Parsec.Combinator (many1, sepBy, manyTill, option, optionMaybe, skipMany1, eof)
 import Text.Parsec.Prim (try, skipMany, ParsecT, (<?>), runParserT, lookAhead)
-import Text.Parsec.String ()
 import Debug.Trace(trace)
 import Prelude
 
 type Variables = M.Map String Int
-type PParser a = ParsecT String () (State Variables) a
+
+type PParser a = ParsecT T.Text () (State Variables) a
 
 warning :: String -> a -> a
 warning x = trace $ "Warning: " ++ x
@@ -98,7 +101,7 @@ parseTill c = manyTill anyChar $ char c
 yesOrNo :: PParser Bool
 yesOrNo = liftM (== "YES") allCaps
 
-parseResult :: Show a => PParser a -> FilePath -> String -> a
+parseResult :: Show a => PParser a -> FilePath -> T.Text -> a
 parseResult parser filename contents =
   let doall = parser <* eof in
   let result = runParserT doall () filename contents in
@@ -109,6 +112,6 @@ parseResult parser filename contents =
       let _ = trace $ "variable dump: " ++ show vars in
       success
 
-readContents :: FilePath -> IO String
+readContents :: FilePath -> IO T.Text
 readContents filename = B.readFile filename >>= spit where
-  spit x = return $ toString x
+  spit x = return $ decodeUtf8With lenientDecode x

@@ -10,6 +10,7 @@ module JEPFormula ( Formula(..)
                   , evalJEPFormula
                   ) where
 
+import qualified Data.Text as T
 import qualified Data.Map as M
 
 import Text.Parsec.Char (char, space, anyChar, satisfy)
@@ -192,7 +193,7 @@ parseFunction = do
   args <- char '(' >> parseFormula `sepBy` char ',' <* char ')'
   return $ Function f args
 
-table :: [[Operator String () (State Variables) Formula]]
+table :: [[Operator T.Text () (State Variables) Formula]]
 table = [ [ Prefix negateFormula ]
         , [ Infix multiplyFormula AssocLeft, Infix divideFormula AssocLeft ]
         , [ Infix addFormula AssocLeft, Infix subtractFormula AssocLeft ]

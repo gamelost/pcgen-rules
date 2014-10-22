@@ -25,9 +25,6 @@ type PParser a = ParsecT T.Text () (State Variables) a
 warning :: String -> a -> a
 warning x = trace $ "Warning: " ++ x
 
-traceM :: Monad m => String -> m ()
-traceM str = trace str $ return ()
-
 -- conversion from attoparsec -> parsec
 inClass :: String -> Char -> Bool
 inClass "" = const False

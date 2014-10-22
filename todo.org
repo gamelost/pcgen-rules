@@ -17,7 +17,8 @@
 - [ ] CLASS (block-based) (0/304)
 - [ ] ABILITY (0/424)
 - [ ] ABILITYCATEGORY (0/165)
-* general [0/4]
+* general [0/5]
+** TODO add default restrictions/tags for bonus
 ** TODO add catch-all for tags (with optional trace)
 ** TODO narrow down parseString*: way too general
 ** TODO look at data/zen-test/... -- is this something we can use?

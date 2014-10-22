@@ -174,8 +174,8 @@ _parsePreEquip s = do
   _ <- char ','
   preEquipTypes <- parsePreEquipmentType `sepBy` char ','
   return PreEquip { preEquipNumber = textToInt n, .. } where
-    parsePreEquipmentType = (labeled "WIELDCATEGORY=" >> WieldCategory <$> parseString)
-                        <|> (labeled "TYPE=" >> EquipmentType <$> parseString)
+    parsePreEquipmentType = (labeled "WIELDCATEGORY=" >> WieldCategory <$> parseStringNoCommasBrackets)
+                        <|> (labeled "TYPE=" >> EquipmentType <$> parseStringNoCommasBrackets)
                         <|> (EquipmentName <$> parseString)
 
 parsePreEquip :: PParser PreEquip

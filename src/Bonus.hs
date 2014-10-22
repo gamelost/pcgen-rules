@@ -327,7 +327,9 @@ parseBonusSkillRank = do
 --   x is stat name
 --   y is formula
 data BonusStat = BonusStat { bonusStatNames :: [String]
-                           , bonusStatFormula :: Formula }
+                           , bonusStatFormula :: Formula
+                           , bonusStatType :: Maybe (String, Bool)
+                           , bonusStatRestrictions :: [RestrictionTag] }
                deriving (Show, Eq)
 
 parseBonusStat :: PParser BonusStat
@@ -335,6 +337,7 @@ parseBonusStat = do
   _ <- bonusTag "STAT"
   bonusStatNames <- parseStringNoCommas `sepBy` char ','
   bonusStatFormula <- char '|' *> parseFormula
+  (bonusStatRestrictions, bonusStatType) <- parseBonusRestrictionsAndType
   return BonusStat { .. }
 
 -- BONUS:VAR|x,x,...|y
@@ -375,7 +378,9 @@ parseBonusVision = do
 --   x is weapon property
 --   y is number, variable, or formula to add
 data BonusWeaponProp = BonusWeaponProp { bonusWeaponProperties :: [BonusWeaponProperty]
-                                       , bonusWeaponFormula :: Formula }
+                                       , bonusWeaponFormula :: Formula
+                                       , bonusWeaponType :: Maybe (String, Bool)
+                                       , bonusWeaponRestrictions :: [RestrictionTag] }
                      deriving (Show, Eq)
 
 data BonusWeaponProperty = ATTACKS
@@ -395,6 +400,7 @@ parseBonusWeaponProp = do
   _ <- bonusTag "WEAPON"
   bonusWeaponProperties <- parseWeaponProperty `sepBy` char ','
   bonusWeaponFormula <- char '|' *> parseFormula
+  (bonusWeaponRestrictions, bonusWeaponType) <- parseBonusRestrictionsAndType
   return BonusWeaponProp { .. } where
     parseWeaponProperty = (ATTACKS <$ labeled "ATTACKS")
                       <|> (ATTACKSPROGRESS <$ labeled "ATTACKSPROGRESS")

@@ -14,6 +14,10 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreClassSkillRestriction PreClassSkill
                     | PreVarRestriction PreVar
                     | PreAlignRestriction PreAlign
+                    | PreEquipRestriction PreEquip
+                    | PreEquipBothRestriction PreEquip
+                    | PreEquipPrimaryRestriction PreEquip
+                    | PreEquipSecondaryRestriction PreEquip
                     | PreAbilityRestriction PreAbility
                     | PreDeityRestriction PreDeity
                     | PreDomainRestriction PreDomain
@@ -152,6 +156,40 @@ parsePreDomain = do
     parseDomain = (DomainAny <$ labeled "ANY")
               <|> DomainName <$> parseStringNoCommasBrackets
 
+-- PREEQUIP:x,y,y...
+--   x is number
+--   y is text, type, or wield category
+data PreEquipmentType = EquipmentName String
+                      | EquipmentType String
+                      | WieldCategory String
+                        deriving (Show, Eq)
+
+data PreEquip = PreEquip { preEquipNumber :: Int
+                         , preEquipTypes :: [PreEquipmentType] }
+              deriving (Show, Eq)
+
+_parsePreEquip :: String -> PParser PreEquip
+_parsePreEquip s = do
+  n <- tag s >> manyNumbers
+  _ <- char ','
+  preEquipTypes <- parsePreEquipmentType `sepBy` char ','
+  return PreEquip { preEquipNumber = textToInt n, .. } where
+    parsePreEquipmentType = (labeled "WIELDCATEGORY=" >> WieldCategory <$> parseString)
+                        <|> (labeled "TYPE=" >> EquipmentType <$> parseString)
+                        <|> (EquipmentName <$> parseString)
+
+parsePreEquip :: PParser PreEquip
+parsePreEquip = _parsePreEquip "PREEQUIP"
+
+parsePreEquipPrimary :: PParser PreEquip
+parsePreEquipPrimary = _parsePreEquip "PREEQUIPPRIMARY"
+
+parsePreEquipSecondary :: PParser PreEquip
+parsePreEquipSecondary = _parsePreEquip "PREEQUIPSECONDARY"
+
+parsePreEquipBoth :: PParser PreEquip
+parsePreEquipBoth = _parsePreEquip "PREEQUIPBOTH"
+
 -- PREFEAT:x,y,z,z,..
 --   x is number of required feats
 --   y can be CHECKMULT
@@ -163,7 +201,7 @@ data Feat = FeatName String
 data PreFeat = PreFeat { featNumber :: Int
                        , feats :: [Feat]
                        , countSeparately :: Bool
-                       , cannotHave :: Bool}
+                       , cannotHave :: Bool }
                deriving (Show, Eq)
 
 parsePreFeat :: PParser PreFeat
@@ -354,6 +392,10 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreMoveRestriction <$> parsePreMove
                        <|> PreRuleRestriction <$> parsePreRule
                        <|> PreAlignRestriction <$> parsePreAlign
+                       <|> PreEquipRestriction <$> parsePreEquip
+                       <|> PreEquipBothRestriction <$> parsePreEquipBoth
+                       <|> PreEquipPrimaryRestriction <$> parsePreEquipSecondary
+                       <|> PreEquipSecondaryRestriction <$> parsePreEquipSecondary
                        <|> PreSkillTotalRestriction <$> parsePreSkillTotal
                        <|> PreSkillRestriction <$> parsePreSkill
                        <|> PreMultipleRestriction <$> parsePreMult

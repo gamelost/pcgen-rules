@@ -11,7 +11,7 @@ import Restrictions (RestrictionTag, parseAdditionalRestrictions)
 import JEPFormula
 import Common
 
-data BonusTag = BonusSkill Skill
+data Bonus = BonusSkill Skill
               | BonusSkillRank SkillRank
               | BonusVariable BonusVar
               | BonusWeaponProficency BonusWeaponProf
@@ -28,16 +28,41 @@ data BonusTag = BonusSkill Skill
               | TemporaryBonus TempBonus
                 deriving (Show, Eq)
 
+data BonusTag = BonusTag { bonus :: Bonus
+                         , bonusType :: Maybe (String, Bool)
+                         , bonusRestrictions :: [RestrictionTag] }
+                deriving (Show, Eq)
+
+
 bonusTag :: String -> PParser String
 bonusTag t = labeled $ t ++ "|"
+
+-- we have far more bonus types, but for now, stick with a simple (Text, Bool)
+parseBonusType :: PParser (String, Bool)
+parseBonusType = do
+  bonusType <- types *> parseString
+  let testForStack = stripSuffix ".STACK" bonusType
+  return (fromMaybe bonusType testForStack, isJust testForStack) where
+    types = labeled "|TYPE="
+        <|> labeled "|SKILLTYPE="
+
+-- bonus types can be found either before or after restrictions
+parseBonusRestrictionsAndType :: PParser ([RestrictionTag], Maybe (String, Bool))
+parseBonusRestrictionsAndType = do
+  type1 <- tryOption parseBonusType
+  restrictions <- tryOption parseAdditionalRestrictions
+  type2 <- tryOption parseBonusType
+  -- make sure we didn't parse bonus TYPEs both times!
+  let _ = assert (isJust type1 && isJust type2)
+  let bonusType = type1 <|> type2
+  let bonusRestrictions = fromMaybe [] restrictions
+  return (bonusRestrictions, bonusType)
 
 -- BONUS:ABILITYPOOL|x|y
 --   x is ability category
 --   y is formula added to pool (not number!)
 data BonusAbility = BonusAbility { abilityCategory :: String
-                                 , abilityPoolFormula :: Formula
-                                 , abilityType :: Maybe (String, Bool)
-                                 , abilityRestrictions :: [RestrictionTag] }
+                                 , abilityPoolFormula :: Formula }
                   deriving (Show, Eq)
 
 parseBonusAbilityPool :: PParser BonusAbility
@@ -45,7 +70,6 @@ parseBonusAbilityPool = do
   _ <- bonusTag "ABILITYPOOL"
   abilityCategory <- parseTill '|'
   abilityPoolFormula <- parseFormula
-  (abilityRestrictions, abilityType) <- parseBonusRestrictionsAndType
   return BonusAbility { .. }
 
 -- BONUS:CASTERLEVEL|SUBSCHOOL.Creation|1|PRERULE:1,SYS_DOMAIN
@@ -65,8 +89,7 @@ data CasterLevelType = CLAllSpells
                        deriving (Show, Eq)
 
 data CasterLevel = CasterLevel { casterLevel :: CasterLevelType
-                               , casterFormula :: Formula
-                               , casterRestrictions :: [RestrictionTag] }
+                               , casterFormula :: Formula }
                  deriving (Show, Eq)
 
 parseBonusCasterLevel :: PParser CasterLevel
@@ -74,7 +97,6 @@ parseBonusCasterLevel = do
   _ <- bonusTag "CASTERLEVEL"
   casterLevel <- parseCasterLevelType
   casterFormula <- parseFormula
-  casterRestrictions <- option [] parseAdditionalRestrictions
   return CasterLevel { .. } where
     parseCasterLevelType :: PParser CasterLevelType
     parseCasterLevelType = (CLAllSpells <$ labeled "ALLSPELLS")
@@ -97,8 +119,7 @@ data CheckName = CheckAll
                  deriving (Show, Eq)
 
 data Checks = Checks { checks :: [CheckName]
-                     , checkFormula :: Formula
-                     , checkType :: Maybe String }
+                     , checkFormula :: Formula }
               deriving (Show, Eq)
 
 parseBonusCheck :: PParser Checks
@@ -106,13 +127,11 @@ parseBonusCheck = do
   _ <- bonusTag "CHECKS"
   checks <- parseChecks `sepBy` char ','
   checkFormula <- char '|' *> parseFormula
-  checkType <- tryOption (char '|' *> parseCheckType)
   return Checks { .. } where
     parseChecks :: PParser CheckName
     parseChecks = (CheckAll <$ labeled "ALL")
               <|> (labeled "BASE." >> CheckBase <$> parseString)
               <|> CheckName <$> parseString
-    parseCheckType = labeled "TYPE=" *> parseString
 
 -- BONUS:COMBAT|x|y
 --   x is combat bonus type
@@ -141,9 +160,7 @@ data BonusCombatCategory = BC_AC
                            deriving (Show, Eq)
 
 data Combat = Combat { combatCategory :: BonusCombatCategory
-                     , combatFormula :: Formula
-                     , combatType :: Maybe (String, Bool)
-                     , combatRestrictions :: [RestrictionTag] }
+                     , combatFormula :: Formula }
               deriving (Show, Eq)
 
 
@@ -152,7 +169,6 @@ parseBonusCombat = do
   _ <- bonusTag "COMBAT"
   combatCategory <- parseCombatType
   combatFormula <- char '|' *> parseFormula
-  (combatRestrictions, combatType) <- parseBonusRestrictionsAndType
   return Combat { .. } where
     parseCombatType = (BC_AC <$ labeled "AC")
                   <|> (BC_ATTACKS <$ labeled "ATTACKS")
@@ -218,9 +234,7 @@ data BonusMoveType = Movement String
                      deriving (Show, Eq)
 
 data BonusMove = BonusMove { bonusMove :: BonusMoveType
-                           , bonusMoveFormula :: Formula
-                           , bonusMoveType :: Maybe (String, Bool)
-                           , bonusMoveRestrictions :: [RestrictionTag] }
+                           , bonusMoveFormula :: Formula }
                deriving (Show, Eq)
 
 parseBonusMoveAdd :: PParser BonusMove
@@ -228,7 +242,6 @@ parseBonusMoveAdd = do
   _ <- bonusTag "MOVEADD"
   bonusMove <- parseBonusMoveType
   bonusMoveFormula <- char '|' *> parseFormula
-  (bonusMoveRestrictions, bonusMoveType) <- parseBonusRestrictionsAndType
   return BonusMove { .. } where
     parseBonusMoveType = (AllMovement <$ labeled "TYPE.All")
                      <|> (labeled "TYPE." >> Movement <$> parseString)
@@ -251,38 +264,14 @@ data SkillFormulaType = SkillFormula Formula
                         deriving (Show, Eq)
 
 data Skill = Skill { bonusToSkills :: [BonusToSkill]
-                   , skillFormula :: SkillFormulaType
-                   , skillType :: Maybe (String, Bool)
-                   , skillRestrictions :: [RestrictionTag] }
+                   , skillFormula :: SkillFormulaType }
              deriving (Show, Eq)
-
--- we have far more bonus types, but for now, stick with a simple (Text, Bool)
-parseBonusType :: PParser (String, Bool)
-parseBonusType = do
-  bonusType <- types *> parseString
-  let testForStack = stripSuffix ".STACK" bonusType
-  return (fromMaybe bonusType testForStack, isJust testForStack) where
-    types = labeled "|TYPE="
-        <|> labeled "|SKILLTYPE="
-
--- bonus types can be found either before or after restrictions
-parseBonusRestrictionsAndType :: PParser ([RestrictionTag], Maybe (String, Bool))
-parseBonusRestrictionsAndType = do
-  type1 <- tryOption parseBonusType
-  restrictions <- tryOption parseAdditionalRestrictions
-  type2 <- tryOption parseBonusType
-  -- make sure we didn't parse bonus TYPEs both times!
-  let _ = assert (isJust type1 && isJust type2)
-  let bonusType = type1 <|> type2
-  let bonusRestrictions = fromMaybe [] restrictions
-  return (bonusRestrictions, bonusType)
 
 parseBonusSkill :: PParser Skill
 parseBonusSkill = do
   _ <- bonusTag "SKILL"
   bonusToSkills <- parseBonusSkills `sepBy` char ','
   skillFormula <- char '|' *> parseSkillFormulaType
-  (skillRestrictions, skillType) <- parseBonusRestrictionsAndType
   return Skill { .. } where
     parseBonusSkills = parseList
                    <|> parseAll
@@ -305,9 +294,7 @@ data BonusToSkillRank = SkillRankName String
                         deriving (Show, Eq)
 
 data SkillRank = SkillRank { skillRanks :: [BonusToSkillRank]
-                           , skillRankFormula :: SkillFormulaType
-                           , skillRankType :: Maybe (String, Bool)
-                           , skillRankRestrictions :: [RestrictionTag] }
+                           , skillRankFormula :: SkillFormulaType }
                  deriving (Show, Eq)
 
 parseBonusSkillRank :: PParser SkillRank
@@ -315,7 +302,6 @@ parseBonusSkillRank = do
   _ <- bonusTag "SKILLRANK"
   skillRanks <- parseBonusSkillRanks `sepBy` char ','
   skillRankFormula <- char '|' *> parseSkillFormulaType
-  (skillRankRestrictions, skillRankType) <- parseBonusRestrictionsAndType
   return SkillRank { .. } where
     parseBonusSkillRanks = many space >> (parseSkillType <|> parseSkillName)
     parseSkillType = labeled "TYPE=" >> (SkillRankType <$> parseStringNoCommas)
@@ -327,9 +313,7 @@ parseBonusSkillRank = do
 --   x is stat name
 --   y is formula
 data BonusStat = BonusStat { bonusStatNames :: [String]
-                           , bonusStatFormula :: Formula
-                           , bonusStatType :: Maybe (String, Bool)
-                           , bonusStatRestrictions :: [RestrictionTag] }
+                           , bonusStatFormula :: Formula }
                deriving (Show, Eq)
 
 parseBonusStat :: PParser BonusStat
@@ -337,16 +321,13 @@ parseBonusStat = do
   _ <- bonusTag "STAT"
   bonusStatNames <- parseStringNoCommas `sepBy` char ','
   bonusStatFormula <- char '|' *> parseFormula
-  (bonusStatRestrictions, bonusStatType) <- parseBonusRestrictionsAndType
   return BonusStat { .. }
 
 -- BONUS:VAR|x,x,...|y
 --   x is variable name
 --   y is number, variable, or formula to adjust variable by
 data BonusVar = BonusVar { bonusVariables :: [String]
-                         , adjustBy :: Formula
-                         , bonusVarType :: Maybe (String, Bool)
-                         , bonusVarRestrictions :: [RestrictionTag] }
+                         , adjustBy :: Formula }
               deriving (Show, Eq)
 
 parseBonusVariable :: PParser BonusVar
@@ -354,16 +335,13 @@ parseBonusVariable = do
   _ <- bonusTag "VAR"
   bonusVariables <- parseString `sepBy` char ','
   adjustBy <- char '|' *> parseFormula
-  (bonusVarRestrictions, bonusVarType) <- parseBonusRestrictionsAndType
   return BonusVar { .. }
 
 -- BONUS:VISION|x|y
 --   x is vision type
 --   y is formula
 data BonusVisionData = BonusVisionData { bonusVision :: String
-                                       , bonusVisionFormula :: Formula
-                                       , bonusVisionType :: Maybe (String, Bool)
-                                       , bonusVisionRestrictions :: [RestrictionTag] }
+                                       , bonusVisionFormula :: Formula }
                  deriving (Show, Eq)
 
 parseBonusVision :: PParser BonusVisionData
@@ -371,16 +349,13 @@ parseBonusVision = do
   _ <- bonusTag "VISION"
   bonusVision <- parseTill '|'
   bonusVisionFormula <- parseFormula
-  (bonusVisionRestrictions, bonusVisionType) <- parseBonusRestrictionsAndType
   return BonusVisionData { .. }
 
 -- BONUS:WEAPON=x,x|y
 --   x is weapon property
 --   y is number, variable, or formula to add
 data BonusWeaponProp = BonusWeaponProp { bonusWeaponProperties :: [BonusWeaponProperty]
-                                       , bonusWeaponFormula :: Formula
-                                       , bonusWeaponType :: Maybe (String, Bool)
-                                       , bonusWeaponRestrictions :: [RestrictionTag] }
+                                       , bonusWeaponFormula :: Formula }
                      deriving (Show, Eq)
 
 data BonusWeaponProperty = ATTACKS
@@ -400,7 +375,6 @@ parseBonusWeaponProp = do
   _ <- bonusTag "WEAPON"
   bonusWeaponProperties <- parseWeaponProperty `sepBy` char ','
   bonusWeaponFormula <- char '|' *> parseFormula
-  (bonusWeaponRestrictions, bonusWeaponType) <- parseBonusRestrictionsAndType
   return BonusWeaponProp { .. } where
     parseWeaponProperty = (ATTACKS <$ labeled "ATTACKS")
                       <|> (ATTACKSPROGRESS <$ labeled "ATTACKSPROGRESS")
@@ -473,7 +447,7 @@ data Target = PC | ANYPC | EQUIPMENT
 
 data TempBonus = TempBonus { target :: Target
                            , equipmentType :: Maybe String
-                           , additionalBonuses :: [BonusTag]
+                           , additionalBonuses :: [Bonus]
                            -- TODO: can this ever apply to temp bonus itself?
                            , additionalRestrictions :: [RestrictionTag] }
                  deriving (Show, Eq)
@@ -500,7 +474,7 @@ parseTemporaryBonus = do
 parseBonusDescription :: PParser String
 parseBonusDescription = tag "TEMPDESC" >> restOfTag
 
-parseAnyBonus :: PParser BonusTag
+parseAnyBonus :: PParser Bonus
 parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusVariable <$> parseBonusVariable
             <|> BonusSkill <$> parseBonusSkill
@@ -515,7 +489,13 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusWeaponProficency <$> parseBonusWeaponProf
             <|> BonusWeaponProperty <$> parseBonusWeaponProp
 
+parseRawBonus :: PParser Bonus
+parseRawBonus = (tag "BONUS" *> parseAnyBonus)
+            <|> TemporaryBonus <$> parseTemporaryBonus
+            <|> BonusDescription <$> parseBonusDescription
+
 parseBonus :: PParser BonusTag
-parseBonus = (tag "BONUS" *> parseAnyBonus)
-         <|> TemporaryBonus <$> parseTemporaryBonus
-         <|> BonusDescription <$> parseBonusDescription
+parseBonus = do
+  bonus <- parseRawBonus
+  (bonusRestrictions, bonusType) <- parseBonusRestrictionsAndType
+  return BonusTag { .. }

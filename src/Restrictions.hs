@@ -45,7 +45,7 @@ parsePreAbility :: PParser PreAbility
 parsePreAbility = do
   n <- tag "PREABILITY" >> manyNumbers
   categoryName <- labeled ",CATEGORY=" >> parseWordWithSpaces
-  abilities <- char ',' >> parseString `sepBy` char ','
+  abilities <- char ',' >> parseStringNoCommasBrackets `sepBy` char ','
   return PreAbility { abilityNumber = textToInt n, .. } where
     parseWordWithSpaces = many1 $ satisfy $ inClass "-A-Za-z "
 

@@ -297,13 +297,15 @@ parseSpells = do
     parseTimes = labeled "|TIMES=" >> parseFormula
     parseTimeUnit = labeled "|TIMEUNIT=" >> parseString
     parseCasterLevel = labeled "|CASTERLEVEL=" >> parseFormula
-    parseNames = try parseNameAndDC <|> parseNameOnly
+    -- prevent accidentally swallowing up restrictions.
+    disallowed = notFollowedBy (string "PRE")
+    parseNames = try parseNameAndDC <|> try parseNameOnly
     parseNameAndDC = do
-      name <- parseStringNoCommas <* char ','
+      name <- disallowed *> parseStringNoCommas <* char ','
       spellDC <- parseFormula
       return (name, Just spellDC)
     parseNameOnly = do
-      name <- parseStringNoCommas
+      name <- disallowed *> parseStringNoCommas
       return (name, Nothing)
 
 parseVirtualFeat :: PParser [String]

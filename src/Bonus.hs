@@ -140,6 +140,7 @@ data BonusCombatCategory = BC_AC
                          | BC_ATTACKS
                          | BC_BAB
                          | BC_BASEAB
+                         | BC_DAMAGE
                          | BC_DAMAGE_TYPE String
                          | BC_DAMAGEMULT_OFFHAND -- 0
                          | BC_DAMAGEMULT_PRIMARY -- 1
@@ -159,7 +160,7 @@ data BonusCombatCategory = BC_AC
                          | BC_TOHIT_SHORTRANGE
                            deriving (Show, Eq)
 
-data Combat = Combat { combatCategory :: BonusCombatCategory
+data Combat = Combat { combatCategories :: [BonusCombatCategory]
                      , combatFormula :: Formula }
               deriving (Show, Eq)
 
@@ -167,7 +168,7 @@ data Combat = Combat { combatCategory :: BonusCombatCategory
 parseBonusCombat :: PParser Combat
 parseBonusCombat = do
   _ <- bonusTag "COMBAT"
-  combatCategory <- parseCombatType
+  combatCategories <- parseCombatType `sepBy` char ','
   combatFormula <- char '|' *> parseFormula
   return Combat { .. } where
     parseCombatType = (BC_AC <$ labeled "AC")
@@ -180,6 +181,7 @@ parseBonusCombat = do
                   <|> (BC_DAMAGEMULT_TWO_HAND <$ labeled "DAMAGEMULT:2")
                   <|> (BC_DAMAGESIZE <$ labeled "DAMAGESIZE")
                   <|> (BC_DAMAGE_SHORTRANGE <$ labeled "DAMAGE-SHORTRANGE")
+                  <|> (BC_DAMAGE <$ labeled "DAMAGE")
                   <|> (BC_EPICAB <$ labeled "EPICAB")
                   <|> (BC_INITIATIVE <$ labeled "INITIATIVE")
                   <|> (BC_REACH <$ labeled "REACH")
@@ -361,7 +363,7 @@ data BonusWeaponProp = BonusWeaponProp { bonusWeaponProperties :: [BonusWeaponPr
 data BonusWeaponProperty = ATTACKS
                          | ATTACKSPROGRESS
                          | P_DAMAGE
-                         | P_DAMAGEMULT
+                         | P_DAMAGEMULT Int
                          | P_DAMAGESIZE
                          | P_DAMAGESHORTRANGE
                          | P_TOHIT
@@ -376,16 +378,17 @@ parseBonusWeaponProp = do
   bonusWeaponProperties <- parseWeaponProperty `sepBy` char ','
   bonusWeaponFormula <- char '|' *> parseFormula
   return BonusWeaponProp { .. } where
-    parseWeaponProperty = (ATTACKS <$ labeled "ATTACKS")
-                      <|> (ATTACKSPROGRESS <$ labeled "ATTACKSPROGRESS")
-                      <|> (P_DAMAGE <$ labeled "DAMAGE")
-                      <|> (P_DAMAGEMULT <$ labeled "DAMAGEMULT")
-                      <|> (P_DAMAGESIZE <$ labeled "DAMAGESIZE")
-                      <|> (P_DAMAGESHORTRANGE <$ labeled "DAMAGE-SHORTRANGE")
-                      <|> (P_TOHIT <$ labeled "TOHIT")
-                      <|> (P_TOHITSHORTRANGE <$ labeled "TOHIT-SHORTRANGE")
-                      <|> (WEAPONBAB <$ labeled "WEAPONBAB")
+    parseWeaponProperty = try (ATTACKSPROGRESS <$ labeled "ATTACKSPROGRESS")
+                      <|> try (ATTACKS <$ labeled "ATTACKS")
+                      <|> try (labeled "DAMAGEMULT:" *> (P_DAMAGEMULT <$> parseInteger))
+                      <|> try (P_DAMAGESIZE <$ labeled "DAMAGESIZE")
+                      <|> try (P_DAMAGESHORTRANGE <$ labeled "DAMAGE-SHORTRANGE")
+                      <|> try (P_DAMAGE <$ labeled "DAMAGE")
+                      <|> try (P_TOHITSHORTRANGE <$ labeled "TOHIT-SHORTRANGE")
+                      <|> try (P_TOHIT <$ labeled "TOHIT")
+                      <|> try (WEAPONBAB <$ labeled "WEAPONBAB")
                       <|> (WEAPONCATEGORY <$ labeled "WEAPONCATEGORY")
+    parseInteger = textToInt <$> manyNumbers
 
 -- BONUS:WEAPONPROF=x|y,y...|z
 --   x is weapon proficiency name or type
@@ -418,24 +421,26 @@ data BonusWeaponProf = BonusWeaponProf { bonusWeaponProficency :: BonusWeapon
 parseBonusWeaponProf :: PParser BonusWeaponProf
 parseBonusWeaponProf = do
   _ <- labeled "WEAPONPROF="
-  bonusWeaponProficency <- parseWeaponProficiency
-  bonusWeaponProfProperties <- char '|' *> parseWeaponProperty `sepBy` char ','
-  bonusWeaponProfFormula <- char '|' *> parseFormula
+  bonusWeaponProficency <- parseWeaponProficiency <* char '|'
+  -- moderndispatch075_equip_armorshields.lst has no weapon property
+  bonusWeaponProfProperties <- option [] ((parseWeaponProperty `sepBy` char ',') <* char '|')
+  bonusWeaponProfFormula <- parseFormula
   return BonusWeaponProf { .. } where
-    parseWeaponProficiency = (labeled "TYPE=" >> (WeaponType <$> parseString))
+    parseWeaponProficiency = try (labeled "TYPE=" >> (WeaponType <$> parseString))
+                         <|> try (labeled "TYPE." >> (WeaponType <$> parseString))
                          <|> WeaponName <$> parseString
-    parseWeaponProperty = (CRITMULTADD <$ labeled "CRITMULTADD")
-                      <|> (CRITRANGEADD <$ labeled "CRITRANGEADD")
-                      <|> (CRITRANGEDOUBLE <$ labeled "CRITRANGEDOUBLE")
-                      <|> (DAMAGE <$ labeled "DAMAGE")
-                      <|> (DAMAGEMULT <$ labeled "DAMAGEMULT")
-                      <|> (DAMAGESIZE <$ labeled "DAMAGESIZE")
-                      <|> (DAMAGESHORTRANGE <$ labeled "DAMAGESHORTRANGE")
-                      <|> (PCSIZE <$ labeled "PCSIZE")
-                      <|> (REACH <$ labeled "REACH")
-                      <|> (TOHIT <$ labeled "TOHIT")
-                      <|> (TOHITSHORTRANGE <$ labeled "TOHITSHORTRANGE")
-                      <|> (TOHITOVERSIZE <$ labeled "TOHITOVERSIZE")
+    parseWeaponProperty = try (CRITMULTADD <$ labeled "CRITMULTADD")
+                      <|> try (CRITRANGEADD <$ labeled "CRITRANGEADD")
+                      <|> try (CRITRANGEDOUBLE <$ labeled "CRITRANGEDOUBLE")
+                      <|> try (DAMAGEMULT <$ labeled "DAMAGEMULT")
+                      <|> try (DAMAGESIZE <$ labeled "DAMAGESIZE")
+                      <|> try (DAMAGESHORTRANGE <$ labeled "DAMAGESHORTRANGE")
+                      <|> try (DAMAGE <$ labeled "DAMAGE")
+                      <|> try (PCSIZE <$ labeled "PCSIZE")
+                      <|> try (REACH <$ labeled "REACH")
+                      <|> try (TOHITSHORTRANGE <$ labeled "TOHITSHORTRANGE")
+                      <|> try (TOHITOVERSIZE <$ labeled "TOHITOVERSIZE")
+                      <|> try (TOHIT <$ labeled "TOHIT")
                       <|> (WIELDCATEGORY <$ labeled "WIELDCATEGORY")
 
 -- TEMPBONUS:x,x,...|y|z

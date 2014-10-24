@@ -19,7 +19,7 @@ import Text.Parsec.Expr (Assoc(..), Operator(..), buildExpressionParser)
 import Text.Parsec.Prim (many, try)
 import Control.Monad.State (State, get, msum)
 import ClassyPrelude hiding (try, minimum, maximum, head)
-import Prelude(minimum, maximum, head)
+import Prelude(minimum, maximum, head, read)
 
 import Common
 
@@ -43,6 +43,7 @@ data SkillType = RANK
                  deriving (Show, Eq)
 
 data Formula = Number Int
+             | Floating Float
              | Variable String
              | LookupSkill (SkillType, String)
              | Function String [Formula]
@@ -62,6 +63,7 @@ varBuiltins = [ "SynergyBonus"
               , "Insanity"
               , "AlignmentAuraBase"
               , "ATWILL"
+              , "SHIELDACCHECK"
               , "TL"
               , "CL"
               , "INT"
@@ -111,6 +113,7 @@ builtInFunction _ = error "No such built-in function"
 
 evalJEPFormulae :: Variables -> Formula -> Rational
 evalJEPFormulae _ (Number x) = toRational x
+evalJEPFormulae _ (Floating x) = toRational x
 evalJEPFormulae _ (LookupSkill _) =
   warning "evaluating skillinfo() is not implemented"
   0
@@ -149,6 +152,17 @@ parseNumber :: PParser Formula
 parseNumber = Number <$> parseSignedNumber where
   parseSignedNumber = sign <*> (textToInt <$> manyNumbers)
   sign = (negate <$ char '-') <|> (id <$ optional (char '+'))
+
+parseFloat :: PParser Formula
+parseFloat = Floating <$> parseSignedNumber where
+  parseSignedNumber = sign <*> parseFloating
+  sign = (negate <$ char '-') <|> (id <$ optional (char '+'))
+  parseFloating = do
+    n <- manyNumbers
+    d <- char '.'
+    r <- manyNumbers
+    return $ rd (n ++ d : r)
+  rd = read :: String -> Float
 
 parseVariable :: PParser Formula
 parseVariable = Variable <$> variableParsers
@@ -214,6 +228,7 @@ parseExpression = try parseFunction
               <|> try parseGroup
               <|> try parseVarFunction
               <|> try parseSkillInfoFunction
+              <|> try parseFloat
               <|> try parseNumber
               <|> try parseVariable
 

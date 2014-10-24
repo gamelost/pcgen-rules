@@ -40,7 +40,8 @@ parseACCheck = tag "ACCHECK" *> parseFormula
 
 parseEquipmentType :: PParser [String]
 parseEquipmentType = tag "TYPE" *> parseWordAndNumbers `sepBy1` char '.' where
-  parseWordAndNumbers = many1 $ satisfy $ inClass "-A-Za-z0-9"
+  -- arms_equip_armorshield.lst has a bug where it has a ',' instead of a '.'
+  parseWordAndNumbers = many1 $ satisfy $ inClass "-A-Za-z0-9, "
 
 parseDescription :: PParser String
 parseDescription = tag "DESC" *> restOfTag

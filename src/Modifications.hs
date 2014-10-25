@@ -2,7 +2,8 @@
 
 module Modifications where
 
-import Text.Parsec.Combinator (sepBy, eof)
+import Text.Parsec.Prim(many)
+import Text.Parsec.Combinator (eof)
 import Data.Maybe (fromJust)
 import ClassyPrelude
 
@@ -33,10 +34,10 @@ class LSTObject a where
   parseLSTLine :: PParser (LSTLine a)
   parseLSTLine = do
     (name, operation) <- parseStart <* tabs
-    allTags <- parseAllTags `sepBy` tabs <* ending
+    allTags <- many (parseAllTags <* tabs) <* ending
     return LSTLine { operation = operation
                    , tags = Name name : allTags } where
-      ending = eol <|> ('\0' <$ eof)
+      ending = eol <|> ('\0' <$ eof) <|> tabs *> eol
       parseAllTags = Clear <$> parseClear -- should be first
                  <|> Specific <$> parseSpecificTags
                  <|> Restriction <$> parseRestriction

@@ -50,8 +50,12 @@ parseHeaders = many1 $ header <* tabs where -- trailing tabs, ugh
        <|> parseSourceWeb
        <|> parseSourceDate
 
-parseLSTLines :: PParser a -> PParser [LST a]
-parseLSTLines parseDefinition = do
+-- pathological case. blame pbt_equip.lst.
+parseEmptyLST :: PParser a -> PParser [LST a]
+parseEmptyLST _ = [] <$ eof
+
+parseFullLST :: PParser a -> PParser [LST a]
+parseFullLST parseDefinition = do
   _ <- many eol
   many1 $ lstLine <* many eol where
     lstLine = Source <$> parseHeaders
@@ -62,7 +66,8 @@ parseLST :: Show a => PParser (LSTLine a) -> FilePath -> IO [LST (LSTLine a)]
 parseLST lstPParser lstName  = do
   contents <- readContents lstName
   return $ parseResult fullPParser lstName contents where
-    fullPParser = parseLSTLines lstPParser
+    fullPParser = try $ parseEmptyLST lstPParser
+                    <|> parseFullLST lstPParser
 
 -- debugging only
 prettyPrint :: Show a => PParser (LSTLine a) -> FilePath -> IO String

@@ -2,8 +2,8 @@
 
 module Bonus where
 
-import Text.Parsec.Char (char, space, string)
-import Text.Parsec.Combinator (sepBy, option)
+import Text.Parsec.Char (char, space, string, satisfy)
+import Text.Parsec.Combinator (sepBy, option, many1)
 import Text.Parsec.Prim (many, try)
 import ClassyPrelude hiding (try)
 
@@ -44,6 +44,8 @@ parseBonusType = do
   let testForStack = stripSuffix ".STACK" bonusType
   return (fromMaybe bonusType testForStack, isJust testForStack) where
     types = labeled "|TYPE="
+        -- thanks to an hilarious typo in aeg_gods_equip_magic.lst
+        <|> labeled "|TYPR="
         <|> labeled "|SKILLTYPE="
 
 -- bonus types can be found either before or after restrictions
@@ -164,34 +166,34 @@ data Combat = Combat { combatCategories :: [BonusCombatCategory]
                      , combatFormula :: Formula }
               deriving (Show, Eq)
 
-
 parseBonusCombat :: PParser Combat
 parseBonusCombat = do
   _ <- bonusTag "COMBAT"
   combatCategories <- parseCombatType `sepBy` char ','
-  combatFormula <- char '|' *> parseFormula
+  -- aeg_gods_equip_magic.lst does not have a formula, default to 1
+  combatFormula <- option (Number 1) (try (char '|' *> parseFormula))
   return Combat { .. } where
-    parseCombatType = (BC_AC <$ labeled "AC")
-                  <|> (BC_ATTACKS <$ labeled "ATTACKS")
-                  <|> (BC_BAB <$ labeled "BAB")
-                  <|> (BC_BASEAB <$ labeled "BASEAB")
-                  <|> (labeled "DAMAGE." >> BC_DAMAGE_TYPE <$> parseString)
-                  <|> (BC_DAMAGEMULT_OFFHAND <$ labeled "DAMAGEMULT:0")
-                  <|> (BC_DAMAGEMULT_PRIMARY <$ labeled "DAMAGEMULT:1")
-                  <|> (BC_DAMAGEMULT_TWO_HAND <$ labeled "DAMAGEMULT:2")
-                  <|> (BC_DAMAGESIZE <$ labeled "DAMAGESIZE")
-                  <|> (BC_DAMAGE_SHORTRANGE <$ labeled "DAMAGE-SHORTRANGE")
-                  <|> (BC_DAMAGE <$ labeled "DAMAGE")
-                  <|> (BC_EPICAB <$ labeled "EPICAB")
-                  <|> (BC_INITIATIVE <$ labeled "INITIATIVE")
-                  <|> (BC_REACH <$ labeled "REACH")
-                  <|> (BC_RANGEPENALTY <$ labeled "RANGEPENALTY")
-                  <|> (BC_SECONDARYATTACKS <$ labeled "SECONDARYATTACKS")
-                  <|> (BC_SECONDARYDAMAGE <$ labeled "SECONDARYDAMAGE")
-                  <|> (BC_TOHIT <$ labeled "TOHIT")
-                  <|> (labeled "TOHIT." >> BC_TOHIT_TYPE <$> parseString)
-                  <|> (BC_TOHIT_PRIMARY <$ labeled "TOHIT-PRIMARY")
-                  <|> (BC_TOHIT_SECONDARY <$ labeled "TOHIT-SECONDARY")
+    parseCombatType = try (BC_AC <$ labeled "AC")
+                  <|> try (BC_ATTACKS <$ labeled "ATTACKS")
+                  <|> try (BC_BAB <$ labeled "BAB")
+                  <|> try (BC_BASEAB <$ labeled "BASEAB")
+                  <|> try (BC_DAMAGEMULT_OFFHAND <$ labeled "DAMAGEMULT:0")
+                  <|> try (BC_DAMAGEMULT_PRIMARY <$ labeled "DAMAGEMULT:1")
+                  <|> try (BC_DAMAGEMULT_TWO_HAND <$ labeled "DAMAGEMULT:2")
+                  <|> try (BC_DAMAGESIZE <$ labeled "DAMAGESIZE")
+                  <|> try (BC_DAMAGE_SHORTRANGE <$ labeled "DAMAGE-SHORTRANGE")
+                  <|> try (labeled "DAMAGE." >> BC_DAMAGE_TYPE <$> parseString)
+                  <|> try (BC_DAMAGE <$ labeled "DAMAGE")
+                  <|> try (BC_EPICAB <$ labeled "EPICAB")
+                  <|> try (BC_INITIATIVE <$ labeled "INITIATIVE")
+                  <|> try (BC_REACH <$ labeled "REACH")
+                  <|> try (BC_RANGEPENALTY <$ labeled "RANGEPENALTY")
+                  <|> try (BC_SECONDARYATTACKS <$ labeled "SECONDARYATTACKS")
+                  <|> try (BC_SECONDARYDAMAGE <$ labeled "SECONDARYDAMAGE")
+                  <|> try (labeled "TOHIT." >> BC_TOHIT_TYPE <$> parseString)
+                  <|> try (BC_TOHIT <$ labeled "TOHIT")
+                  <|> try (BC_TOHIT_PRIMARY <$ labeled "TOHIT-PRIMARY")
+                  <|> try (BC_TOHIT_SECONDARY <$ labeled "TOHIT-SECONDARY")
                   <|> (BC_TOHIT_SHORTRANGE <$ labeled "TOHIT-SHORTRANGE")
 
 -- BONUS:DC|x|y
@@ -284,9 +286,11 @@ parseBonusSkill = do
     parseAll = All <$ labeled "ALL"
     parseSkillType = labeled "TYPE=" >> (BonusSkillType <$> parseStringNoCommas)
     parseStatName = labeled "STAT." >> (StatName <$> parseStringNoCommas)
-    parseSkillName = BonusSkillName <$> parseStringNoCommas
+    -- magical_treasures_equip_artifacts.lst has an asterisk.
+    parseSkillName = BonusSkillName <$> parseStringNoCommasAsterisk
     parseSkillFormulaType = SkillFormula <$> try parseFormula
                         <|> SkillText <$> parseStringNoCommas
+    parseStringNoCommasAsterisk = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~*"
 
 -- BONUS:SKILLRANK|x,x,...|y
 --   x is skill name, skill type (TYPE=x)
@@ -360,16 +364,16 @@ data BonusWeaponProp = BonusWeaponProp { bonusWeaponProperties :: [BonusWeaponPr
                                        , bonusWeaponFormula :: Formula }
                      deriving (Show, Eq)
 
-data BonusWeaponProperty = ATTACKS
-                         | ATTACKSPROGRESS
+data BonusWeaponProperty = P_ATTACKS
+                         | P_ATTACKSPROGRESS
                          | P_DAMAGE
                          | P_DAMAGEMULT Int
                          | P_DAMAGESIZE
                          | P_DAMAGESHORTRANGE
                          | P_TOHIT
                          | P_TOHITSHORTRANGE
-                         | WEAPONBAB
-                         | WEAPONCATEGORY
+                         | P_WEAPONBAB
+                         | P_WIELDCATEGORY
                            deriving (Show, Eq)
 
 parseBonusWeaponProp :: PParser BonusWeaponProp
@@ -378,16 +382,16 @@ parseBonusWeaponProp = do
   bonusWeaponProperties <- parseWeaponProperty `sepBy` char ','
   bonusWeaponFormula <- char '|' *> parseFormula
   return BonusWeaponProp { .. } where
-    parseWeaponProperty = try (ATTACKSPROGRESS <$ labeled "ATTACKSPROGRESS")
-                      <|> try (ATTACKS <$ labeled "ATTACKS")
+    parseWeaponProperty = try (P_ATTACKSPROGRESS <$ labeled "ATTACKSPROGRESS")
+                      <|> try (P_ATTACKS <$ labeled "ATTACKS")
                       <|> try (labeled "DAMAGEMULT:" *> (P_DAMAGEMULT <$> parseInteger))
                       <|> try (P_DAMAGESIZE <$ labeled "DAMAGESIZE")
                       <|> try (P_DAMAGESHORTRANGE <$ labeled "DAMAGE-SHORTRANGE")
                       <|> try (P_DAMAGE <$ labeled "DAMAGE")
                       <|> try (P_TOHITSHORTRANGE <$ labeled "TOHIT-SHORTRANGE")
                       <|> try (P_TOHIT <$ labeled "TOHIT")
-                      <|> try (WEAPONBAB <$ labeled "WEAPONBAB")
-                      <|> (WEAPONCATEGORY <$ labeled "WEAPONCATEGORY")
+                      <|> try (P_WEAPONBAB <$ labeled "WEAPONBAB")
+                      <|> (P_WIELDCATEGORY <$ labeled "WIELDCATEGORY")
     parseInteger = textToInt <$> manyNumbers
 
 -- BONUS:WEAPONPROF=x|y,y...|z

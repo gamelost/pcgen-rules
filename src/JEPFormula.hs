@@ -32,6 +32,7 @@ data Operand = Divide
              | Multiply
              | Subtract
              | Add
+             | GreaterEqualsThan
                deriving (Show, Eq)
 
 data SkillType = RANK
@@ -63,6 +64,7 @@ varBuiltins = [ "SynergyBonus"
               , "Insanity"
               , "AlignmentAuraBase"
               , "ATWILL"
+              , "AllowHolyAvenger"
               , "SHIELDACCHECK"
               , "SKILLRANK=Bluff"
               , "TL"
@@ -125,7 +127,8 @@ evalJEPFormulae vars (Arithmetic op f1 f2) =
      Divide -> (/)
      Multiply -> (*)
      Subtract -> (-)
-     Add -> (+))
+     Add -> (+)
+     GreaterEqualsThan -> (\x y -> if x >= y then 1 else 0)) -- TODO check this
   (evalJEPFormulae vars f1)
   (evalJEPFormulae vars f2)
 evalJEPFormulae vars (Function what formulas) =
@@ -220,12 +223,14 @@ table :: [[Operator T.Text () (State Variables) Formula]]
 table = [ [ Prefix negateFormula ]
         , [ Infix multiplyFormula AssocLeft, Infix divideFormula AssocLeft ]
         , [ Infix addFormula AssocLeft, Infix subtractFormula AssocLeft ]
+        , [ Infix geFormula AssocLeft ]
         ] where
-  multiplyFormula = operand '*' Multiply
-  subtractFormula = operand '-' Subtract
-  divideFormula = operand '/' Divide
-  addFormula = operand '+' Add
-  operand c o = try $ Arithmetic o <$ char c
+  multiplyFormula = operand "*" Multiply
+  subtractFormula = operand "-" Subtract
+  divideFormula = operand "/" Divide
+  addFormula = operand "+" Add
+  geFormula = operand ">=" GreaterEqualsThan
+  operand c o = try $ Arithmetic o <$ labeled c
   negateFormula = try $ Negate <$ char '-'
 
 parseFormula :: PParser Formula

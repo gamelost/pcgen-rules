@@ -6,7 +6,7 @@ import qualified Data.Map as M
 
 import Text.Parsec.Char (char, string)
 import Text.Parsec.Combinator (sepBy, many1, notFollowedBy, option)
-import Text.Parsec.Prim (try)
+import Text.Parsec.Prim (try, many)
 import Control.Monad.State (get, put)
 import ClassyPrelude hiding (try)
 
@@ -27,7 +27,7 @@ data GlobalTag = KeyStat String
                | VisionTag Vision
                | Select Formula
                | SpecialAbilityTag [String]
-               | VirtualFeatTag [String]
+               | VirtualFeatTag VFeat
                | Define NewVariable
                | AddFeatTag AddFeat
                | AutoEquipTag [String]
@@ -308,8 +308,20 @@ parseSpells = do
       name <- disallowed *> parseStringNoCommas
       return (name, Nothing)
 
-parseVirtualFeat :: PParser [String]
-parseVirtualFeat = tag "VFEAT" *> parseString `sepBy` char '|'
+data VFeat = VFeat { vfeats :: [String]
+                   , vfeatRestrictions :: [RestrictionTag] }
+           deriving (Eq, Show)
+
+parseVirtualFeat :: PParser VFeat
+parseVirtualFeat = do
+  _ <- tag "VFEAT"
+  vfeat <- parseString
+  vfeatRest <- try (many $ parseVFeat)
+  vfeatRestrictions <- option [] parseAdditionalRestrictions
+  let vfeats = vfeat : vfeatRest
+  return VFeat { .. } where
+    disallowed = notFollowedBy (string "|PRE")
+    parseVFeat = disallowed *> char '|' *> parseString
 
 parseUnknownTag :: PParser (String, String)
 parseUnknownTag = do

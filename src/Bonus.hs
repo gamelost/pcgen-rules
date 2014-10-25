@@ -20,11 +20,13 @@ data Bonus = BonusSkill Skill
               | BonusCasterLevel CasterLevel
               | BonusCombat Combat
               | BonusCheck Checks
+              | BonusHitPoint BonusHP
               | BonusDifficultyClass BonusDC
               | BonusVision BonusVisionData
               | BonusMovement BonusMove
               | BonusDescription String
               | BonusCharacterStat BonusStat
+              | BonusUnarmedDamage UnarmedDamage
               | TemporaryBonus TempBonus
                 deriving (Show, Eq)
 
@@ -151,6 +153,7 @@ data BonusCombatCategory = BC_AC
                          | BC_DAMAGE_SHORTRANGE
                          | BC_EPICAB
                          | BC_INITIATIVE
+                         | BC_HP -- undocumented
                          | BC_REACH
                          | BC_RANGEPENALTY
                          | BC_SECONDARYATTACKS
@@ -186,6 +189,7 @@ parseBonusCombat = do
                   <|> try (BC_DAMAGE <$ labeled "DAMAGE")
                   <|> try (BC_EPICAB <$ labeled "EPICAB")
                   <|> try (BC_INITIATIVE <$ labeled "INITIATIVE")
+                  <|> try (BC_HP <$ labeled "HP")
                   <|> try (BC_REACH <$ labeled "REACH")
                   <|> try (BC_RANGEPENALTY <$ labeled "RANGEPENALTY")
                   <|> try (BC_SECONDARYATTACKS <$ labeled "SECONDARYATTACKS")
@@ -229,6 +233,26 @@ parseBonusDC = do
                        <|> (labeled "SUBSCHOOL." >> SubSchoolName <$> parseString)
                        <|> (labeled "DESCRIPTOR." >> SpellDescriptor <$> parseString)
                        <|> (labeled "TYPE." >> SpellType <$> parseString)
+
+-- BONUS:HP|x|y
+--   x is ALTHP or CURRENTMAX
+--   y is formula
+data BonusHPType = AlternateHP
+                 | CurrentMax
+                   deriving (Show, Eq)
+
+data BonusHP = BonusHP { bonusHPType :: BonusHPType
+                       , bonusHPFormula :: Formula }
+             deriving (Show, Eq)
+
+parseBonusHP :: PParser BonusHP
+parseBonusHP = do
+  _ <- bonusTag "HP"
+  bonusHPType <- parseBonusHPType
+  bonusHPFormula <- char '|' *> parseFormula
+  return BonusHP { .. } where
+    parseBonusHPType = (AlternateHP <$ labeled "ALTHP")
+                   <|> (CurrentMax <$ labeled "CURRENTMAX")
 
 -- BONUS:MOVEADD|x|y
 --   x is movement type or all
@@ -366,6 +390,7 @@ data BonusWeaponProp = BonusWeaponProp { bonusWeaponProperties :: [BonusWeaponPr
 
 data BonusWeaponProperty = P_ATTACKS
                          | P_ATTACKSPROGRESS
+                         | P_CRITRANGEDOUBLE -- undocumented
                          | P_DAMAGE
                          | P_DAMAGEMULT Int
                          | P_DAMAGESIZE
@@ -384,6 +409,7 @@ parseBonusWeaponProp = do
   return BonusWeaponProp { .. } where
     parseWeaponProperty = try (P_ATTACKSPROGRESS <$ labeled "ATTACKSPROGRESS")
                       <|> try (P_ATTACKS <$ labeled "ATTACKS")
+                      <|> try (P_CRITRANGEDOUBLE <$ labeled "CRITRANGEDOUBLE")
                       <|> try (labeled "DAMAGEMULT:" *> (P_DAMAGEMULT <$> parseInteger))
                       <|> try (P_DAMAGESIZE <$ labeled "DAMAGESIZE")
                       <|> try (P_DAMAGESHORTRANGE <$ labeled "DAMAGE-SHORTRANGE")
@@ -447,6 +473,20 @@ parseBonusWeaponProf = do
                       <|> try (TOHIT <$ labeled "TOHIT")
                       <|> (WIELDCATEGORY <$ labeled "WIELDCATEGORY")
 
+-- BONUS:UDAM|x|y
+--   x is CLASS.text
+--   y is formula
+data UnarmedDamage = UnarmedDamage { className :: String
+                                   , unarmedFormula :: Formula }
+                     deriving (Show, Eq)
+
+parseBonusUnarmedDamage :: PParser UnarmedDamage
+parseBonusUnarmedDamage = do
+  _ <- bonusTag "UDAM"
+  className <- parseTill '|'
+  unarmedFormula <- parseFormula
+  return UnarmedDamage { .. }
+
 -- TEMPBONUS:x,x,...|y|z
 --   x is PC, ANYPC, or EQ
 --   y is equipment type (only when x==EQ)
@@ -491,12 +531,14 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusCasterLevel <$> parseBonusCasterLevel
             <|> BonusCheck <$> parseBonusCheck
             <|> BonusCombat <$> parseBonusCombat
+            <|> BonusHitPoint <$> parseBonusHP
             <|> BonusDifficultyClass <$> parseBonusDC
             <|> BonusMovement <$> parseBonusMoveAdd
             <|> BonusVision <$> parseBonusVision
             <|> BonusCharacterStat <$> parseBonusStat
             <|> BonusWeaponProficency <$> parseBonusWeaponProf
             <|> BonusWeaponProperty <$> parseBonusWeaponProp
+            <|> BonusUnarmedDamage <$> parseBonusUnarmedDamage
 
 parseRawBonus :: PParser Bonus
 parseRawBonus = (tag "BONUS" *> parseAnyBonus)

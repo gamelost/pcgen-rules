@@ -6,7 +6,7 @@ module JEPFormula ( Formula(..)
                   , Roll(..)
                   , parseFormula
                   , parseQuotedString
-                  , parseRoll
+                  , parseRolls
                   , evalJEPFormula
                   ) where
 
@@ -19,7 +19,7 @@ import Text.Parsec.Expr (Assoc(..), Operator(..), buildExpressionParser)
 import Text.Parsec.Prim (many, try)
 import Control.Monad.State (State, get, msum)
 import ClassyPrelude hiding (try, minimum, maximum, head)
-import Prelude(minimum, maximum, head, read)
+import Prelude(minimum, maximum, head)
 
 import Common
 
@@ -64,6 +64,7 @@ varBuiltins = [ "SynergyBonus"
               , "AlignmentAuraBase"
               , "ATWILL"
               , "SHIELDACCHECK"
+              , "SKILLRANK=Bluff"
               , "TL"
               , "CL"
               , "INT"
@@ -139,30 +140,38 @@ evalJEPFormulae vars (Variable v) =
       (warning $ "variable \"" ++ v ++ "\" was not found")
       0
 
+parseRolls :: PParser [Roll]
+parseRolls = parseRoll `sepBy` char '/'
+
 parseRoll :: PParser Roll
 parseRoll = do
   number <- textToInt <$> manyNumbers
   _ <- optional $ char 'd'
   sides <- option 0 $ textToInt <$> manyNumbers
-  _ <- optional $ char '+'
-  modifier <- option 0 $ textToInt <$> manyNumbers
+  modifier <- option 0 $ parseInteger -- account for e.g., 2d10+1 or 2d10-5
   return Roll { .. }
 
-parseNumber :: PParser Formula
-parseNumber = Number <$> parseSignedNumber where
+parseInteger :: PParser Int
+parseInteger = parseSignedNumber where
   parseSignedNumber = sign <*> (textToInt <$> manyNumbers)
   sign = (negate <$ char '-') <|> (id <$ optional (char '+'))
 
-parseFloat :: PParser Formula
-parseFloat = Floating <$> parseSignedNumber where
-  parseSignedNumber = sign <*> parseFloating
+parseFloat :: PParser Float
+parseFloat = parseSignedNumber where
+  parseSignedNumber = sign <*> parseFloatOrInt
   sign = (negate <$ char '-') <|> (id <$ optional (char '+'))
-  parseFloating = do
+  parseFloatOrInt = textToFloat <$> try (parseFloatingNumber <|> manyNumbers)
+  parseFloatingNumber = do
     n <- manyNumbers
     d <- char '.'
     r <- manyNumbers
-    return $ rd (n ++ d : r)
-  rd = read :: String -> Float
+    return $ n ++ d : r
+
+parseNumber :: PParser Formula
+parseNumber = Number <$> parseInteger
+
+parseFloating :: PParser Formula
+parseFloating = Floating <$> parseFloat
 
 parseVariable :: PParser Formula
 parseVariable = Variable <$> variableParsers
@@ -228,7 +237,7 @@ parseExpression = try parseFunction
               <|> try parseGroup
               <|> try parseVarFunction
               <|> try parseSkillInfoFunction
-              <|> try parseFloat
+              <|> try parseFloating
               <|> try parseNumber
               <|> try parseVariable
 

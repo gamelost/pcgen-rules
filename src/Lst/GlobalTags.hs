@@ -38,8 +38,8 @@ data GlobalTag = KeyStat String
                | SpellTag Spell
                | ChooseLanguageTag [ChooseLanguage]
                | ChooseNumberTag Choices
-               | Damage Roll
-               | SecondaryDamage Roll
+               | Damage [Roll]
+               | SecondaryDamage [Roll]
                | CriticalRange Int
                | ChooseSkillTag [ChooseSkill]
                | Unknown (String, String)
@@ -75,11 +75,11 @@ parseOutputName = tag "OUTPUTNAME" >> restOfTag
 parseSelect :: PParser Formula
 parseSelect = tag "SELECT" >> parseFormula
 
-parseDamage :: PParser Roll
-parseDamage = tag "DAMAGE" *> parseRoll
+parseDamage :: PParser [Roll]
+parseDamage = tag "DAMAGE" *> parseRolls
 
-parseAltDamage :: PParser Roll
-parseAltDamage = tag "ALTDAMAGE" *> parseRoll
+parseAltDamage :: PParser [Roll]
+parseAltDamage = tag "ALTDAMAGE" *> parseRolls
 
 parseCritRange :: PParser Int
 parseCritRange = tag "CRITRANGE" *> (textToInt <$> manyNumbers)
@@ -291,7 +291,7 @@ parseSpells = do
   spellTimes <- option (Number 1) parseTimes
   spellTimeUnit <- option "Day" parseTimeUnit
   spellCasterLevel <- option (Number 1) parseCasterLevel
-  spellNames <- char '|' *> parseNames `sepBy` char '|'
+  spellNames <- many1 $ try (char '|' *> parseNames)
   spellRestrictions <- option [] parseAdditionalRestrictions
   return Spell { .. } where
     parseTimes = labeled "|TIMES=" >> parseFormula

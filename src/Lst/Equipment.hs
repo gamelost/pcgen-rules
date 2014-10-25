@@ -3,37 +3,26 @@
 module Lst.Equipment where
 
 import Text.Parsec.Char (char, satisfy)
-import Text.Parsec.Combinator (sepBy1, option, many1)
-import Text.Parsec.Prim (try)
-import ClassyPrelude hiding (try)
-import Prelude (read)
+import Text.Parsec.Combinator (sepBy1, many1)
+import ClassyPrelude
 
 import Modifications
 import JEPFormula
 import Common
 
 data EquipmentDefinition = Description String
-                         | Cost Float
-                         | Weight Float
+                         | Cost Formula
+                         | Weight Formula
                          | ACCheck Formula
                          | Size EquipmentSize
                          | EquipmentType [String]
                            deriving Show
 
-textToFloat :: String -> Float
-textToFloat t = read t :: Float
+parseWeight :: PParser Formula
+parseWeight = tag "WT" *> parseFormula
 
-parseFloat :: PParser Float
-parseFloat = do
-  whole <- manyNumbers
-  fract <- option "" $ try (char '.' *> manyNumbers)
-  return . textToFloat $ whole ++ fract
-
-parseWeight :: PParser Float
-parseWeight = tag "WT" *> parseFloat
-
-parseCost :: PParser Float
-parseCost = tag "COST" *> parseFloat
+parseCost :: PParser Formula
+parseCost = tag "COST" *> parseFormula
 
 parseACCheck :: PParser Formula
 parseACCheck = tag "ACCHECK" *> parseFormula
@@ -43,7 +32,8 @@ parseEquipmentType = tag "TYPE" *> parseWordAndNumbers `sepBy1` char '.' where
   -- arms_equip_armorshield.lst has a bug where it has a ',' instead of a '.'
   -- martialmayhem_equip_weap_melee.lst has a ':'
   -- aeg_gods_equip_magic.lst has "TYPE:<agic.Wondrous"
-  parseWordAndNumbers = many1 $ satisfy $ inClass "-A-Za-z0-9,: <"
+  -- apg_equip_magic_items.lst has "Artifact/Major"
+  parseWordAndNumbers = many1 $ satisfy $ inClass "-A-Za-z0-9,: <_/"
 
 parseDescription :: PParser String
 parseDescription = tag "DESC" *> restOfTag

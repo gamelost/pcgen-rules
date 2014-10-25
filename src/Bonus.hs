@@ -191,10 +191,10 @@ parseBonusCombat = do
                   <|> try (BC_SECONDARYATTACKS <$ labeled "SECONDARYATTACKS")
                   <|> try (BC_SECONDARYDAMAGE <$ labeled "SECONDARYDAMAGE")
                   <|> try (labeled "TOHIT." >> BC_TOHIT_TYPE <$> parseString)
-                  <|> try (BC_TOHIT <$ labeled "TOHIT")
                   <|> try (BC_TOHIT_PRIMARY <$ labeled "TOHIT-PRIMARY")
                   <|> try (BC_TOHIT_SECONDARY <$ labeled "TOHIT-SECONDARY")
-                  <|> (BC_TOHIT_SHORTRANGE <$ labeled "TOHIT-SHORTRANGE")
+                  <|> try (BC_TOHIT_SHORTRANGE <$ labeled "TOHIT-SHORTRANGE")
+                  <|> (BC_TOHIT <$ labeled "TOHIT")
 
 -- BONUS:DC|x|y
 --   x is spell, class, domain

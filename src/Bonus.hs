@@ -20,9 +20,11 @@ data Bonus = BonusSkill Skill
               | BonusCasterLevel CasterLevel
               | BonusCombat Combat
               | BonusCheck Checks
+              | BonusDamageReduction BonusDR
               | BonusHitPoint BonusHP
               | BonusDifficultyClass BonusDC
               | BonusVision BonusVisionData
+              | BonusMiscellany BonusMisc
               | BonusMovement BonusMove
               | BonusMovementMultiplier BonusMoveMultiplier
               | BonusDescription String
@@ -235,6 +237,20 @@ parseBonusDC = do
                        <|> (labeled "DESCRIPTOR." >> SpellDescriptor <$> parseString)
                        <|> (labeled "TYPE." >> SpellType <$> parseString)
 
+-- BONUS:DR|x|y
+--   x is damage reduction type
+--   y is formula
+data BonusDR = BonusDR { damageReductionType :: String
+                       , damageReductionFormula :: Formula }
+             deriving (Show, Eq)
+
+parseBonusDR :: PParser BonusDR
+parseBonusDR = do
+  _ <- bonusTag "DR"
+  damageReductionType <- parseTill '|' -- TODO need to implement DR tag
+  damageReductionFormula <- parseFormula
+  return BonusDR { .. }
+
 -- BONUS:HP|x|y
 --   x is ALTHP or CURRENTMAX
 --   y is formula
@@ -254,6 +270,32 @@ parseBonusHP = do
   return BonusHP { .. } where
     parseBonusHPType = (AlternateHP <$ labeled "ALTHP")
                    <|> (CurrentMax <$ labeled "CURRENTMAX")
+
+-- BONUS:MISC|x|y
+--   x is ACCHECK, CR, MAXDEX, SPELLFAILURE, or SR
+--   y is formula
+data BonusMiscType = ACCheck
+                   | CR
+                   | MaxDex
+                   | SpellFailure
+                   | SR
+                     deriving (Show, Eq)
+
+data BonusMisc = BonusMisc { bonusMiscType :: BonusMiscType
+                           , bonusMiscFormula :: Formula }
+               deriving (Show, Eq)
+
+parseBonusMisc :: PParser BonusMisc
+parseBonusMisc = do
+  _ <- bonusTag "MISC"
+  bonusMiscType <- parseBonusMiscType
+  bonusMiscFormula <- char '|' *> parseFormula
+  return BonusMisc { .. } where
+    parseBonusMiscType = (ACCheck <$ labeled "ACCHECK")
+                     <|> (CR <$ labeled "CR")
+                     <|> (MaxDex <$ labeled "MAXDEX")
+                     <|> (SpellFailure <$ labeled "SPELLFAILURE")
+                     <|> (SR <$ labeled "SR")
 
 -- BONUS:MOVEADD|x|y
 --   x is movement type or all
@@ -553,8 +595,10 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusCasterLevel <$> parseBonusCasterLevel
             <|> BonusCheck <$> parseBonusCheck
             <|> BonusCombat <$> parseBonusCombat
+            <|> BonusDamageReduction <$> parseBonusDR
             <|> BonusHitPoint <$> parseBonusHP
             <|> BonusDifficultyClass <$> parseBonusDC
+            <|> BonusMiscellany <$> parseBonusMisc
             <|> BonusMovement <$> parseBonusMoveAdd
             <|> BonusMovementMultiplier <$> parseBonusMoveMultiplier
             <|> BonusVision <$> parseBonusVision

@@ -65,6 +65,8 @@ varBuiltins = [ "SynergyBonus"
               , "AlignmentAuraBase"
               , "ATWILL"
               , "AllowHolyAvenger"
+              , "FlurryOfFistsExtraAttacks"
+              , "FlurryAttacks"
               , "SHIELDACCHECK"
               , "SKILLRANK=Bluff"
               , "TL"
@@ -165,7 +167,7 @@ parseFloat = parseSignedNumber where
   sign = (negate <$ char '-') <|> (id <$ optional (char '+'))
   parseFloatOrInt = textToFloat <$> try (parseFloatingNumber <|> manyNumbers)
   parseFloatingNumber = do
-    n <- manyNumbers
+    n <- option "" manyNumbers
     d <- char '.'
     r <- manyNumbers
     return $ n ++ d : r

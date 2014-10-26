@@ -24,6 +24,7 @@ data Bonus = BonusSkill Skill
               | BonusDifficultyClass BonusDC
               | BonusVision BonusVisionData
               | BonusMovement BonusMove
+              | BonusMovementMultiplier BonusMoveMultiplier
               | BonusDescription String
               | BonusCharacterStat BonusStat
               | BonusUnarmedDamage UnarmedDamage
@@ -276,6 +277,27 @@ parseBonusMoveAdd = do
                      -- apg_domains.lst has "BONUS:MOVEADD|TYPE=Walk|10" so
                      -- add this as a 'typo' parser
                      <|> (labeled "TYPE=" >> Movement <$> parseString)
+
+-- BONUS:MOVEMULT|x...|y
+--   x is TYPE.movement or TYPE.All
+--   y is formula
+data BonusMoveMultiplierTypes = BonusMoveMultiplierType String
+                              | BonusMoveMultiplierAll
+                                deriving (Show, Eq)
+
+data BonusMoveMultiplier = BonusMoveMultiplier { bonusMoveMultiplierTypes :: [BonusMoveMultiplierTypes]
+                                               , bonusMoveMultiplierFormula :: Formula }
+                         deriving (Show, Eq)
+
+parseBonusMoveMultiplier :: PParser BonusMoveMultiplier
+parseBonusMoveMultiplier = do
+  _ <- bonusTag "MOVEMULT"
+  bonusMoveMultiplierTypes <- parseBonusMoveMultiplierTypes `sepBy` char ','
+  bonusMoveMultiplierFormula <- char '|' *> parseFormula
+  return BonusMoveMultiplier { .. } where
+    parseBonusMoveMultiplierTypes = (BonusMoveMultiplierAll <$ labeled "TYPE.All")
+                                <|> (labeled "TYPE." >> BonusMoveMultiplierType <$> parseStringNoCommas)
+                                <|> (labeled "TYPE=" >> BonusMoveMultiplierType <$> parseStringNoCommas)
 
 -- BONUS:SKILL:x,x,...|y
 --   x is LIST, ALL, skill name, stat name (STAT.x), skill type (TYPE=x)
@@ -534,6 +556,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusHitPoint <$> parseBonusHP
             <|> BonusDifficultyClass <$> parseBonusDC
             <|> BonusMovement <$> parseBonusMoveAdd
+            <|> BonusMovementMultiplier <$> parseBonusMoveMultiplier
             <|> BonusVision <$> parseBonusVision
             <|> BonusCharacterStat <$> parseBonusStat
             <|> BonusWeaponProficency <$> parseBonusWeaponProf

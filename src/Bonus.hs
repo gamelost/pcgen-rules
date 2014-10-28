@@ -12,34 +12,37 @@ import JEPFormula
 import Common
 
 data Bonus = BonusSkill Skill
-              | BonusSkillRank SkillRank
-              | BonusVariable BonusVar
-              | BonusWeaponProficency BonusWeaponProf
-              | BonusWeaponProperty BonusWeaponProp
-              | BonusAbilityPool BonusAbility
-              | BonusCasterLevel CasterLevel
-              | BonusCombat Combat
-              | BonusCheck Checks
-              | BonusDamageReduction BonusDR
-              | BonusHitPoint BonusHP
-              | BonusItemCost ItemCost
-              | BonusSizeModifier Formula
-              | BonusDifficultyClass BonusDC
-              | BonusVision BonusVisionData
-              | BonusMiscellany BonusMisc
-              | BonusMovement BonusMove
-              | BonusMovementMultiplier BonusMoveMultiplier
-              | BonusDescription String
-              | BonusCharacterStat BonusStat
-              | BonusUnarmedDamage UnarmedDamage
-              | TemporaryBonus TempBonus
-                deriving (Show, Eq)
+           | BonusSkillRank SkillRank
+           | BonusVariable BonusVar
+           | BonusWeaponProficency BonusWeaponProf
+           | BonusWeaponProperty BonusWeaponProp
+           | BonusAbilityPool BonusAbility
+           | BonusCasterLevel CasterLevel
+           | BonusCombat Combat
+           | BonusCheck Checks
+           | BonusDamageReduction BonusDR
+           | BonusModifyEquipmentWeight BonusEquipmentWeight
+           | BonusModifyEquipmentPenalty BonusEquipmentPenalty
+           | BonusModifyEquipmentRange BonusEquipmentRange
+           | BonusHitPoint BonusHP
+           | BonusItemCost ItemCost
+           | BonusSizeModifier Formula
+           | BonusDifficultyClass BonusDC
+           | BonusVision BonusVisionData
+           | BonusSlotItems BonusSlots
+           | BonusMiscellany BonusMisc
+           | BonusMovement BonusMove
+           | BonusMovementMultiplier BonusMoveMultiplier
+           | BonusDescription String
+           | BonusCharacterStat BonusStat
+           | BonusUnarmedDamage UnarmedDamage
+           | TemporaryBonus TempBonus
+             deriving (Show, Eq)
 
 data BonusTag = BonusTag { bonus :: Bonus
                          , bonusType :: Maybe (String, Bool)
                          , bonusRestrictions :: [RestrictionTag] }
                 deriving (Show, Eq)
-
 
 bonusTag :: String -> PParser String
 bonusTag t = labeled $ t ++ "|"
@@ -254,6 +257,92 @@ parseBonusDR = do
   damageReductionFormula <- parseFormula
   return BonusDR { .. }
 
+-- BONUS:EQM|x|y|z
+--   x is HANDS, WEIGHTADD, WEIGHTDIV, WEIGHTMULT
+--   y is formula
+--   z is type (optional)
+data BonusEquipmentWeightType = Hands
+                              | AddWeight
+                              | DivideWeight
+                              | MultiplyWeight
+                                deriving (Show, Eq)
+
+data BonusEquipmentWeight = BonusEquipmentWeight { bonusEquipmentWeightType :: BonusEquipmentWeightType
+                                                 , bonusEquipmentWeightFormula :: Formula
+                                                 , bonusEquipmentWeightBonusType :: Maybe String }
+                            deriving (Show, Eq)
+
+parseBonusEquipmentWeight :: PParser BonusEquipmentWeight
+parseBonusEquipmentWeight = do
+  _ <- bonusTag "EQM"
+  bonusEquipmentWeightType <- parseBonusEquipmentWeightType
+  bonusEquipmentWeightFormula <- char '|' *> parseFormula
+  bonusEquipmentWeightBonusType <- option Nothing (Just <$> parseBonusWeightType)
+  return BonusEquipmentWeight { .. } where
+    parseBonusEquipmentWeightType = (Hands <$ labeled "HANDS")
+                                <|> (AddWeight <$ labeled "WEIGHTADD")
+                                <|> (DivideWeight <$ labeled "WEIGHTDIV")
+                                <|> (MultiplyWeight <$ labeled "WEIGHTMULT")
+    parseBonusWeightType = (labeled "|TYPE=") *> parseString
+
+-- BONUS:EQMWEAPON|x|y|z
+--   x is CRITRANGEADD, CRITRANGEDOUBLE, DAMAGESIZE, RANGEADD, RANGEMULT
+--   y is formula
+--   z is type (optional)
+data BonusEquipmentRangeType = AddCriticalRange
+                             | DoubleCriticalRange
+                             | DamageSize
+                             | AddRange
+                             | MultiplyRange
+                               deriving (Show, Eq)
+
+data BonusEquipmentRange = BonusEquipmentRange { bonusEquipmentRangeType :: BonusEquipmentRangeType
+                                               , bonusEquipmentRangeFormula :: Formula
+                                               , bonusEquipmentRangeBonusType :: Maybe String }
+                           deriving (Show, Eq)
+
+parseBonusEquipmentRange :: PParser BonusEquipmentRange
+parseBonusEquipmentRange = do
+  _ <- bonusTag "EQMWEAPON"
+  bonusEquipmentRangeType <- parseBonusEquipmentRangeType
+  bonusEquipmentRangeFormula <- char '|' *> parseFormula
+  bonusEquipmentRangeBonusType <- option Nothing (Just <$> parseBonusRangeType)
+  return BonusEquipmentRange { .. } where
+    parseBonusEquipmentRangeType = (AddCriticalRange <$ labeled "CRITRANGEADD")
+                               <|> (DoubleCriticalRange <$ labeled "CRITRANGEDOUBLE")
+                               <|> (DamageSize <$ labeled "DAMAGESIZE")
+                               <|> (AddRange <$ labeled "RANGEADD")
+                               <|> (MultiplyRange <$ labeled "RANGEMULT")
+    parseBonusRangeType = (labeled "|TYPE=") *> parseString
+
+-- BONUS:EQMARMOR|x|y|z
+--   x is ACCHECK, EDR, MAXDEX, SPELLFAILURE
+--   y is formula
+--   z is type (optional)
+data BonusEquipmentPenaltyType = ACCheckPenalty
+                               | EffectiveDamageResistance
+                               | MaxDexerity
+                               | SpellFailurePenalty
+                                 deriving (Show, Eq)
+
+data BonusEquipmentPenalty = BonusEquipmentPenalty { bonusEquipmentPenaltyType :: BonusEquipmentPenaltyType
+                                                   , bonusEquipmentPenaltyFormula :: Formula
+                                                   , bonusEquipmentPenaltyBonusType :: Maybe String }
+                             deriving (Show, Eq)
+
+parseBonusEquipmentPenalty :: PParser BonusEquipmentPenalty
+parseBonusEquipmentPenalty = do
+  _ <- bonusTag "EQMARMOR"
+  bonusEquipmentPenaltyType <- parseBonusEquipmentPenaltyType
+  bonusEquipmentPenaltyFormula <- char '|' *> parseFormula
+  bonusEquipmentPenaltyBonusType <- option Nothing (Just <$> parseBonusPenaltyType)
+  return BonusEquipmentPenalty { .. } where
+    parseBonusEquipmentPenaltyType = (ACCheckPenalty <$ labeled "ACCHECK")
+                                 <|> (EffectiveDamageResistance <$ labeled "EDR")
+                                 <|> (MaxDexerity <$ labeled "MAXDEX")
+                                 <|> (SpellFailurePenalty <$ labeled "SPELLFAILURE")
+    parseBonusPenaltyType = (labeled "|TYPE=") *> parseString
+
 -- BONUS:HP|x|y
 --   x is ALTHP or CURRENTMAX
 --   y is formula
@@ -429,6 +518,26 @@ parseBonusSkillRank = do
     parseSkillName = SkillRankName <$> parseStringNoCommas
     parseSkillFormulaType = SkillFormula <$> parseFormula
                         <|> SkillText <$> (labeled "SKILLRANK=" >> parseStringNoCommas)
+
+-- BONUS:SLOTS|x,y
+--   x is slot type or LIST
+--   y is formula
+data BonusSlotType = SlotList
+                   | SlotType String
+                     deriving (Show, Eq)
+
+data BonusSlots = BonusSlots { bonusSlotType :: BonusSlotType
+                             , bonusSlotFormula :: Formula }
+                  deriving (Show, Eq)
+
+parseBonusSlots :: PParser BonusSlots
+parseBonusSlots = do
+  _ <- bonusTag "SLOTS"
+  bonusSlotType <- parseBonusSlotType
+  bonusSlotFormula <- char '|' *> parseFormula
+  return BonusSlots { .. } where
+    parseBonusSlotType = (SlotList <$ labeled "LIST")
+                     <|> (SlotType <$> parseString)
 
 -- BONUS:STAT|x,x|y
 --   x is stat name
@@ -623,6 +732,9 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusCheck <$> parseBonusCheck
             <|> BonusCombat <$> parseBonusCombat
             <|> BonusDamageReduction <$> parseBonusDR
+            <|> BonusModifyEquipmentPenalty <$> parseBonusEquipmentPenalty
+            <|> BonusModifyEquipmentRange <$> parseBonusEquipmentRange
+            <|> BonusModifyEquipmentWeight <$> parseBonusEquipmentWeight
             <|> BonusHitPoint <$> parseBonusHP
             <|> BonusItemCost <$> parseBonusItemCost
             <|> BonusSizeModifier <$> parseBonusSizeMod
@@ -631,6 +743,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusMovement <$> parseBonusMoveAdd
             <|> BonusMovementMultiplier <$> parseBonusMoveMultiplier
             <|> BonusVision <$> parseBonusVision
+            <|> BonusSlotItems <$> parseBonusSlots
             <|> BonusCharacterStat <$> parseBonusStat
             <|> BonusWeaponProficency <$> parseBonusWeaponProf
             <|> BonusWeaponProperty <$> parseBonusWeaponProp

@@ -22,6 +22,8 @@ data Bonus = BonusSkill Skill
               | BonusCheck Checks
               | BonusDamageReduction BonusDR
               | BonusHitPoint BonusHP
+              | BonusItemCost ItemCost
+              | BonusSizeModifier Formula
               | BonusDifficultyClass BonusDC
               | BonusVision BonusVisionData
               | BonusMiscellany BonusMisc
@@ -49,6 +51,7 @@ parseBonusType = do
   let testForStack = stripSuffix ".STACK" bonusType
   return (fromMaybe bonusType testForStack, isJust testForStack) where
     types = labeled "|TYPE="
+        <|> labeled "|Type="
         -- thanks to an hilarious typo in aeg_gods_equip_magic.lst
         <|> labeled "|TYPR="
         <|> labeled "|SKILLTYPE="
@@ -271,6 +274,24 @@ parseBonusHP = do
     parseBonusHPType = (AlternateHP <$ labeled "ALTHP")
                    <|> (CurrentMax <$ labeled "CURRENTMAX")
 
+-- BONUS:ITEMCOST|TYPE.x.x|y
+--   x is item type
+--   y is formula
+data ItemCost = ItemCost { itemCostType :: [String]
+                         , itemCostFormula :: Formula }
+              deriving (Show, Eq)
+
+parseBonusItemCost :: PParser ItemCost
+parseBonusItemCost = do
+  _ <- bonusTag "ITEMCOST"
+  itemCostType <- parseItemCostType `sepBy` char '.'
+  itemCostFormula <- char '|' *> parseFormula
+  return ItemCost { .. } where
+    parseItemCostType = (labeled "TYPE:" >> parseStringNoPeriods)
+                    <|> (labeled "TYPE=" >> parseStringNoPeriods)
+                    <|> (labeled "TYPE." >> parseStringNoPeriods)
+    parseStringNoPeriods = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+/:?!%#'()[]~"
+
 -- BONUS:MISC|x|y
 --   x is ACCHECK, CR, MAXDEX, SPELLFAILURE, or SR
 --   y is formula
@@ -341,6 +362,11 @@ parseBonusMoveMultiplier = do
                                 <|> (labeled "TYPE." >> BonusMoveMultiplierType <$> parseStringNoCommas)
                                 <|> (labeled "TYPE=" >> BonusMoveMultiplierType <$> parseStringNoCommas)
 
+-- BONUS:SIZEMOD|NUMBER|x
+--   x is formula
+parseBonusSizeMod :: PParser Formula
+parseBonusSizeMod = bonusTag "SIZEMOD|NUMBER" *> parseFormula
+
 -- BONUS:SKILL:x,x,...|y
 --   x is LIST, ALL, skill name, stat name (STAT.x), skill type (TYPE=x)
 --   y is number, variable, formula
@@ -373,7 +399,8 @@ parseBonusSkill = do
     parseList = List <$ labeled "LIST"
     parseAll = All <$ labeled "ALL"
     parseSkillType = labeled "TYPE=" >> (BonusSkillType <$> parseStringNoCommas)
-    parseStatName = labeled "STAT." >> (StatName <$> parseStringNoCommas)
+    parseStatName = (labeled "STAT." >> (StatName <$> parseStringNoCommas))
+                <|> (labeled "STAT=" >> (StatName <$> parseStringNoCommas))
     -- magical_treasures_equip_artifacts.lst has an asterisk.
     parseSkillName = BonusSkillName <$> parseStringNoCommasAsterisk
     parseSkillFormulaType = SkillFormula <$> try parseFormula
@@ -597,6 +624,8 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusCombat <$> parseBonusCombat
             <|> BonusDamageReduction <$> parseBonusDR
             <|> BonusHitPoint <$> parseBonusHP
+            <|> BonusItemCost <$> parseBonusItemCost
+            <|> BonusSizeModifier <$> parseBonusSizeMod
             <|> BonusDifficultyClass <$> parseBonusDC
             <|> BonusMiscellany <$> parseBonusMisc
             <|> BonusMovement <$> parseBonusMoveAdd

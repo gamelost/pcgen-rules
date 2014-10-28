@@ -226,15 +226,19 @@ parseChooseLanguage = do
 
 -- not fully implemented
 data Choices = Choices { choiceNumber :: Int
-                       , choices :: [String] }
+                       , choices :: [String]
+                       , choiceType :: Maybe String }
                    deriving (Show, Eq)
 
 parseChooseNumChoices :: PParser Choices
 parseChooseNumChoices = do
   _ <- labeled "CHOOSE:NUMCHOICES="
   choiceNumber <- textToInt <$> manyNumbers
-  choices <- char '|' *> parseString `sepBy` char '|'
-  return Choices { .. }
+  choices <- many1 $ try (char '|' *> parseChoiceString)
+  choiceType <- option Nothing (labeled "|TYPE=" *> (Just <$> parseString))
+  return Choices { .. } where
+    parseChoiceString = disallowed *> parseString
+    disallowed = notFollowedBy (string "TYPE")
 
 -- not fully implemented
 data ChooseSkill = ChoiceSkill String
@@ -316,7 +320,7 @@ parseVirtualFeat :: PParser VFeat
 parseVirtualFeat = do
   _ <- tag "VFEAT"
   vfeat <- parseString
-  vfeatRest <- try (many $ parseVFeat)
+  vfeatRest <- try (many parseVFeat)
   vfeatRestrictions <- option [] parseAdditionalRestrictions
   let vfeats = vfeat : vfeatRest
   return VFeat { .. } where

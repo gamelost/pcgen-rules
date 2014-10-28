@@ -130,7 +130,7 @@ evalJEPFormulae vars (Arithmetic op f1 f2) =
      Multiply -> (*)
      Subtract -> (-)
      Add -> (+)
-     GreaterEqualsThan -> (\x y -> if x >= y then 1 else 0)) -- TODO check this
+     GreaterEqualsThan -> \ x y -> if x >= y then 1 else 0) -- TODO check this
   (evalJEPFormulae vars f1)
   (evalJEPFormulae vars f2)
 evalJEPFormulae vars (Function what formulas) =
@@ -153,7 +153,7 @@ parseRoll = do
   number <- textToInt <$> manyNumbers
   _ <- optional $ char 'd'
   sides <- option 0 $ textToInt <$> manyNumbers
-  modifier <- option 0 $ parseInteger -- account for e.g., 2d10+1 or 2d10-5
+  modifier <- option 0 parseInteger -- account for e.g., 2d10+1 or 2d10-5
   return Roll { .. }
 
 parseInteger :: PParser Int

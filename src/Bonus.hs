@@ -30,6 +30,8 @@ data Bonus = BonusSkill Skill
            | BonusDifficultyClass BonusDC
            | BonusVision BonusVisionData
            | BonusSlotItems BonusSlots
+           | BonusSpellCastMultiple BonusSpellCastMult
+           | BonusPostMoveAddition BonusPostMoveAdd
            | BonusMiscellany BonusMisc
            | BonusMovement BonusMove
            | BonusMovementMultiplier BonusMoveMultiplier
@@ -451,6 +453,26 @@ parseBonusMoveMultiplier = do
                                 <|> (labeled "TYPE." >> BonusMoveMultiplierType <$> parseStringNoCommas)
                                 <|> (labeled "TYPE=" >> BonusMoveMultiplierType <$> parseStringNoCommas)
 
+-- BONUS:POSTMOVEADD|x|y
+--   x is movement type or all
+--   y is formula
+data BonusPostMoveAddType = MovementPostType String
+                          | AllPostMovement
+                            deriving (Show, Eq)
+
+data BonusPostMoveAdd = BonusPostMoveAdd { bonusPostMoveAddType :: BonusPostMoveAddType
+                                         , bonusPostMoveAddFormula :: Formula }
+                      deriving (Show, Eq)
+
+parseBonusPostMoveAdd :: PParser BonusPostMoveAdd
+parseBonusPostMoveAdd = do
+  _ <- bonusTag "POSTMOVEADD"
+  bonusPostMoveAddType <- parseBonusPostMoveAddType
+  bonusPostMoveAddFormula <- char '|' *> parseFormula
+  return BonusPostMoveAdd { .. } where
+    parseBonusPostMoveAddType = (AllPostMovement <$ labeled "TYPE.All")
+                            <|> (labeled "TYPE." *> (MovementPostType <$> parseString))
+
 -- BONUS:SIZEMOD|NUMBER|x
 --   x is formula
 parseBonusSizeMod :: PParser Formula
@@ -552,6 +574,30 @@ parseBonusStat = do
   bonusStatNames <- parseStringNoCommas `sepBy` char ','
   bonusStatFormula <- char '|' *> parseFormula
   return BonusStat { .. }
+
+-- BONUS:SPELLCASTMULT|x;y|z
+--   x is class name or spell type
+--   y is level number
+--   z is number of spells
+data BonusSpellCastMultType = SpellCastClassName String
+                            | SpellCastSpellType String
+                              deriving (Show, Eq)
+
+data BonusSpellCastMult = BonusSpellCastMult { bonusSpellCastType :: BonusSpellCastMultType
+                                             , bonusSpellCastLevel :: Int
+                                             , bonusSpellCastNumber :: Int }
+                        deriving (Show, Eq)
+
+parseBonusSpellCastMult :: PParser BonusSpellCastMult
+parseBonusSpellCastMult = do
+  _ <- bonusTag "SPELLCASTMULT"
+  bonusSpellCastType <- parseBonusSpellCastType <* char ';'
+  bonusSpellCastLevel <- textToInt <$> (labeled "LEVEL=" *> manyNumbers)
+  _ <- char '|'
+  bonusSpellCastNumber <- textToInt <$> manyNumbers
+  return BonusSpellCastMult { .. } where
+    parseBonusSpellCastType = (labeled "CLASS=" *> (SpellCastClassName <$> parseString))
+                          <|> (labeled "TYPE=" *> (SpellCastSpellType <$> parseString))
 
 -- BONUS:VAR|x,x,...|y
 --   x is variable name
@@ -744,6 +790,8 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusMovementMultiplier <$> parseBonusMoveMultiplier
             <|> BonusVision <$> parseBonusVision
             <|> BonusSlotItems <$> parseBonusSlots
+            <|> BonusSpellCastMultiple <$> parseBonusSpellCastMult
+            <|> BonusPostMoveAddition <$> parseBonusPostMoveAdd
             <|> BonusCharacterStat <$> parseBonusStat
             <|> BonusWeaponProficency <$> parseBonusWeaponProf
             <|> BonusWeaponProperty <$> parseBonusWeaponProp

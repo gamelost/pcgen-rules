@@ -23,9 +23,13 @@ import Prelude(minimum, maximum, head)
 
 import Common
 
-data Roll = Roll { number :: Int
-                 , sides :: Int
-                 , modifier :: Int }
+data Die = Die { number :: Int
+               , sides :: Int
+               , modifier :: Int }
+               deriving (Show, Eq)
+
+data Roll = RollDie Die
+          | Special
             deriving (Show, Eq)
 
 data Operand = Divide
@@ -76,6 +80,7 @@ varBuiltins = [ "SynergyBonus"
               , "COUNT[EQTYPE.ARMOR.EQUIPPED]" -- ??
               , "SHIELDACCHECK"
               , "SKILLRANK=Bluff"
+              , "AntipaladinLVL"
               , "TL"
               , "CL"
               , "INT"
@@ -155,13 +160,19 @@ evalJEPFormulae vars (Variable v) =
 parseRolls :: PParser [Roll]
 parseRolls = parseRoll `sepBy` char '/'
 
-parseRoll :: PParser Roll
-parseRoll = do
+parseSpecialRoll :: PParser Roll
+parseSpecialRoll = Special <$ labeled "Special"
+
+parseRollDie :: PParser Roll
+parseRollDie = do
   number <- textToInt <$> manyNumbers
   _ <- optional $ char 'd'
   sides <- option 0 $ textToInt <$> manyNumbers
   modifier <- option 0 parseInteger -- account for e.g., 2d10+1 or 2d10-5
-  return Roll { .. }
+  return $ RollDie Die { .. }
+
+parseRoll :: PParser Roll
+parseRoll = parseSpecialRoll <|> parseRollDie
 
 parseInteger :: PParser Int
 parseInteger = parseSignedNumber where

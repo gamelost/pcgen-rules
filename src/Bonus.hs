@@ -30,7 +30,8 @@ data Bonus = BonusSkill Skill
            | BonusDifficultyClass BonusDC
            | BonusVision BonusVisionData
            | BonusSlotItems BonusSlots
-           | BonusSpellCastMultiple BonusSpellCastMult
+           | BonusSpellCasting BonusSpellCast
+           | BonusSpellCastingMultiple BonusSpellCastMult
            | BonusPostMoveAddition BonusPostMoveAdd
            | BonusMiscellany BonusMisc
            | BonusMovement BonusMove
@@ -575,29 +576,56 @@ parseBonusStat = do
   bonusStatFormula <- char '|' *> parseFormula
   return BonusStat { .. }
 
+-- BONUS:SPELLCAST|x;y|z
+data BonusSpellCastType = SpellCastClassName String
+                        | SpellCastSpellType String
+                          deriving (Show, Eq)
+
+data BonusSpellCastSlot = SpellCastLevelNumber Int
+                        | SpellCastLevelAll
+                          deriving (Show, Eq)
+
+data BonusSpellCast = BonusSpellCast { bonusSpellCastType :: BonusSpellCastType
+                                     , bonusSpellCastSlot :: BonusSpellCastSlot
+                                     , bonusSpellCastNumber :: Int }
+                        deriving (Show, Eq)
+
+parseBonusSpellCast :: PParser BonusSpellCast
+parseBonusSpellCast = do
+  _ <- bonusTag "SPELLCAST"
+  bonusSpellCastType <- parseBonusSpellCastType <* char ';'
+  bonusSpellCastSlot <- parseBonusSpellCastSlot <* char '|'
+  bonusSpellCastNumber <- textToInt <$> manyNumbers
+  return BonusSpellCast { .. } where
+    parseBonusSpellCastType = (labeled "CLASS=" *> (SpellCastClassName <$> parseString))
+                          <|> (labeled "TYPE=" *> (SpellCastSpellType <$> parseString))
+    parseBonusSpellCastSlot = (SpellCastLevelAll <$ labeled "LEVEL=ALL")
+                          <|> (labeled "LEVEL=" *> (SpellCastLevelNumber <$> slotToInt))
+    slotToInt = textToInt <$> manyNumbers
+
 -- BONUS:SPELLCASTMULT|x;y|z
 --   x is class name or spell type
 --   y is level number
 --   z is number of spells
-data BonusSpellCastMultType = SpellCastClassName String
-                            | SpellCastSpellType String
+data BonusSpellCastMultType = SpellCastMultClassName String
+                            | SpellCastMultSpellType String
                               deriving (Show, Eq)
 
-data BonusSpellCastMult = BonusSpellCastMult { bonusSpellCastType :: BonusSpellCastMultType
-                                             , bonusSpellCastLevel :: Int
-                                             , bonusSpellCastNumber :: Int }
+data BonusSpellCastMult = BonusSpellCastMult { bonusSpellCastMultType :: BonusSpellCastMultType
+                                             , bonusSpellCastMultLevel :: Int
+                                             , bonusSpellCastMultNumber :: Int }
                         deriving (Show, Eq)
 
 parseBonusSpellCastMult :: PParser BonusSpellCastMult
 parseBonusSpellCastMult = do
   _ <- bonusTag "SPELLCASTMULT"
-  bonusSpellCastType <- parseBonusSpellCastType <* char ';'
-  bonusSpellCastLevel <- textToInt <$> (labeled "LEVEL=" *> manyNumbers)
+  bonusSpellCastMultType <- parseBonusSpellCastMultType <* char ';'
+  bonusSpellCastMultLevel <- textToInt <$> (labeled "LEVEL=" *> manyNumbers)
   _ <- char '|'
-  bonusSpellCastNumber <- textToInt <$> manyNumbers
+  bonusSpellCastMultNumber <- textToInt <$> manyNumbers
   return BonusSpellCastMult { .. } where
-    parseBonusSpellCastType = (labeled "CLASS=" *> (SpellCastClassName <$> parseString))
-                          <|> (labeled "TYPE=" *> (SpellCastSpellType <$> parseString))
+    parseBonusSpellCastMultType = (labeled "CLASS=" *> (SpellCastMultClassName <$> parseString))
+                              <|> (labeled "TYPE=" *> (SpellCastMultSpellType <$> parseString))
 
 -- BONUS:VAR|x,x,...|y
 --   x is variable name
@@ -790,7 +818,8 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusMovementMultiplier <$> parseBonusMoveMultiplier
             <|> BonusVision <$> parseBonusVision
             <|> BonusSlotItems <$> parseBonusSlots
-            <|> BonusSpellCastMultiple <$> parseBonusSpellCastMult
+            <|> BonusSpellCasting <$> parseBonusSpellCast
+            <|> BonusSpellCastingMultiple <$> parseBonusSpellCastMult
             <|> BonusPostMoveAddition <$> parseBonusPostMoveAdd
             <|> BonusCharacterStat <$> parseBonusStat
             <|> BonusWeaponProficency <$> parseBonusWeaponProf

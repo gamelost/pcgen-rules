@@ -2,11 +2,11 @@
 
 module Restrictions where
 
-import Prelude hiding (takeWhile, GT, EQ, LT)
-import Text.Parsec.Char
-import Text.Parsec.Combinator
-import Text.Parsec.Prim hiding ((<|>), many)
-import Control.Applicative
+import Text.Parsec.Char (char, satisfy)
+import Text.Parsec.Combinator (sepBy, option, many1, choice)
+import Text.Parsec.Prim (many, try)
+import ClassyPrelude hiding (try)
+
 import JEPFormula
 import Common
 
@@ -25,7 +25,9 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreItemRestriction PreItem
                     | PreRaceRestriction PreRace
                     | PreMoveRestriction PreMove
+                    | PreStatRestriction PreStat
                     | PreSkillRestriction PreSkill
+                    | PrePCLevelRestriction PrePCLevel
                     | PreSkillTotalRestriction PreSkillTot
                     | PreRuleRestriction PreRule
                     | PreMultipleRestriction PreMult
@@ -268,6 +270,21 @@ parsePreMult = do
   return PreMult { restrictionNumber = textToInt n, .. } where
     parseRestrictions = char '[' >> parseRestriction <* char ']'
 
+-- PREPCLEVEL:x,y
+--   x is MIN=formula
+--   y is MAX=formula
+data PrePCLevel = PrePCLevel { requiredLevelMin :: Maybe Formula
+                             , requiredLevelMax :: Maybe Formula }
+                deriving (Show, Eq)
+
+parsePrePCLevel :: PParser PrePCLevel
+parsePrePCLevel = do
+  _ <- tag "PREPCLEVEL"
+  requiredLevelMin <- option Nothing (Just <$> (labeled "MIN=" *> parseFormula))
+  requiredLevelMax <- option Nothing (Just <$> (labeled "MAX=" *> parseFormula))
+  let _ = assert (isJust requiredLevelMin || isJust requiredLevelMax)
+  return PrePCLevel { .. }
+
 -- PRERACE:x,y,y...
 --   x is number of racial properties
 --   y is name of race, type, racetype, racesubtype
@@ -345,6 +362,26 @@ parsePreSkillTotal = do
     parseSkills = SkillType <$> (labeled "TYPE=" >> parseString)
               <|> SkillName <$> parseString
 
+-- PRESTAT:x,y=z,y=z,..
+--   x is number
+--   y is stats abbrevation
+--   z is number
+data PreStat = PreStat { statNumber :: Int
+                       , statChecks :: [(String, Int)] }
+             deriving (Show, Eq)
+
+parsePreStat :: PParser PreStat
+parsePreStat = do
+  _ <- tag "PRESTAT"
+  statNumber <- textToInt <$> manyNumbers
+  _ <- char ','
+  statChecks <- parseStatCheck `sepBy` char ','
+  return PreStat { .. } where
+    parseStatCheck = do
+      stat <- allCaps <* char '='
+      num <- textToInt <$> manyNumbers
+      return (stat, num)
+
 -- PREVARx:y,z
 --   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
 --   y is text (must be in DEFINE: or BONUS:VAR)
@@ -352,7 +389,12 @@ parsePreSkillTotal = do
 --
 -- NB: documentation does not seem quite right. each y,z parameter is
 -- probably a formula. for now, we read in unknown variables as Text.
-data Operator = EQ | GT | GTEQ | LT | LTEQ | NEQ
+data Operator = Equal
+              | GreaterThan
+              | GreaterThanOrEqual
+              | LesserThan
+              | LesserThanOrEqual
+              | NotEqual
                 deriving (Show, Eq)
 
 data PreVarType = PreVarFormula Formula
@@ -371,12 +413,12 @@ parsePreVar = do
     parsePreVarType = PreVarFormula <$> try parseFormula
                   <|> PreVarText <$> parseStringNoCommasBrackets
     convertOperator :: String -> Operator
-    convertOperator "EQ" = EQ
-    convertOperator "GTEQ" = GTEQ
-    convertOperator "GT" = GT
-    convertOperator "LTEQ" = LTEQ
-    convertOperator "LT" = LT
-    convertOperator "NEQ" = NEQ
+    convertOperator "EQ" = Equal
+    convertOperator "GTEQ" = GreaterThanOrEqual
+    convertOperator "GT" = GreaterThan
+    convertOperator "LTEQ" = LesserThanOrEqual
+    convertOperator "LT" = LesserThan
+    convertOperator "NEQ" = NotEqual
     convertOperator _ = error "invalid PREVAR operator"
 
 parsePossibleRestriction :: PParser RestrictionTag
@@ -390,12 +432,14 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreItemRestriction <$> parsePreItem
                        <|> PreRaceRestriction <$> parsePreRace
                        <|> PreMoveRestriction <$> parsePreMove
+                       <|> PreStatRestriction <$> parsePreStat
                        <|> PreRuleRestriction <$> parsePreRule
                        <|> PreAlignRestriction <$> parsePreAlign
                        <|> PreEquipRestriction <$> parsePreEquip
                        <|> PreEquipBothRestriction <$> parsePreEquipBoth
                        <|> PreEquipPrimaryRestriction <$> parsePreEquipSecondary
                        <|> PreEquipSecondaryRestriction <$> parsePreEquipSecondary
+                       <|> PrePCLevelRestriction <$> parsePrePCLevel
                        <|> PreSkillTotalRestriction <$> parsePreSkillTotal
                        <|> PreSkillRestriction <$> parsePreSkill
                        <|> PreMultipleRestriction <$> parsePreMult

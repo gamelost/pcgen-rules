@@ -81,6 +81,10 @@ varBuiltins = [ "SynergyBonus"
               , "SHIELDACCHECK"
               , "SKILLRANK=Bluff"
               , "AntipaladinLVL"
+              , "PaladinLvl"
+              , "PsiBladeDamage"
+              , "PsiBladeEnhancement"
+              , "PsiShieldDefense"
               , "TL"
               , "CL"
               , "INT"
@@ -89,6 +93,7 @@ varBuiltins = [ "SynergyBonus"
               , "CON"
               , "WIS"
               , "CHA"
+              , "NOB"
               ]
 
 listOfFunctions :: [String]

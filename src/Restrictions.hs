@@ -26,9 +26,11 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreRaceRestriction PreRace
                     | PreMoveRestriction PreMove
                     | PreStatRestriction PreStat
+                    | PreTypeRestriction PreType
                     | PreSkillRestriction PreSkill
                     | PrePCLevelRestriction PrePCLevel
                     | PreSkillTotalRestriction PreSkillTot
+                    | PreWeaponProfRestriction PreWeaponProf
                     | PreRuleRestriction PreRule
                     | PreMultipleRestriction PreMult
                     | Invert RestrictionTag
@@ -382,6 +384,23 @@ parsePreStat = do
       num <- textToInt <$> manyNumbers
       return (stat, num)
 
+-- PRETYPE:x,y,y...
+--   x is number
+--   y is type requirement
+data PreType = PreType { preTypeNumber :: Int
+                       , preTypeRequirements :: [String] }
+             deriving (Show, Eq)
+
+-- NB: account for e.g., PRETYPE:1,EQMOD=BROKEA; furthermore, this
+-- should correspond to the Equipment type tag.
+parsePreType :: PParser PreType
+parsePreType = do
+  _ <- tag "PRETYPE"
+  preTypeNumber <- textToInt <$> manyNumbers
+  _ <- char ','
+  preTypeRequirements <- parseStringNoCommas `sepBy` char ','
+  return PreType { .. }
+
 -- PREVARx:y,z
 --   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
 --   y is text (must be in DEFINE: or BONUS:VAR)
@@ -421,6 +440,29 @@ parsePreVar = do
     convertOperator "NEQ" = NotEqual
     convertOperator _ = error "invalid PREVAR operator"
 
+-- PREWEAPONPROF:x,y,y...
+--   x is number of matching proficiencies
+--   y is name or type or DEITYWEAPON
+data PreWeaponProfType = PreWeaponName String
+                       | PreWeaponType String
+                       | DeityWeapon
+                         deriving (Show, Eq)
+
+data PreWeaponProf = PreWeaponProf { preWeaponProfNumber :: Int
+                                   , preWeaponProfType :: [PreWeaponProfType] }
+                   deriving (Show, Eq)
+
+parsePreWeaponProf :: PParser PreWeaponProf
+parsePreWeaponProf = do
+  _ <- tag "PREWEAPONPROF"
+  preWeaponProfNumber <- textToInt <$> manyNumbers
+  _ <- char ','
+  preWeaponProfType <- parseWeaponProfType `sepBy` char ','
+  return PreWeaponProf { .. } where
+    parseWeaponProfType = (DeityWeapon <$ labeled "DEITYWEAPON")
+                      <|> (labeled "TYPE=" *> (PreWeaponType <$> parseStringNoCommas))
+                      <|> (PreWeaponName <$> parseStringNoCommas)
+
 parsePossibleRestriction :: PParser RestrictionTag
 parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreClassSkillRestriction <$> parsePreClassSkill
@@ -433,6 +475,7 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreRaceRestriction <$> parsePreRace
                        <|> PreMoveRestriction <$> parsePreMove
                        <|> PreStatRestriction <$> parsePreStat
+                       <|> PreTypeRestriction <$> parsePreType
                        <|> PreRuleRestriction <$> parsePreRule
                        <|> PreAlignRestriction <$> parsePreAlign
                        <|> PreEquipRestriction <$> parsePreEquip
@@ -440,6 +483,7 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreEquipPrimaryRestriction <$> parsePreEquipSecondary
                        <|> PreEquipSecondaryRestriction <$> parsePreEquipSecondary
                        <|> PrePCLevelRestriction <$> parsePrePCLevel
+                       <|> PreWeaponProfRestriction <$> parsePreWeaponProf
                        <|> PreSkillTotalRestriction <$> parsePreSkillTotal
                        <|> PreSkillRestriction <$> parsePreSkill
                        <|> PreMultipleRestriction <$> parsePreMult

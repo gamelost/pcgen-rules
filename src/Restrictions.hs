@@ -27,6 +27,8 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreMoveRestriction PreMove
                     | PreStatRestriction PreStat
                     | PreTypeRestriction PreType
+                    | PreSizeRestriction PreSize
+                    | PreAttackRestriction PreAttack
                     | PreSkillRestriction PreSkill
                     | PrePCLevelRestriction PrePCLevel
                     | PreSkillTotalRestriction PreSkillTot
@@ -35,6 +37,26 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreMultipleRestriction PreMult
                     | Invert RestrictionTag
                       deriving (Show, Eq)
+
+data Operator = Equal
+              | GreaterThan
+              | GreaterThanOrEqual
+              | LesserThan
+              | LesserThanOrEqual
+              | NotEqual
+                deriving (Show, Eq)
+
+operatorPrefixes :: [PParser String]
+operatorPrefixes = tryStrings ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"]
+
+convertOperator :: String -> Operator
+convertOperator "EQ" = Equal
+convertOperator "GTEQ" = GreaterThanOrEqual
+convertOperator "GT" = GreaterThan
+convertOperator "LTEQ" = LesserThanOrEqual
+convertOperator "LT" = LesserThan
+convertOperator "NEQ" = NotEqual
+convertOperator _ = error "invalid operator"
 
 -- PREABILITY:x,CATEGORY=y,z,z,z...
 --   x is the number of abilities needed
@@ -53,7 +75,7 @@ parsePreAbility = do
   return PreAbility { abilityNumber = textToInt n, .. } where
     parseWordWithSpaces = many1 $ satisfy $ inClass "-A-Za-z "
 
--- PARSEALIGN:x,x...
+-- PREALIGN:x,x...
 --   x is alignment abbreviation or alignment array number
 data Alignment = LG | LN | LE | NG | TN | NE | CG | CN | CE | None | Deity
                  deriving (Show, Eq)
@@ -77,6 +99,17 @@ parsePreAlign = do
     parseAlignment x | x == "CE", x == "8" = CE
     parseAlignment x | x == "Deity", x == "10" = Deity
     parseAlignment _ = None
+
+-- PREATTACK:x
+--   x is base attack bonus number
+data PreAttack = PreAttack { preAttackNumber :: Int }
+               deriving (Show, Eq)
+
+parsePreAttack :: PParser PreAttack
+parsePreAttack = do
+  _ <- tag "PREATT"
+  preAttackNumber <- textToInt <$> manyNumbers
+  return PreAttack { .. }
 
 -- PRECLASS:x,y=z,y=z,y=z...
 --   x is number of classes to pass
@@ -180,7 +213,7 @@ _parsePreEquip s = do
   return PreEquip { preEquipNumber = textToInt n, .. } where
     parsePreEquipmentType = (labeled "WIELDCATEGORY=" >> WieldCategory <$> parseStringNoCommasBrackets)
                         <|> (labeled "TYPE=" >> EquipmentType <$> parseStringNoCommasBrackets)
-                        <|> (EquipmentName <$> parseString)
+                        <|> (EquipmentName <$> parseStringNoCommas)
 
 parsePreEquip :: PParser PreEquip
 parsePreEquip = _parsePreEquip "PREEQUIP"
@@ -236,9 +269,9 @@ parsePreItem = do
   n <- tag "PREITEM" >> manyNumbers
   items <- char ',' >> parseItems `sepBy` char ','
   return PreItem { itemNumber = textToInt n, .. } where
-    parseItems = ItemType <$> (labeled "TYPE=" >> parseString)
+    parseItems = ItemType <$> (labeled "TYPE=" >> parseStringNoCommas)
              <|> (AnyItem <$ char '%')
-             <|> ItemType <$> parseString
+             <|> ItemType <$> parseStringNoCommas
 
 -- PREMOVE:x,y=z,y=z...
 --   x is minimum number movement types to pass
@@ -305,10 +338,10 @@ parsePreRace = do
   n <- tag "PRERACE" >> manyNumbers
   races <- char ',' >> parseRaces `sepBy` char ','
   return PreRace { raceNumber = textToInt n, .. } where
-    parseRaces = RaceSubType <$> (labeled "RACESUBTYPE=" *> parseString)
-             <|> RaceTypeType <$> (labeled "RACETYPE=" *> parseString)
-             <|> RaceType <$> (labeled "TYPE=" *> parseString)
-             <|> RaceName <$> parseString
+    parseRaces = RaceSubType <$> (labeled "RACESUBTYPE=" *> parseStringNoCommas)
+             <|> RaceTypeType <$> (labeled "RACETYPE=" *> parseStringNoCommas)
+             <|> RaceType <$> (labeled "TYPE=" *> parseStringNoCommas)
+             <|> RaceName <$> parseStringNoCommas
 
 -- PRERULE:x,y
 --   x is number of rules required
@@ -323,6 +356,41 @@ parsePreRule = do
   _ <- char ','
   ruleName <- parseString -- not correct but will do for now
   return PreRule { ruleNumber = textToInt n, .. }
+
+-- PRESIZEx:y
+--   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
+--   y is F, D, T, S, M, L, H, G, C
+data PreSizeType = Fine
+                 | Diminutive
+                 | Tiny
+                 | Small
+                 | Medium
+                 | Large
+                 | Huge
+                 | Gargantuan
+                 | Colossal
+                 | OtherSize String
+                   deriving (Show, Eq)
+
+data PreSize = PreSize { preSizeOperator :: Operator
+                       , preSizeType :: PreSizeType }
+             deriving (Show, Eq)
+
+parsePreSize :: PParser PreSize
+parsePreSize = do
+  op <- labeled "PRESIZE" *> choice operatorPrefixes
+  preSizeType <- parsePreSizeType
+  return PreSize { preSizeOperator = convertOperator op, .. } where
+    parsePreSizeType = (Fine <$ labeled "F")
+                   <|> (Diminutive <$ labeled "D")
+                   <|> (Tiny <$ labeled "T")
+                   <|> (Small <$ labeled "S")
+                   <|> (Medium <$ labeled "M")
+                   <|> (Large <$ labeled "L")
+                   <|> (Huge <$ labeled "H")
+                   <|> (Gargantuan <$ labeled "G")
+                   <|> (Colossal <$ labeled "C")
+                   <|> (OtherSize <$> parseString)
 
 -- PRESKILL:x,y=z,y=z,..
 --   x is number of skills
@@ -361,8 +429,8 @@ parsePreSkillTotal = do
   skillTotals <- parseSkills `sepBy` char ','
   n <- char '=' *> manyNumbers
   return PreSkillTot { skillTotalNeeded = textToInt n, .. } where
-    parseSkills = SkillType <$> (labeled "TYPE=" >> parseString)
-              <|> SkillName <$> parseString
+    parseSkills = SkillType <$> (labeled "TYPE=" >> parseStringNoCommas)
+              <|> SkillName <$> parseStringNoCommas
 
 -- PRESTAT:x,y=z,y=z,..
 --   x is number
@@ -408,14 +476,6 @@ parsePreType = do
 --
 -- NB: documentation does not seem quite right. each y,z parameter is
 -- probably a formula. for now, we read in unknown variables as Text.
-data Operator = Equal
-              | GreaterThan
-              | GreaterThanOrEqual
-              | LesserThan
-              | LesserThanOrEqual
-              | NotEqual
-                deriving (Show, Eq)
-
 data PreVarType = PreVarFormula Formula
                 | PreVarText String
                   deriving (Show, Eq)
@@ -425,20 +485,11 @@ data PreVar = PreVar { operator :: Operator
 
 parsePreVar :: PParser PreVar
 parsePreVar = do
-  op <- labeled "PREVAR" >> choice prefixes
+  op <- labeled "PREVAR" >> choice operatorPrefixes
   variables <- char ':' >> parsePreVarType `sepBy` char ','
   return PreVar { operator = convertOperator op, .. } where
-    prefixes = tryStrings ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"]
     parsePreVarType = PreVarFormula <$> try parseFormula
                   <|> PreVarText <$> parseStringNoCommasBrackets
-    convertOperator :: String -> Operator
-    convertOperator "EQ" = Equal
-    convertOperator "GTEQ" = GreaterThanOrEqual
-    convertOperator "GT" = GreaterThan
-    convertOperator "LTEQ" = LesserThanOrEqual
-    convertOperator "LT" = LesserThan
-    convertOperator "NEQ" = NotEqual
-    convertOperator _ = error "invalid PREVAR operator"
 
 -- PREWEAPONPROF:x,y,y...
 --   x is number of matching proficiencies
@@ -476,6 +527,8 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreMoveRestriction <$> parsePreMove
                        <|> PreStatRestriction <$> parsePreStat
                        <|> PreTypeRestriction <$> parsePreType
+                       <|> PreSizeRestriction <$> parsePreSize
+                       <|> PreAttackRestriction <$> parsePreAttack
                        <|> PreRuleRestriction <$> parsePreRule
                        <|> PreAlignRestriction <$> parsePreAlign
                        <|> PreEquipRestriction <$> parsePreEquip

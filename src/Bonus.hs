@@ -32,6 +32,7 @@ data Bonus = BonusSkill Skill
            | BonusSlotItems BonusSlots
            | BonusSpellCasting BonusSpellCast
            | BonusSpellCastingMultiple BonusSpellCastMult
+           | BonusSkillPoints Formula
            | BonusPostMoveAddition BonusPostMoveAdd
            | BonusMiscellany BonusMisc
            | BonusMovement BonusMove
@@ -542,6 +543,11 @@ parseBonusSkillRank = do
     parseSkillFormulaType = SkillFormula <$> parseFormula
                         <|> SkillText <$> (labeled "SKILLRANK=" >> parseStringNoCommas)
 
+-- BONUS:SKILLPOINTS|NUMBER|x
+--   x is formula
+parseBonusSkillPoints :: PParser Formula
+parseBonusSkillPoints = bonusTag "SKILLPOINTS|NUMBER" *> parseFormula
+
 -- BONUS:SLOTS|x,y
 --   x is slot type or LIST
 --   y is formula
@@ -689,6 +695,7 @@ parseBonusWeaponProp = do
                       <|> try (P_DAMAGESHORTRANGE <$ labeled "DAMAGE-SHORTRANGE")
                       <|> try (P_DAMAGE <$ labeled "DAMAGE")
                       <|> try (P_TOHITSHORTRANGE <$ labeled "TOHIT-SHORTRANGE")
+                      <|> try (P_TOHIT <$ labeled "TO-HIT") -- playersguidetoarcanis_equip.lst
                       <|> try (P_TOHIT <$ labeled "TOHIT")
                       <|> try (P_WEAPONBAB <$ labeled "WEAPONBAB")
                       <|> (P_WIELDCATEGORY <$ labeled "WIELDCATEGORY")
@@ -820,6 +827,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusSlotItems <$> parseBonusSlots
             <|> BonusSpellCasting <$> parseBonusSpellCast
             <|> BonusSpellCastingMultiple <$> parseBonusSpellCastMult
+            <|> BonusSkillPoints <$> parseBonusSkillPoints
             <|> BonusPostMoveAddition <$> parseBonusPostMoveAdd
             <|> BonusCharacterStat <$> parseBonusStat
             <|> BonusWeaponProficency <$> parseBonusWeaponProf

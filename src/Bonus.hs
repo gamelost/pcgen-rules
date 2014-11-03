@@ -746,6 +746,7 @@ parseBonusWeaponProf = do
                       <|> try (DAMAGEMULT <$ labeled "DAMAGEMULT")
                       <|> try (DAMAGESIZE <$ labeled "DAMAGESIZE")
                       <|> try (DAMAGESHORTRANGE <$ labeled "DAMAGESHORTRANGE")
+                      <|> try (DAMAGESHORTRANGE <$ labeled "DAMAGE-SHORTRANGE") -- srd_equip_wondrousitems.lst
                       <|> try (DAMAGE <$ labeled "DAMAGE")
                       <|> try (PCSIZE <$ labeled "PCSIZE")
                       <|> try (REACH <$ labeled "REACH")

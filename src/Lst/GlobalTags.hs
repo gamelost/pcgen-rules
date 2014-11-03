@@ -84,16 +84,18 @@ parseAltDamage = tag "ALTDAMAGE" *> parseRolls
 parseCritRange :: PParser Int
 parseCritRange = tag "CRITRANGE" *> (textToInt <$> manyNumbers)
 
-data Vision = Vision { visionType :: String
+data Vision = Vision { visionTypes :: [String]
                      , visionRestrictions :: [RestrictionTag] }
               deriving (Eq, Show)
 
 parseVision :: PParser Vision
 parseVision = do
   _ <- tag "VISION"
-  visionType <- parseString
+  visionTypes <- parseVisionString `sepBy` char '|'
   visionRestrictions <- option [] parseAdditionalRestrictions
-  return Vision { .. }
+  return Vision { .. } where
+    parseVisionString = try (disallowed *> parseString)
+    disallowed = notFollowedBy (string "PRE")
 
 data NewVariable = NewVariable { varName :: String
                                , varFormula :: Formula

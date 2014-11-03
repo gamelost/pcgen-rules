@@ -3,7 +3,7 @@
 module Restrictions where
 
 import Text.Parsec.Char (char, satisfy)
-import Text.Parsec.Combinator (sepBy, option, many1, choice)
+import Text.Parsec.Combinator (sepBy, option, many1, choice, notFollowedBy)
 import Text.Parsec.Prim (many, try)
 import ClassyPrelude hiding (try)
 
@@ -28,8 +28,12 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreStatRestriction PreStat
                     | PreTypeRestriction PreType
                     | PreSizeRestriction PreSize
+                    | PreLegsRestriction PreLegs
+                    | PreHandsRestriction PreHands
                     | PreAttackRestriction PreAttack
                     | PreSkillRestriction PreSkill
+                    | PreGenderRestriction PreGender
+                    | PreLevelRestriction PreLevel
                     | PrePCLevelRestriction PrePCLevel
                     | PreSkillTotalRestriction PreSkillTot
                     | PreWeaponProfRestriction PreWeaponProf
@@ -168,8 +172,8 @@ parsePreDeity = do
   _ <- char ','
   deities <- parseDeity `sepBy` char ','
   return PreDeity { deityNumber = textToInt n, .. } where
-    parseDeity = (Worship <$ labeled "Y")
-             <|> (NoWorship <$ labeled "N")
+    parseDeity = try (Worship <$ labeled "Y" <* notFollowedBy parseWord)
+             <|> try (NoWorship <$ labeled "N" <* notFollowedBy parseWord)
              <|> PantheonName <$> (labeled "PANTHEON." >> parseStringNoCommasBrackets)
              <|> DeityName <$> parseStringNoCommasBrackets
 
@@ -213,7 +217,7 @@ _parsePreEquip s = do
   return PreEquip { preEquipNumber = textToInt n, .. } where
     parsePreEquipmentType = (labeled "WIELDCATEGORY=" >> WieldCategory <$> parseStringNoCommasBrackets)
                         <|> (labeled "TYPE=" >> EquipmentType <$> parseStringNoCommasBrackets)
-                        <|> (EquipmentName <$> parseStringNoCommas)
+                        <|> (EquipmentName <$> parseStringNoCommasBrackets)
 
 parsePreEquip :: PParser PreEquip
 parsePreEquip = _parsePreEquip "PREEQUIP"
@@ -252,6 +256,49 @@ parsePreFeat = do
     parseFeat = FeatType <$> (labeled "TYPE=" >> parseStringNoCommasBrackets)
             <|> FeatName <$> parseStringNoCommasBrackets
 
+-- PREGENDER:x
+--   x is gender to require
+data PreGenderType = Female
+                   | Male
+                   | Neuter
+                   | NoGender
+                   | Other String
+                     deriving (Show, Eq)
+
+-- number is not documented
+data PreGender = PreGender { preGenderNumber :: Int
+                           , preGenderType :: PreGenderType }
+               deriving (Show, Eq)
+
+parsePreGender :: PParser PreGender
+parsePreGender = do
+  _ <- tag "PREGENDER"
+  preGenderNumber <- option 1 ((textToInt <$> manyNumbers) <* char ',')
+  preGenderType <- parsePreGenderType
+  return PreGender { .. } where
+    -- note: case sensitive.
+    parsePreGenderType = Female <$ labeled "Female"
+                     <|> Female <$ labeled "F" <* notFollowedBy parseWord
+                     <|> Male <$ labeled "Male"
+                     <|> Male <$ labeled "M" <* notFollowedBy parseWord
+                     <|> Neuter <$ labeled "Neuter"
+                     <|> NoGender <$ labeled "None"
+                     <|> Other <$> parseStringNoCommasBrackets
+
+-- PREHANDSx:y
+--   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
+--   y is number
+data PreHands = PreHands { preHandsOperator :: Operator
+                         , preHandsNumber :: Int }
+                deriving (Show, Eq)
+
+parsePreHands :: PParser PreHands
+parsePreHands = do
+  op <- labeled "PREHANDS" *> choice operatorPrefixes
+  _ <- char ':'
+  preHandsNumber <- textToInt <$> manyNumbers
+  return PreHands { preHandsOperator = convertOperator op, .. }
+
 -- PREITEM:x,y,y,...
 --   x is number of items a character must possess
 --   y is text, type, or wildcard (%)
@@ -272,6 +319,35 @@ parsePreItem = do
     parseItems = ItemType <$> (labeled "TYPE=" >> parseStringNoCommas)
              <|> (AnyItem <$ char '%')
              <|> ItemType <$> parseStringNoCommas
+
+-- PRELEGSx:y
+--   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
+--   y is number
+data PreLegs = PreLegs { preLegsOperator :: Operator
+                       , preLegsNumber :: Int }
+               deriving (Show, Eq)
+
+parsePreLegs :: PParser PreLegs
+parsePreLegs = do
+  op <- labeled "PRELEGS" *> choice operatorPrefixes
+  _ <- char ':'
+  preLegsNumber <- textToInt <$> manyNumbers
+  return PreLegs { preLegsOperator = convertOperator op, .. }
+
+-- PRELEVEL:x,y
+--   x is MIN=formula
+--   y is MAX=formula
+data PreLevel = PreLevel { requiredLevelMin :: Maybe Formula
+                         , requiredLevelMax :: Maybe Formula }
+                deriving (Show, Eq)
+
+parsePreLevel :: PParser PreLevel
+parsePreLevel = do
+  _ <- tag "PRELEVEL"
+  requiredLevelMin <- option Nothing (Just <$> (labeled "MIN=" *> parseFormula))
+  requiredLevelMax <- option Nothing (Just <$> (labeled "MAX=" *> parseFormula))
+  let _ = assert (isJust requiredLevelMin || isJust requiredLevelMax)
+  return PreLevel { .. }
 
 -- PREMOVE:x,y=z,y=z...
 --   x is minimum number movement types to pass
@@ -308,16 +384,16 @@ parsePreMult = do
 -- PREPCLEVEL:x,y
 --   x is MIN=formula
 --   y is MAX=formula
-data PrePCLevel = PrePCLevel { requiredLevelMin :: Maybe Formula
-                             , requiredLevelMax :: Maybe Formula }
+data PrePCLevel = PrePCLevel { requiredPCLevelMin :: Maybe Formula
+                             , requiredPCLevelMax :: Maybe Formula }
                 deriving (Show, Eq)
 
 parsePrePCLevel :: PParser PrePCLevel
 parsePrePCLevel = do
   _ <- tag "PREPCLEVEL"
-  requiredLevelMin <- option Nothing (Just <$> (labeled "MIN=" *> parseFormula))
-  requiredLevelMax <- option Nothing (Just <$> (labeled "MAX=" *> parseFormula))
-  let _ = assert (isJust requiredLevelMin || isJust requiredLevelMax)
+  requiredPCLevelMin <- option Nothing (Just <$> (labeled "MIN=" *> parseFormula))
+  requiredPCLevelMax <- option Nothing (Just <$> (labeled "MAX=" *> parseFormula))
+  let _ = assert (isJust requiredPCLevelMin || isJust requiredPCLevelMax)
   return PrePCLevel { .. }
 
 -- PRERACE:x,y,y...
@@ -338,10 +414,11 @@ parsePreRace = do
   n <- tag "PRERACE" >> manyNumbers
   races <- char ',' >> parseRaces `sepBy` char ','
   return PreRace { raceNumber = textToInt n, .. } where
-    parseRaces = RaceSubType <$> (labeled "RACESUBTYPE=" *> parseStringNoCommas)
-             <|> RaceTypeType <$> (labeled "RACETYPE=" *> parseStringNoCommas)
-             <|> RaceType <$> (labeled "TYPE=" *> parseStringNoCommas)
-             <|> RaceName <$> parseStringNoCommas
+    parseRaces = RaceSubType <$> (labeled "RACESUBTYPE=" *> parseStringPercentage)
+             <|> RaceTypeType <$> (labeled "RACETYPE=" *> parseStringPercentage)
+             <|> RaceType <$> (labeled "TYPE=" *> parseStringPercentage)
+             <|> RaceName <$> parseStringPercentage
+    parseStringPercentage = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#%'()~"
 
 -- PRERULE:x,y
 --   x is number of rules required
@@ -466,8 +543,9 @@ parsePreType = do
   _ <- tag "PRETYPE"
   preTypeNumber <- textToInt <$> manyNumbers
   _ <- char ','
-  preTypeRequirements <- parseStringNoCommas `sepBy` char ','
-  return PreType { .. }
+  preTypeRequirements <- parseStringEquals `sepBy` char ','
+  return PreType { .. } where
+    parseStringEquals = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~="
 
 -- PREVARx:y,z
 --   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
@@ -511,8 +589,8 @@ parsePreWeaponProf = do
   preWeaponProfType <- parseWeaponProfType `sepBy` char ','
   return PreWeaponProf { .. } where
     parseWeaponProfType = (DeityWeapon <$ labeled "DEITYWEAPON")
-                      <|> (labeled "TYPE=" *> (PreWeaponType <$> parseStringNoCommas))
-                      <|> (PreWeaponName <$> parseStringNoCommas)
+                      <|> (labeled "TYPE=" *> (PreWeaponType <$> parseStringNoCommasBrackets))
+                      <|> (PreWeaponName <$> parseStringNoCommasBrackets)
 
 parsePossibleRestriction :: PParser RestrictionTag
 parsePossibleRestriction = PreVarRestriction <$> parsePreVar
@@ -528,6 +606,8 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreStatRestriction <$> parsePreStat
                        <|> PreTypeRestriction <$> parsePreType
                        <|> PreSizeRestriction <$> parsePreSize
+                       <|> PreLegsRestriction <$> parsePreLegs
+                       <|> PreHandsRestriction <$> parsePreHands
                        <|> PreAttackRestriction <$> parsePreAttack
                        <|> PreRuleRestriction <$> parsePreRule
                        <|> PreAlignRestriction <$> parsePreAlign
@@ -535,10 +615,12 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreEquipBothRestriction <$> parsePreEquipBoth
                        <|> PreEquipPrimaryRestriction <$> parsePreEquipSecondary
                        <|> PreEquipSecondaryRestriction <$> parsePreEquipSecondary
+                       <|> PreLevelRestriction <$> parsePreLevel
                        <|> PrePCLevelRestriction <$> parsePrePCLevel
                        <|> PreWeaponProfRestriction <$> parsePreWeaponProf
                        <|> PreSkillTotalRestriction <$> parsePreSkillTotal
                        <|> PreSkillRestriction <$> parsePreSkill
+                       <|> PreGenderRestriction <$> parsePreGender
                        <|> PreMultipleRestriction <$> parsePreMult
 
 parseRestriction :: PParser RestrictionTag

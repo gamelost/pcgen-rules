@@ -72,6 +72,8 @@ varBuiltins = [ "SynergyBonus"
               , "FlurryOfFistsExtraAttacks"
               , "FlurryAttacks"
               , "FlurryPenalty"
+              , "FlurryBABBonus"
+              , "FlurryExtraAttacks"
               , "MeditantFlurryBABBonus"
               , "MeditantFlurryExtraAttacks"
               , "MindBladeRANGE"
@@ -86,6 +88,9 @@ varBuiltins = [ "SynergyBonus"
               , "PsiBladeEnhancement"
               , "PsiShieldDefense"
               , "STRSCORE"
+              , "ShieldBonus"
+              , "SamuraiArmorBonus"
+              , "GunneryPenalty"
               , "TL"
               , "CL"
               , "INT"
@@ -171,7 +176,7 @@ parseSpecialRoll = Special <$ labeled "Special"
 
 parseRollDie :: PParser Roll
 parseRollDie = do
-  number <- textToInt <$> manyNumbers
+  number <- option 1 (textToInt <$> manyNumbers)
   _ <- optional $ char 'd'
   sides <- option 0 $ textToInt <$> manyNumbers
   modifier <- option 0 parseInteger -- account for e.g., 2d10+1 or 2d10-5

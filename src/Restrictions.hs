@@ -344,8 +344,8 @@ data PreLevel = PreLevel { requiredLevelMin :: Maybe Formula
 parsePreLevel :: PParser PreLevel
 parsePreLevel = do
   _ <- tag "PRELEVEL"
-  requiredLevelMin <- option Nothing (Just <$> (labeled "MIN=" *> parseFormula))
-  requiredLevelMax <- option Nothing (Just <$> (labeled "MAX=" *> parseFormula))
+  requiredLevelMin <- tryOption (labeled "MIN=" *> parseFormula)
+  requiredLevelMax <- tryOption (labeled "MAX=" *> parseFormula)
   let _ = assert (isJust requiredLevelMin || isJust requiredLevelMax)
   return PreLevel { .. }
 
@@ -391,8 +391,8 @@ data PrePCLevel = PrePCLevel { requiredPCLevelMin :: Maybe Formula
 parsePrePCLevel :: PParser PrePCLevel
 parsePrePCLevel = do
   _ <- tag "PREPCLEVEL"
-  requiredPCLevelMin <- option Nothing (Just <$> (labeled "MIN=" *> parseFormula))
-  requiredPCLevelMax <- option Nothing (Just <$> (labeled "MAX=" *> parseFormula))
+  requiredPCLevelMin <- tryOption (labeled "MIN=" *> parseFormula)
+  requiredPCLevelMax <- tryOption (labeled "MAX=" *> parseFormula)
   let _ = assert (isJust requiredPCLevelMin || isJust requiredPCLevelMax)
   return PrePCLevel { .. }
 

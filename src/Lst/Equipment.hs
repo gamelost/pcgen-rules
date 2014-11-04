@@ -2,10 +2,12 @@
 
 module Lst.Equipment where
 
-import Text.Parsec.Char (char, satisfy)
-import Text.Parsec.Combinator (sepBy1, many1)
+import Text.Parsec.Char (char, satisfy, noneOf, string)
+import Text.Parsec.Combinator (sepBy1, many1, option, notFollowedBy)
+import Text.Parsec.Prim (many)
 import ClassyPrelude
 
+import Restrictions (RestrictionTag, parseAdditionalRestrictions)
 import Modifications
 import JEPFormula
 import Common
@@ -15,6 +17,7 @@ data EquipmentDefinition = Description String
                          | Weight Formula
                          | ACCheck Formula
                          | Size EquipmentSize
+                         | SpecialProperty Property
                          | EquipmentType [String]
                            deriving Show
 
@@ -37,6 +40,23 @@ parseEquipmentType = tag "TYPE" *> parseWordAndNumbers `sepBy1` char '.' where
 
 parseDescription :: PParser String
 parseDescription = tag "DESC" *> restOfTag
+
+data Property = Property { specialPropertyText :: String
+                         , specialPropertyVariables :: [Formula]
+                         , specialPropertyRestrictions :: [RestrictionTag] }
+              deriving (Show, Eq)
+
+parseSpecialProperty :: PParser Property
+parseSpecialProperty = do
+  _ <- tag "SPROP"
+  specialPropertyText <- many1 $ noneOf "\t\r\n|"
+  -- don't bother trying to gauge the number of '%'s. some SPROP text
+  -- is unescaped so we just have to blindly read in the variables.
+  specialPropertyVariables <- many parsePossibleFormula
+  specialPropertyRestrictions <- option [] parseAdditionalRestrictions
+  return Property { .. } where
+    parsePossibleFormula = notAllowed *> char '|' *> parseFormula
+    notAllowed = notFollowedBy (string "|PRE") *> notFollowedBy (string "|!PRE")
 
 data EquipmentSize = Fine
                    | Diminutive
@@ -72,6 +92,7 @@ parseEquipmentTag = Description <$> parseDescription
                 <|> ACCheck <$> parseACCheck
                 <|> Size <$> parseSize
                 <|> EquipmentType <$> parseEquipmentType
+                <|> SpecialProperty <$> parseSpecialProperty
 
 instance LSTObject EquipmentDefinition where
   parseSpecificTags = parseEquipmentTag

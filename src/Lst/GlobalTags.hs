@@ -237,7 +237,7 @@ parseChooseNumChoices = do
   _ <- labeled "CHOOSE:NUMCHOICES="
   choiceNumber <- textToInt <$> manyNumbers
   choices <- many1 $ try (char '|' *> parseChoiceString)
-  choiceType <- option Nothing (labeled "|TYPE=" *> (Just <$> parseString))
+  choiceType <- tryOption (labeled "|TYPE=" *> parseString)
   return Choices { .. } where
     parseChoiceString = disallowed *> parseString
     disallowed = notFollowedBy (string "TYPE")

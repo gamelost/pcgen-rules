@@ -147,8 +147,8 @@ parseBonusCheck = do
   return Checks { .. } where
     parseChecks :: PParser CheckName
     parseChecks = (CheckAll <$ labeled "ALL")
-              <|> (labeled "BASE." >> CheckBase <$> parseString)
-              <|> CheckName <$> parseString
+              <|> (labeled "BASE." >> CheckBase <$> parseStringNoCommas)
+              <|> CheckName <$> parseStringNoCommas
 
 -- BONUS:COMBAT|x|y
 --   x is combat bonus type
@@ -281,7 +281,7 @@ parseBonusEquipmentWeight = do
   _ <- bonusTag "EQM"
   bonusEquipmentWeightType <- parseBonusEquipmentWeightType
   bonusEquipmentWeightFormula <- char '|' *> parseFormula
-  bonusEquipmentWeightBonusType <- option Nothing (Just <$> parseBonusWeightType)
+  bonusEquipmentWeightBonusType <- tryOption parseBonusWeightType
   return BonusEquipmentWeight { .. } where
     parseBonusEquipmentWeightType = (Hands <$ labeled "HANDS")
                                 <|> (AddWeight <$ labeled "WEIGHTADD")
@@ -310,7 +310,7 @@ parseBonusEquipmentRange = do
   _ <- bonusTag "EQMWEAPON"
   bonusEquipmentRangeType <- parseBonusEquipmentRangeType
   bonusEquipmentRangeFormula <- char '|' *> parseFormula
-  bonusEquipmentRangeBonusType <- option Nothing (Just <$> parseBonusRangeType)
+  bonusEquipmentRangeBonusType <- tryOption parseBonusRangeType
   return BonusEquipmentRange { .. } where
     parseBonusEquipmentRangeType = (AddCriticalRange <$ labeled "CRITRANGEADD")
                                <|> (DoubleCriticalRange <$ labeled "CRITRANGEDOUBLE")
@@ -339,7 +339,7 @@ parseBonusEquipmentPenalty = do
   _ <- bonusTag "EQMARMOR"
   bonusEquipmentPenaltyType <- parseBonusEquipmentPenaltyType
   bonusEquipmentPenaltyFormula <- char '|' *> parseFormula
-  bonusEquipmentPenaltyBonusType <- option Nothing (Just <$> parseBonusPenaltyType)
+  bonusEquipmentPenaltyBonusType <- tryOption parseBonusPenaltyType
   return BonusEquipmentPenalty { .. } where
     parseBonusEquipmentPenaltyType = (ACCheckPenalty <$ labeled "ACCHECK")
                                  <|> (EffectiveDamageResistance <$ labeled "EDR")
@@ -474,6 +474,7 @@ parseBonusPostMoveAdd = do
   return BonusPostMoveAdd { .. } where
     parseBonusPostMoveAddType = (AllPostMovement <$ labeled "TYPE.All")
                             <|> (labeled "TYPE." *> (MovementPostType <$> parseString))
+                            <|> (labeled "TYPE=" *> (MovementPostType <$> parseString))
 
 -- BONUS:SIZEMOD|NUMBER|x
 --   x is formula

@@ -3,9 +3,9 @@
 module Lst.Equipment where
 
 import Text.Parsec.Char (char, satisfy, noneOf, string)
-import Text.Parsec.Combinator (sepBy1, many1, option, notFollowedBy)
-import Text.Parsec.Prim (many)
-import ClassyPrelude
+import Text.Parsec.Combinator (sepBy, sepBy1, many1, option, optional, notFollowedBy)
+import Text.Parsec.Prim (many, try)
+import ClassyPrelude hiding (try)
 
 import Restrictions (RestrictionTag, parseAdditionalRestrictions)
 import Modifications
@@ -21,6 +21,11 @@ data EquipmentDefinition = Description String
                          | CriticalMultiple CriticalMultipleType
                          | Proficiency ProficiencyItem
                          | Range RangeIncrement
+                         | Contains Container
+                         | RateOfFire String
+                         | BaseItem String
+                         | Wield WieldType
+                         | EquipmentModifier EquipmentMod
                          | EquipmentType [String]
                            deriving Show
 
@@ -130,6 +135,78 @@ parseRange = do
   let _ = assert (isJust incrementFormula || isJust incrementString)
   return RangeIncrement { .. }
 
+-- TODO: not fully implemented, need to correlate keys with variable
+-- values or chooser responses
+data EquipmentMod = EquipmentMod { equipmentModKeys :: [String]
+                                 , equipmentModRest :: Maybe String }
+                    deriving (Show, Eq)
+
+parseEquipmentModifier :: PParser EquipmentMod
+parseEquipmentModifier = do
+  _ <- tag "EQMOD"
+  equipmentModKeys <- parseStringNoPeriods `sepBy` char '.'
+  _ <- optional $ char '|'
+  equipmentModRest <- tryOption restOfTag
+  return EquipmentMod { .. } where
+    parseStringNoPeriods = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+/:?!%#'()[]~"
+
+data ContainerLimits = ContainerLimits { containerWeight :: Maybe Formula
+                                       , containerWeightChanges :: Bool
+                                       , containerUnlimited :: Bool
+                                       , containerReduction :: Maybe Formula }
+                     deriving (Show, Eq)
+
+data ContainerType = ItemLimit (String, Int)
+                   | ItemType String
+                     deriving (Show, Eq)
+
+data Container = Container { containerLimits :: ContainerLimits
+                           , containerTypes :: [ContainerType] }
+               deriving (Show, Eq)
+
+parseContains :: PParser Container
+parseContains = do
+  _ <- tag "CONTAINS"
+  -- first parameter
+  containerWeightChanges <- option False (True <$ char '*')
+  containerUnlimited <- option False (True <$ labeled "UNLIM")
+  containerWeight <- tryOption parseFormula
+  _ <- optional $ char '%'
+  containerReduction <- tryOption parseFormula
+  let containerLimits = ContainerLimits { .. }
+  -- subsequent parameters (if any)
+  containerTypes <- option [] (many $ char '|' *> parseContainerTypes)
+  return Container { .. } where
+    parseContainerTypes = try (ItemLimit <$> parseContainerTypeLimit)
+                          <|> (ItemType <$> parseString)
+    parseContainerTypeLimit = do
+      item <- parseString
+      -- note that data/xcrawl/pandahead/xcrawl/xcrawl_equip.lst has "Any:100", ugh.
+      -- we do NOT account for that here.
+      _ <- char '='
+      number <- textToInt <$> manyNumbers
+      return (item, number)
+
+data WieldType = Light
+               | OneHanded
+               | TwoHanded
+               | Unusable
+                 deriving (Show, Eq)
+
+parseWield :: PParser WieldType
+parseWield = tag "WIELD" *> parseWieldType where
+  parseWieldType = (Light <$ labeled "Light")
+               <|> (OneHanded <$ labeled "OneHanded")
+               <|> (TwoHanded <$ labeled "TwoHanded")
+               <|> (Unusable <$ labeled "Unusable")
+
+-- only suitable for output.
+parseRateOfFire :: PParser String
+parseRateOfFire = tag "RATEOFFIRE" *> restOfTag
+
+parseBaseItem :: PParser String
+parseBaseItem = tag "BASEITEM" *> restOfTag
+
 parseEquipmentTag :: PParser EquipmentDefinition
 parseEquipmentTag = Description <$> parseDescription
                 <|> Weight <$> parseWeight
@@ -140,6 +217,11 @@ parseEquipmentTag = Description <$> parseDescription
                 <|> CriticalMultiple <$> parseCritMult
                 <|> Proficiency <$> parseProficiency
                 <|> Range <$> parseRange
+                <|> Contains <$> parseContains
+                <|> RateOfFire <$> parseRateOfFire
+                <|> BaseItem <$> parseBaseItem
+                <|> Wield <$> parseWield
+                <|> EquipmentModifier <$> parseEquipmentModifier
                 <|> EquipmentType <$> parseEquipmentType
 
 instance LSTObject EquipmentDefinition where

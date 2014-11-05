@@ -18,6 +18,9 @@ data EquipmentDefinition = Description String
                          | ACCheck Formula
                          | Size EquipmentSize
                          | SpecialProperty Property
+                         | CriticalMultiple CriticalMultipleType
+                         | Proficiency ProficiencyItem
+                         | Range RangeIncrement
                          | EquipmentType [String]
                            deriving Show
 
@@ -58,6 +61,34 @@ parseSpecialProperty = do
     parsePossibleFormula = notAllowed *> char '|' *> parseFormula
     notAllowed = notFollowedBy (string "|PRE") *> notFollowedBy (string "|!PRE")
 
+data CriticalMultipleType = CriticalModifier Int
+                          | NoCriticalModifier
+                            deriving (Show, Eq)
+
+parseCritMult :: PParser CriticalMultipleType
+parseCritMult = tag "CRITMULT" *> parseCriticalMultipleType where
+  parseCriticalMultipleType = CriticalModifier <$> (labeled "x" *> (textToInt <$> manyNumbers))
+                          <|> NoCriticalModifier <$ (labeled "-")
+
+data ProficiencyType = ProficiencyWithWeapon
+                     | ProficiencyWithArmor
+                     | ProficiencyWithShield
+                       deriving (Show, Eq)
+
+data ProficiencyItem = ProficiencyItem { proficiencyType :: ProficiencyType
+                                       , proficiencyName :: String }
+                     deriving (Show, Eq)
+
+parseProficiency :: PParser ProficiencyItem
+parseProficiency = do
+  _ <- tag "PROFICIENCY"
+  proficiencyType <- parseProficiencyWeapon <* char '|'
+  proficiencyName <- parseString
+  return ProficiencyItem { .. } where
+    parseProficiencyWeapon = ProficiencyWithWeapon <$ (labeled "WEAPON")
+                         <|> ProficiencyWithArmor <$ (labeled "ARMOR")
+                         <|> ProficiencyWithShield <$ (labeled "SHIELD")
+
 data EquipmentSize = Fine
                    | Diminutive
                    | Tiny
@@ -85,14 +116,31 @@ parseSize = tag "SIZE" *> parseEquipmentSize where
                    <|> (PC <$ labeled "PC")
                    <|> (OtherSize <$> parseString)
 
+-- the range string is way too inconsistent to parse consistently, but
+-- we try to parse it as a formula here, anyway.
+data RangeIncrement = RangeIncrement { incrementFormula :: Maybe Formula
+                                     , incrementString :: Maybe String }
+                    deriving (Show, Eq)
+
+parseRange :: PParser RangeIncrement
+parseRange = do
+  _ <- tag "RANGE"
+  incrementFormula <- tryOption parseFormula
+  incrementString <- tryOption parseString
+  let _ = assert (isJust incrementFormula || isJust incrementString)
+  return RangeIncrement { .. }
+
 parseEquipmentTag :: PParser EquipmentDefinition
 parseEquipmentTag = Description <$> parseDescription
                 <|> Weight <$> parseWeight
                 <|> Cost <$> parseCost
                 <|> ACCheck <$> parseACCheck
                 <|> Size <$> parseSize
-                <|> EquipmentType <$> parseEquipmentType
                 <|> SpecialProperty <$> parseSpecialProperty
+                <|> CriticalMultiple <$> parseCritMult
+                <|> Proficiency <$> parseProficiency
+                <|> Range <$> parseRange
+                <|> EquipmentType <$> parseEquipmentType
 
 instance LSTObject EquipmentDefinition where
   parseSpecificTags = parseEquipmentTag

@@ -19,12 +19,23 @@ data EquipmentDefinition = Description String
                          | Size EquipmentSize
                          | SpecialProperty Property
                          | CriticalMultiple CriticalMultipleType
+                         | AltCriticalMultiple CriticalMultipleType
+                         | CriticalRange Int
+                         | AltCriticalRange Int
                          | Proficiency ProficiencyItem
                          | Range RangeIncrement
                          | Contains Container
                          | RateOfFire String
                          | BaseItem String
                          | Wield WieldType
+                         | SpellFailure Int
+                         | Slots Int
+                         | ModifiersAllowed ModifierType
+                         | MaximumDexerityBonus Formula
+                         | Quality QualityType
+                         | BaseQuantity Int
+                         | FumbleRange String
+                         | Reach Int
                          | EquipmentModifier EquipmentMod
                          | EquipmentType [String]
                            deriving Show
@@ -70,10 +81,21 @@ data CriticalMultipleType = CriticalModifier Int
                           | NoCriticalModifier
                             deriving (Show, Eq)
 
+parseCriticalMultipleType :: PParser CriticalMultipleType
+parseCriticalMultipleType = CriticalModifier <$> (labeled "x" *> (textToInt <$> manyNumbers))
+                        <|> NoCriticalModifier <$ (labeled "-")
+
 parseCritMult :: PParser CriticalMultipleType
-parseCritMult = tag "CRITMULT" *> parseCriticalMultipleType where
-  parseCriticalMultipleType = CriticalModifier <$> (labeled "x" *> (textToInt <$> manyNumbers))
-                          <|> NoCriticalModifier <$ (labeled "-")
+parseCritMult = tag "CRITMULT" *> parseCriticalMultipleType
+
+parseAltCritMult :: PParser CriticalMultipleType
+parseAltCritMult = tag "ALTCRITMULT" *> parseCriticalMultipleType
+
+parseCritRange :: PParser Int
+parseCritRange = tag "CRITRANGE" *> (textToInt <$> manyNumbers)
+
+parseAltCritRange :: PParser Int
+parseAltCritRange = tag "ALTCRITRANGE" *> (textToInt <$> manyNumbers)
 
 data ProficiencyType = ProficiencyWithWeapon
                      | ProficiencyWithArmor
@@ -200,12 +222,53 @@ parseWield = tag "WIELD" *> parseWieldType where
                <|> (TwoHanded <$ labeled "TwoHanded")
                <|> (Unusable <$ labeled "Unusable")
 
+data ModifierType = CanAddModifiers
+                  | CannotAddModifiers
+                  | Required
+                    deriving (Show, Eq)
+
+parseMods :: PParser ModifierType
+parseMods = tag "MODS" *> parseModifierType where
+  parseModifierType = (CanAddModifiers <$ labeled "YES")
+                  <|> (CannotAddModifiers <$ labeled "NO")
+                  <|> (Required <$ labeled "REQUIRED")
+
+data QualityType = QualityType { qualityName :: String
+                               , qualityValue :: String }
+                 deriving (Show, Eq)
+
+parseQuality :: PParser QualityType
+parseQuality = do
+  _ <- tag "QUALITY"
+  qualityName <- parseString <* char '|'
+  qualityValue <- parseString
+  return QualityType { .. }
+
 -- only suitable for output.
 parseRateOfFire :: PParser String
 parseRateOfFire = tag "RATEOFFIRE" *> restOfTag
 
+-- only suitable for output.
+parseFumbleRange :: PParser String
+parseFumbleRange = tag "FUMBLERANGE" *> restOfTag
+
 parseBaseItem :: PParser String
 parseBaseItem = tag "BASEITEM" *> restOfTag
+
+parseSpellFailure :: PParser Int
+parseSpellFailure = tag "SPELLFAILURE" *> (textToInt <$> manyNumbers)
+
+parseBaseQuantity :: PParser Int
+parseBaseQuantity = tag "BASEQTY" *> (textToInt <$> manyNumbers)
+
+parseReach :: PParser Int
+parseReach = tag "REACH" *> (textToInt <$> manyNumbers)
+
+parseSlots :: PParser Int
+parseSlots = tag "SLOTS" *> (textToInt <$> manyNumbers)
+
+parseMaxDex :: PParser Formula
+parseMaxDex = tag "MAXDEX" *> parseFormula
 
 parseEquipmentTag :: PParser EquipmentDefinition
 parseEquipmentTag = Description <$> parseDescription
@@ -215,12 +278,23 @@ parseEquipmentTag = Description <$> parseDescription
                 <|> Size <$> parseSize
                 <|> SpecialProperty <$> parseSpecialProperty
                 <|> CriticalMultiple <$> parseCritMult
+                <|> AltCriticalMultiple <$> parseAltCritMult
+                <|> CriticalRange <$> parseCritRange
+                <|> AltCriticalRange <$> parseAltCritRange
                 <|> Proficiency <$> parseProficiency
                 <|> Range <$> parseRange
                 <|> Contains <$> parseContains
                 <|> RateOfFire <$> parseRateOfFire
                 <|> BaseItem <$> parseBaseItem
                 <|> Wield <$> parseWield
+                <|> SpellFailure <$> parseSpellFailure
+                <|> Slots <$> parseSlots
+                <|> ModifiersAllowed <$> parseMods
+                <|> MaximumDexerityBonus <$> parseMaxDex
+                <|> Quality <$> parseQuality
+                <|> BaseQuantity <$> parseBaseQuantity
+                <|> FumbleRange <$> parseFumbleRange
+                <|> Reach <$> parseReach
                 <|> EquipmentModifier <$> parseEquipmentModifier
                 <|> EquipmentType <$> parseEquipmentType
 

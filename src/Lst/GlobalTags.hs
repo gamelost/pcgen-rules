@@ -81,9 +81,6 @@ parseDamage = tag "DAMAGE" *> parseRolls
 parseAltDamage :: PParser [Roll]
 parseAltDamage = tag "ALTDAMAGE" *> parseRolls
 
-parseCritRange :: PParser Int
-parseCritRange = tag "CRITRANGE" *> (textToInt <$> manyNumbers)
-
 data Vision = Vision { visionTypes :: [String]
                      , visionRestrictions :: [RestrictionTag] }
               deriving (Eq, Show)
@@ -356,7 +353,6 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> AutoWeaponProfTag <$> parseAutoWeaponProf
           <|> Damage <$> parseDamage
           <|> SecondaryDamage <$> parseAltDamage
-          <|> CriticalRange <$> parseCritRange
           <|> ChooseLanguageTag <$> parseChooseLanguage
           <|> ChooseNumberTag <$> parseChooseNumChoices
           <|> ChooseSkillTag <$> parseChooseSkill

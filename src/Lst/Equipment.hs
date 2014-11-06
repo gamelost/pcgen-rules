@@ -36,6 +36,8 @@ data EquipmentDefinition = Description String
                          | BaseQuantity Int
                          | FumbleRange String
                          | Reach Int
+                         | AlternateType [String]
+                         | EquipmentKey String
                          | EquipmentModifier EquipmentMod
                          | EquipmentType [String]
                            deriving Show
@@ -244,6 +246,10 @@ parseQuality = do
   qualityValue <- parseString
   return QualityType { .. }
 
+parseAltType :: PParser [String]
+parseAltType = tag "ALTTYPE" *> parseStringNoPeriods `sepBy` char '.' where
+  parseStringNoPeriods = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+/:?!%#'()[]~"
+
 -- only suitable for output.
 parseRateOfFire :: PParser String
 parseRateOfFire = tag "RATEOFFIRE" *> restOfTag
@@ -270,6 +276,9 @@ parseSlots = tag "SLOTS" *> (textToInt <$> manyNumbers)
 parseMaxDex :: PParser Formula
 parseMaxDex = tag "MAXDEX" *> parseFormula
 
+parseKey :: PParser String
+parseKey = tag "KEY" *> restOfTag
+
 parseEquipmentTag :: PParser EquipmentDefinition
 parseEquipmentTag = Description <$> parseDescription
                 <|> Weight <$> parseWeight
@@ -295,6 +304,8 @@ parseEquipmentTag = Description <$> parseDescription
                 <|> BaseQuantity <$> parseBaseQuantity
                 <|> FumbleRange <$> parseFumbleRange
                 <|> Reach <$> parseReach
+                <|> AlternateType <$> parseAltType
+                <|> EquipmentKey <$> parseKey
                 <|> EquipmentModifier <$> parseEquipmentModifier
                 <|> EquipmentType <$> parseEquipmentType
 

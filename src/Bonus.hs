@@ -287,7 +287,7 @@ parseBonusEquipmentWeight = do
                                 <|> (AddWeight <$ labeled "WEIGHTADD")
                                 <|> (DivideWeight <$ labeled "WEIGHTDIV")
                                 <|> (MultiplyWeight <$ labeled "WEIGHTMULT")
-    parseBonusWeightType = (labeled "|TYPE=") *> parseString
+    parseBonusWeightType = labeled "|TYPE=" *> parseString
 
 -- BONUS:EQMWEAPON|x|y|z
 --   x is CRITRANGEADD, CRITRANGEDOUBLE, DAMAGESIZE, RANGEADD, RANGEMULT
@@ -317,7 +317,7 @@ parseBonusEquipmentRange = do
                                <|> (DamageSize <$ labeled "DAMAGESIZE")
                                <|> (AddRange <$ labeled "RANGEADD")
                                <|> (MultiplyRange <$ labeled "RANGEMULT")
-    parseBonusRangeType = (labeled "|TYPE=") *> parseString
+    parseBonusRangeType = labeled "|TYPE=" *> parseString
 
 -- BONUS:EQMARMOR|x|y|z
 --   x is ACCHECK, EDR, MAXDEX, SPELLFAILURE
@@ -345,7 +345,7 @@ parseBonusEquipmentPenalty = do
                                  <|> (EffectiveDamageResistance <$ labeled "EDR")
                                  <|> (MaxDexerity <$ labeled "MAXDEX")
                                  <|> (SpellFailurePenalty <$ labeled "SPELLFAILURE")
-    parseBonusPenaltyType = (labeled "|TYPE=") *> parseString
+    parseBonusPenaltyType = labeled "|TYPE=" *> parseString
 
 -- BONUS:HP|x|y
 --   x is ALTHP or CURRENTMAX

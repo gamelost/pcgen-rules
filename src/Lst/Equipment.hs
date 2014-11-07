@@ -41,8 +41,9 @@ data EquipmentDefinition = Description String
                          | PageUsage Formula
                          | AlternateType [String]
                          | EquipmentKey String
-                         | EquipmentModifier EquipmentMod
                          | EquipmentType [String]
+                         | EquipmentModifier EquipmentMod
+                         | AlternateEquipmentModifier EquipmentMod
                            deriving Show
 
 parseWeight :: PParser Formula
@@ -88,7 +89,7 @@ data CriticalMultipleType = CriticalModifier Int
 
 parseCriticalMultipleType :: PParser CriticalMultipleType
 parseCriticalMultipleType = CriticalModifier <$> (labeled "x" *> (textToInt <$> manyNumbers))
-                        <|> NoCriticalModifier <$ (labeled "-")
+                        <|> NoCriticalModifier <$ labeled "-"
 
 parseCritMult :: PParser CriticalMultipleType
 parseCritMult = tag "CRITMULT" *> parseCriticalMultipleType
@@ -117,9 +118,9 @@ parseProficiency = do
   proficiencyType <- parseProficiencyWeapon <* char '|'
   proficiencyName <- parseString
   return ProficiencyItem { .. } where
-    parseProficiencyWeapon = ProficiencyWithWeapon <$ (labeled "WEAPON")
-                         <|> ProficiencyWithArmor <$ (labeled "ARMOR")
-                         <|> ProficiencyWithShield <$ (labeled "SHIELD")
+    parseProficiencyWeapon = ProficiencyWithWeapon <$ labeled "WEAPON"
+                         <|> ProficiencyWithArmor <$ labeled "ARMOR"
+                         <|> ProficiencyWithShield <$ labeled "SHIELD"
 
 data EquipmentSize = Fine
                    | Diminutive
@@ -168,14 +169,20 @@ data EquipmentMod = EquipmentMod { equipmentModKeys :: [String]
                                  , equipmentModRest :: Maybe String }
                     deriving (Show, Eq)
 
-parseEquipmentModifier :: PParser EquipmentMod
-parseEquipmentModifier = do
-  _ <- tag "EQMOD"
+_parseEquipmentModifier :: String -> PParser EquipmentMod
+_parseEquipmentModifier name = do
+  _ <- tag name
   equipmentModKeys <- parseStringNoPeriods `sepBy` char '.'
   _ <- optional $ char '|'
   equipmentModRest <- tryOption restOfTag
   return EquipmentMod { .. } where
     parseStringNoPeriods = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+/:?!%#'()[]~"
+
+parseEquipmentModifier :: PParser EquipmentMod
+parseEquipmentModifier = _parseEquipmentModifier "EQMOD"
+
+parseAltEquipmentModifier :: PParser EquipmentMod
+parseAltEquipmentModifier = _parseEquipmentModifier "ALTEQMOD"
 
 data ContainerLimits = ContainerLimits { containerWeight :: Maybe Formula
                                        , containerWeightChanges :: Bool
@@ -321,8 +328,9 @@ parseEquipmentTag = Description <$> parseDescription
                 <|> NumberPages <$> parseNumPages
                 <|> PageUsage <$> parsePageUsage
                 <|> EquipmentKey <$> parseKey
-                <|> EquipmentModifier <$> parseEquipmentModifier
                 <|> EquipmentType <$> parseEquipmentType
+                <|> EquipmentModifier <$> parseEquipmentModifier
+                <|> AlternateEquipmentModifier <$> parseAltEquipmentModifier
 
 instance LSTObject EquipmentDefinition where
   parseSpecificTags = parseEquipmentTag

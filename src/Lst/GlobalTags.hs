@@ -22,13 +22,17 @@ data GlobalTag = KeyStat String
                | SourceLong String
                | SourceShort String
                | ProductIdentity Bool
+               | DescriptionEmphasized Bool
                | OutputName String
                | AbilityTag Ability
                | VisionTag Vision
                | Select Formula
                | SpecialAbilityTag [String]
+               | UnarmedDamage [String]
                | VirtualFeatTag VFeat
                | Define NewVariable
+               | SpellResistance Formula
+               | DamageReduction DamageReductionType
                | AddFeatTag AddFeat
                | AutoEquipTag [String]
                | AutoFeatTag AutoFeat
@@ -69,6 +73,9 @@ parseSourceShort = tag "SOURCESHORT" >> restOfTag
 parseProductIdentity :: PParser Bool
 parseProductIdentity = tag "NAMEISPI" >> yesOrNo
 
+parseDescEmphasized :: PParser Bool
+parseDescEmphasized = tag "DESCISPI" *> yesOrNo
+
 parseOutputName :: PParser String
 parseOutputName = tag "OUTPUTNAME" >> restOfTag
 
@@ -80,6 +87,9 @@ parseDamage = tag "DAMAGE" *> parseRolls
 
 parseAltDamage :: PParser [Roll]
 parseAltDamage = tag "ALTDAMAGE" *> parseRolls
+
+parseSR :: PParser Formula
+parseSR = tag "SR" *> parseFormula
 
 data Vision = Vision { visionTypes :: [String]
                      , visionRestrictions :: [RestrictionTag] }
@@ -266,6 +276,22 @@ parseClassSkill = do
               <|> (labeled "TYPE=" >> CSkillType <$> parseString)
               <|> CSkillName <$> parseString
 
+-- DR:x/y
+--   x is formula
+--   y is damage type that bypasses this reduction
+data DamageReductionType = DamageReductionType { damageReduction :: Int
+                                               , damageReductionText :: String }
+                          deriving (Show, Eq)
+
+parseDR :: PParser DamageReductionType
+parseDR = do
+  _ <- tag "DR"
+  -- can't parse as a formula; will eat up the '/'.
+  damageReduction <- textToInt <$> manyNumbers
+  _ <- char '/'
+  damageReductionText <- parseString
+  return DamageReductionType { .. }
+
 parseSpecialAbilityName :: PParser [String]
 parseSpecialAbilityName = do
   _ <- tag "SAB"
@@ -311,6 +337,11 @@ parseSpells = do
       name <- disallowed *> parseStringNoCommas
       return (name, Nothing)
 
+-- UDAM:x,x,x...
+--   x is text (either 1 or 9)
+parseUnarmedDamage :: PParser [String]
+parseUnarmedDamage = tag "UDAM" *> parseStringNoCommas `sepBy` char ','
+
 data VFeat = VFeat { vfeats :: [String]
                    , vfeatRestrictions :: [RestrictionTag] }
            deriving (Eq, Show)
@@ -342,6 +373,7 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> SourceShort <$> parseSourceShort
           <|> SourceLong <$> parseSourceLong
           <|> ProductIdentity <$> parseProductIdentity
+          <|> DescriptionEmphasized <$> parseDescEmphasized
           <|> OutputName <$> parseOutputName
           <|> Select <$> parseSelect
           <|> Define <$> parseDefine
@@ -357,8 +389,11 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> ChooseNumberTag <$> parseChooseNumChoices
           <|> ChooseSkillTag <$> parseChooseSkill
           <|> ClassSkill <$> parseClassSkill
+          <|> DamageReduction <$> parseDR
+          <|> SpellResistance <$> parseSR
           <|> SpellTag <$> parseSpells
           <|> SpecialAbilityTag <$> parseSpecialAbilityName
+          <|> UnarmedDamage <$> parseUnarmedDamage
           <|> VirtualFeatTag <$> parseVirtualFeat
           <|> VisionTag <$> parseVision
           <|> Unknown <$> parseUnknownTag -- must be the very LAST thing tried

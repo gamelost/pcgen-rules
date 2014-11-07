@@ -21,6 +21,8 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreAbilityRestriction PreAbility
                     | PreDeityRestriction PreDeity
                     | PreDomainRestriction PreDomain
+                    | PreTemplateRestriction PreTemplate
+                    | PreTextRestriction String
                     | PreFeatRestriction PreFeat
                     | PreItemRestriction PreItem
                     | PreRaceRestriction PreRace
@@ -529,6 +531,26 @@ parsePreStat = do
       num <- textToInt <$> manyNumbers
       return (stat, num)
 
+-- PRETEMPLATE:x,y,y...
+--   x is number
+--   y is template name
+data PreTemplate = PreTemplate { preTemplateNumber :: Int
+                               , preTemplateNames :: [String] }
+                   deriving (Show, Eq)
+
+parsePreTemplate :: PParser PreTemplate
+parsePreTemplate = do
+  _ <- tag "PRETEMPLATE"
+  preTemplateNumber <- textToInt <$> manyNumbers
+  _ <- char ','
+  preTemplateNames <- parseStringNoCommas `sepBy` char ','
+  return PreTemplate { .. }
+
+-- PRETEXT:x
+--   where x is explanation of requirement
+parsePreText :: PParser String
+parsePreText = tag "PRETEXT" *> restOfTag
+
 -- PRETYPE:x,y,y...
 --   x is number
 --   y is type requirement
@@ -616,6 +638,8 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreEquipPrimaryRestriction <$> parsePreEquipSecondary
                        <|> PreEquipSecondaryRestriction <$> parsePreEquipSecondary
                        <|> PreLevelRestriction <$> parsePreLevel
+                       <|> PreTextRestriction <$> parsePreText
+                       <|> PreTemplateRestriction <$> parsePreTemplate
                        <|> PrePCLevelRestriction <$> parsePrePCLevel
                        <|> PreWeaponProfRestriction <$> parsePreWeaponProf
                        <|> PreSkillTotalRestriction <$> parsePreSkillTotal

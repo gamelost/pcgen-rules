@@ -36,6 +36,9 @@ data EquipmentDefinition = Description String
                          | BaseQuantity Int
                          | FumbleRange String
                          | Reach Int
+                         | ReachMultiple Int
+                         | NumberPages Int
+                         | PageUsage Formula
                          | AlternateType [String]
                          | EquipmentKey String
                          | EquipmentModifier EquipmentMod
@@ -270,11 +273,20 @@ parseBaseQuantity = tag "BASEQTY" *> (textToInt <$> manyNumbers)
 parseReach :: PParser Int
 parseReach = tag "REACH" *> (textToInt <$> manyNumbers)
 
+parseReachMult :: PParser Int
+parseReachMult = tag "REACHMULT" *> (textToInt <$> manyNumbers)
+
 parseSlots :: PParser Int
 parseSlots = tag "SLOTS" *> (textToInt <$> manyNumbers)
 
+parseNumPages :: PParser Int
+parseNumPages = tag "NUMPAGES" *> (textToInt <$> manyNumbers)
+
 parseMaxDex :: PParser Formula
 parseMaxDex = tag "MAXDEX" *> parseFormula
+
+parsePageUsage :: PParser Formula
+parsePageUsage = tag "PAGEUSAGE" *> parseFormula
 
 parseKey :: PParser String
 parseKey = tag "KEY" *> restOfTag
@@ -304,7 +316,10 @@ parseEquipmentTag = Description <$> parseDescription
                 <|> BaseQuantity <$> parseBaseQuantity
                 <|> FumbleRange <$> parseFumbleRange
                 <|> Reach <$> parseReach
+                <|> ReachMultiple <$> parseReachMult
                 <|> AlternateType <$> parseAltType
+                <|> NumberPages <$> parseNumPages
+                <|> PageUsage <$> parsePageUsage
                 <|> EquipmentKey <$> parseKey
                 <|> EquipmentModifier <$> parseEquipmentModifier
                 <|> EquipmentType <$> parseEquipmentType

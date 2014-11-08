@@ -4,7 +4,7 @@ module Lst.GlobalTags (GlobalTag, parseGlobal) where
 
 import qualified Data.Map as M
 
-import Text.Parsec.Char (char, string)
+import Text.Parsec.Char (char, string, satisfy)
 import Text.Parsec.Combinator (sepBy, many1, notFollowedBy, option)
 import Text.Parsec.Prim (try, many)
 import Control.Monad.State (get, put)
@@ -29,19 +29,24 @@ data GlobalTag = KeyStat String
                | Select Formula
                | SpecialAbilityTag [String]
                | UnarmedDamage [String]
+               | NaturalAttacksTag NaturalAttacks
+               | DefineStat DefineStatScore
                | VirtualFeatTag VFeat
                | Define NewVariable
                | SpellResistance Formula
                | DamageReduction DamageReductionType
                | AddFeatTag AddFeat
+               | AddSpellCasterTag AddSpellCaster
                | AutoEquipTag [String]
                | AutoFeatTag AutoFeat
                | AutoLanguageTag AutoLanguage
                | AutoWeaponProfTag [AutoWeaponProf]
                | ClassSkill [ClassSkillType]
                | SpellTag Spell
+               | SpellsKnown [SpellKnown]
                | ChooseLanguageTag [ChooseLanguage]
-               | ChooseNumberTag Choices
+               | ChooseNumberChoicesTag Choices
+               | ChooseNumberTag ChooseNumber
                | Damage [Roll]
                | SecondaryDamage [Roll]
                | CriticalRange Int
@@ -165,6 +170,26 @@ parseAddFeat = do
                  <|> (labeled "TYPE=" >> FeatType <$> parseStringNoCommas)
                  <|> (FeatName <$> parseStringNoCommas)
 
+-- ADD:SPELLCASTER|x|y,y
+--   x is optional formula
+--   y is class name, spellcasting class type, or ANY
+data SpellCasterType = AnySpellClass
+                     | SpellType String
+                       deriving (Show, Eq)
+
+data AddSpellCaster = AddSpellCaster { spellCasterBonus :: Formula
+                                     , spellCasterTypes :: [SpellCasterType] }
+                    deriving (Show, Eq)
+
+parseAddSpellCaster :: PParser AddSpellCaster
+parseAddSpellCaster = do
+  _ <- labeled "ADD:SPELLCASTER|"
+  spellCasterBonus <- option (Number 1) $ parseFormula <* char '|'
+  spellCasterTypes <- parseSpellCasterType `sepBy` char ','
+  return AddSpellCaster { .. } where
+    parseSpellCasterType = (AnySpellClass <$ labeled "ANY")
+                       <|> (SpellType <$> parseString)
+
 -- AUTO:LANG|x|x...
 --   x is language, language type, ALL, LIST, CLEAR.
 data AutoLanguage = Language String
@@ -250,6 +275,21 @@ parseChooseNumChoices = do
     disallowed = notFollowedBy (string "TYPE")
 
 -- not fully implemented
+data ChooseNumber = ChooseNumber { chooseMin :: Int
+                                 , chooseMax :: Int
+                                 , chooseTitle :: String }
+                    deriving (Show, Eq)
+
+parseChooseNumber :: PParser ChooseNumber
+parseChooseNumber = do
+  _ <- labeled "CHOOSE:NUMBER"
+  chooseMin <- labeled "|MIN=" *> parseInt
+  chooseMax <- labeled "|MAX=" *> parseInt
+  chooseTitle <- labeled "|TITLE" *> parseString
+  return ChooseNumber { .. } where
+    parseInt = textToInt <$> manyNumbers
+
+-- not fully implemented
 data ChooseSkill = ChoiceSkill String
                  | ChoiceSkillType String
                    deriving (Show, Eq)
@@ -276,6 +316,37 @@ parseClassSkill = do
               <|> (labeled "TYPE=" >> CSkillType <$> parseString)
               <|> CSkillName <$> parseString
 
+-- DEFINESTAT:x|y|z
+--   x is LOCK, UNLOCK, NONSTAT, STAT, MINVALUE, MAXVALUE
+--   y is stat name
+--   z is formula
+data DefineStatType = Lock
+                    | Unlock
+                    | NonStat
+                    | Stat
+                    | MinValue
+                    | MaxValue
+                      deriving (Show, Eq)
+
+data DefineStatScore = DefineStatScore { defineStatType :: DefineStatType
+                                       , defineStatName :: String
+                                       , defineStatFormula :: Formula }
+                     deriving (Show, Eq)
+
+parseDefineStat :: PParser DefineStatScore
+parseDefineStat = do
+  _ <- tag "DEFINESTAT"
+  defineStatType <- parseDefineStatType
+  defineStatName <- char '|' *> parseString
+  defineStatFormula <- char '|' *> parseFormula
+  return DefineStatScore { .. } where
+    parseDefineStatType = (Lock <$ labeled "LOCK")
+                      <|> (Unlock <$ labeled "UNLOCK")
+                      <|> (NonStat <$ labeled "NONSTAT")
+                      <|> (Stat <$ labeled "STAT")
+                      <|> (MinValue <$ labeled "MINVALUE")
+                      <|> (MaxValue <$ labeled "MAXVALUE")
+
 -- DR:x/y
 --   x is formula
 --   y is damage type that bypasses this reduction
@@ -291,6 +362,38 @@ parseDR = do
   _ <- char '/'
   damageReductionText <- parseString
   return DamageReductionType { .. }
+
+-- NATURALATTACKS:v,w.w,x,y,z|v,w.w,x,y,z
+--   v is natural weapon name
+--   w is natural weapon type
+--   x is number of attacks
+--   y is natural weapon damage
+--   z is optional special property description
+data NaturalWeaponAttackNumber = DependsOnManyWeapons Int
+                               | AttackProgression Int
+                                 deriving (Show, Eq)
+
+data NaturalAttacks = NaturalAttacks { naturalWeaponName :: String
+                                     , naturalWeaponTypes :: [String]
+                                     , naturalWeaponAttackNumber :: NaturalWeaponAttackNumber
+                                     , naturalWeaponDamage :: [Roll]
+                                     , naturalWeaponSpecialDescription :: Maybe String }
+                      deriving (Show, Eq)
+
+parseNaturalAttacks :: PParser NaturalAttacks
+parseNaturalAttacks = do
+  _ <- tag "NATURALATTACKS"
+  naturalWeaponName <- parseStringNoCommas <* char ','
+  naturalWeaponTypes <- parseStringNoPeriods `sepBy` char '.'
+  _ <- char ','
+  naturalWeaponAttackNumber <- parseAttackNumber <* char ','
+  naturalWeaponDamage <- parseRolls
+  naturalWeaponSpecialDescription <- tryOption $ char ',' *> restOfTag
+  return NaturalAttacks { .. } where
+    parseAttackNumber = char '*' *> (DependsOnManyWeapons <$> parseInt)
+                    <|> AttackProgression <$> parseInt
+    parseInt = textToInt <$> manyNumbers
+    parseStringNoPeriods = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+/:?!%#'()[]~"
 
 parseSpecialAbilityName :: PParser [String]
 parseSpecialAbilityName = do
@@ -337,6 +440,33 @@ parseSpells = do
       name <- disallowed *> parseStringNoCommas
       return (name, Nothing)
 
+-- SPELLKNOWN:CLASS|w=x|y|w=x|y|z|z
+--   w is class name or spellcaster type
+--   x is spell number
+--   y is spell list
+--   z is PRExxx tag
+data SpellKnownType = SpellCaster String
+                    | ClassName String
+                      deriving (Show, Eq)
+
+data SpellKnown = SpellKnown { spellKnownType :: SpellKnownType
+                             , spellKnownLevel :: Int
+                             , spellKnowns :: [String] }
+                 deriving (Show, Eq)
+
+parseSpellsKnownClass :: PParser [SpellKnown]
+parseSpellsKnownClass = do
+  _ <- labeled "SPELLKNOWN:CLASS"
+  many1 $ char '|' *> parseSpellKnown where
+    parseSpellKnown = do
+      spellKnownType <- parseSpellType <* char '='
+      spellKnownLevel <- textToInt <$> manyNumbers
+      _ <- char '|'
+      spellKnowns <- parseStringNoCommas `sepBy` char ','
+      return SpellKnown { .. }
+    parseSpellType = labeled "SPELLCASTER." *> (SpellCaster <$> parseString)
+                 <|> (ClassName <$> parseString)
+
 -- UDAM:x,x,x...
 --   x is text (either 1 or 9)
 parseUnarmedDamage :: PParser [String]
@@ -379,6 +509,7 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> Define <$> parseDefine
           <|> AbilityTag <$> parseAbility
           <|> AddFeatTag <$> parseAddFeat
+          <|> AddSpellCasterTag <$> parseAddSpellCaster
           <|> AutoEquipTag <$> parseAutoEquip
           <|> AutoFeatTag <$> parseAutoFeat
           <|> AutoLanguageTag <$> parseAutoLanguage
@@ -386,14 +517,18 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> Damage <$> parseDamage
           <|> SecondaryDamage <$> parseAltDamage
           <|> ChooseLanguageTag <$> parseChooseLanguage
-          <|> ChooseNumberTag <$> parseChooseNumChoices
+          <|> ChooseNumberChoicesTag <$> parseChooseNumChoices
+          <|> ChooseNumberTag <$> parseChooseNumber
           <|> ChooseSkillTag <$> parseChooseSkill
           <|> ClassSkill <$> parseClassSkill
           <|> DamageReduction <$> parseDR
           <|> SpellResistance <$> parseSR
           <|> SpellTag <$> parseSpells
+          <|> SpellsKnown <$> parseSpellsKnownClass
           <|> SpecialAbilityTag <$> parseSpecialAbilityName
           <|> UnarmedDamage <$> parseUnarmedDamage
+          <|> NaturalAttacksTag <$> parseNaturalAttacks
+          <|> DefineStat <$> parseDefineStat
           <|> VirtualFeatTag <$> parseVirtualFeat
           <|> VisionTag <$> parseVision
           <|> Unknown <$> parseUnknownTag -- must be the very LAST thing tried

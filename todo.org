@@ -1,30 +1,10 @@
-* lst types (successful parsing/# of files) [7/18]
-- [X] LANGUAGE (76/76)
-- [X] SHIELDPROF (28/28)
-- [X] WEAPONPROF (130/130)
-- [X] ARMORPROF (50/50)
-- [X] SKILL (139/139)
-- [ ] COMPANIONMOD (block-based) (0/51)
-- [ ] DEITY (block-based) (0/62)
-- [X] DOMAIN (47/49)
-- [ ] EQUIPMOD (0/115)
-- [X] EQUIPMENT (133/709)
-- [ ] SPELL (0/209)
-- [ ] FEAT (0/347)
-- [ ] RACE (0/281)
-- [ ] KIT (block-based) (0/284)
-- [ ] TEMPLATE (0/192)
-- [ ] CLASS (block-based) (0/304)
-- [ ] ABILITY (0/424)
-- [ ] ABILITYCATEGORY (0/165)
-* general [0/5]
-** TODO add catch-all for tags (with optional trace)
+* general [0/3]
 ** TODO narrow down parseString*: way too general
 ** TODO look at data/zen-test/... -- is this something we can use?
-** TODO data/35e/rpg_objects/legends_of_the_ancients/macedon/loam_skills.lst is messed up
-** TODO many typos
+** TODO many, many typos
 - 1 unexpected "=" // unsolvable (1TYPE, missing |)
 - 1 unexpected '=' // unsolvable (ABILITY:FEAT|AUTOMATIC|TYPE=ItemCreation)
+- data/35e/rpg_objects/legends_of_the_ancients/macedon/loam_skills.lst is messed up
 * pcc [0/2]
 ** TODO implement INCLUDE for lst files
 ** TODO implement EXCLUDE for lst files
@@ -32,22 +12,18 @@
 ** TODO implement CLASS:x.FORGET
 ** TODO CLASS:.COPY
 ** TODO SKILL.COPY= ...
-* restrictions [0/3]
-** TODO pull out per-line restrictions into LSTLine
+* restrictions [0/2]
 ** TODO PREFEAT is not fully implemented
 ** TODO PRERULE should be matching against known rules, not accepting any string
-* choose
+* choose [0/1]
 ** TODO should be its own file?
 - fairly complicated; do I need this yet?
 - generic catch-all?
 * skill [0/1]
 ** TODO 1 failures
 - Tactics.COPY 1 (parses successfully though)
-* domain
-** TODO unparsed tags
-- ADD:ABILITY
-- SPELLS
-- CHOOSE
+* domain [0/1]
+** TODO ADD:ABILITY|3|Special Ability|VIRTUAL|ArtificerSkills
 * JEP [0/0]
 * questions
 ** when are JEPs used? [2/6]

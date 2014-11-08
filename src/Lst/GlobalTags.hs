@@ -5,7 +5,7 @@ module Lst.GlobalTags (GlobalTag, parseGlobal) where
 import qualified Data.Map as M
 
 import Text.Parsec.Char (char, string, satisfy)
-import Text.Parsec.Combinator (sepBy, many1, notFollowedBy, option)
+import Text.Parsec.Combinator (sepBy, many1, notFollowedBy, option, optional)
 import Text.Parsec.Prim (try, many)
 import Control.Monad.State (get, put)
 import ClassyPrelude hiding (try)
@@ -103,7 +103,7 @@ data Vision = Vision { visionTypes :: [String]
 parseVision :: PParser Vision
 parseVision = do
   _ <- tag "VISION"
-  visionTypes <- parseVisionString `sepBy` char '|'
+  visionTypes <- many1 $ parseVisionString <* optional (char '|')
   visionRestrictions <- option [] parseAdditionalRestrictions
   return Vision { .. } where
     parseVisionString = try (disallowed *> parseString)
@@ -297,7 +297,7 @@ data ChooseSkill = ChoiceSkill String
 parseChooseSkill :: PParser [ChooseSkill]
 parseChooseSkill = do
   _ <- labeled "CHOOSE:SKILL|"
-  parseChoice `sepBy` char ',' where
+  parseChoice `sepBy` char '|' where
     parseChoice = ChoiceSkillType <$> (labeled "TYPE=" *> parseString)
               <|> ChoiceSkill <$> parseString
 

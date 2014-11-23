@@ -15,6 +15,7 @@ import JEPFormula
 import Common
 
 data GlobalTag = KeyStat String
+               | Key String
                | UseUntrained Bool
                | SortKey String
                | SourcePage String
@@ -95,6 +96,9 @@ parseAltDamage = tag "ALTDAMAGE" *> parseRolls
 
 parseSR :: PParser Formula
 parseSR = tag "SR" *> parseFormula
+
+parseKey :: PParser String
+parseKey = tag "KEY" *> restOfTag
 
 data Vision = Vision { visionTypes :: [String]
                      , visionRestrictions :: [RestrictionTag] }
@@ -496,6 +500,7 @@ parseUnknownTag = do
 
 parseGlobal :: PParser GlobalTag
 parseGlobal = KeyStat <$> parseKeyStat
+          <|> Key <$> parseKey
           <|> SortKey <$> parseSortKey
           <|> UseUntrained <$> parseUseUntrained
           <|> SourcePage <$> parseSourcePage

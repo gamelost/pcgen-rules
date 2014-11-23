@@ -16,12 +16,8 @@ data LanguageType = Read
                   | Other String
                     deriving Show
 
-data LanguageDefinition = Key String
-                        | LanguageTypes [LanguageType]
+data LanguageDefinition = LanguageTypes [LanguageType]
                           deriving Show
-
-parseKey :: PParser LanguageDefinition
-parseKey = Key <$> (tag "KEY" >> restOfTag)
 
 parseTypes :: PParser LanguageDefinition
 parseTypes = do
@@ -34,8 +30,7 @@ parseTypes = do
     convertLanguageType l = Other l
 
 parseLanguageTag :: PParser LanguageDefinition
-parseLanguageTag = parseKey
-               <|> parseTypes
+parseLanguageTag = parseTypes
 
 instance LSTObject LanguageDefinition where
   parseSpecificTags = parseLanguageTag

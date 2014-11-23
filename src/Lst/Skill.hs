@@ -31,7 +31,6 @@ data SkillDefinition = Type [String]
                      | ArmorClassCheck ArmorCheck
                      | Classes Class
                      | Exclusive Bool
-                     | UniqueKey String
                      | Visibility (Visible, Bool)
                        deriving Show
 
@@ -39,9 +38,6 @@ type SkillTag = PParser SkillDefinition
 
 parseExclusive :: SkillTag
 parseExclusive = Exclusive <$> (tag "EXCLUSIVE" >> yesOrNo)
-
-parseUniqueKey :: SkillTag
-parseUniqueKey  = UniqueKey <$> (tag "KEY" >> restOfTag)
 
 parseType :: SkillTag
 parseType = Type <$> (tag "TYPE" >> parseString `sepBy` char '.')
@@ -84,7 +80,6 @@ parseSkillTag = parseArmorCheck
             <|> parseClasses
             <|> parseExclusive
             <|> parseVisibility
-            <|> parseUniqueKey
 
 instance LSTObject SkillDefinition where
   parseSpecificTags = parseSkillTag

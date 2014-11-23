@@ -40,7 +40,6 @@ data EquipmentDefinition = Description String
                          | NumberPages Int
                          | PageUsage Formula
                          | AlternateType [String]
-                         | EquipmentKey String
                          | EquipmentType [String]
                          | EquipmentModifier EquipmentMod
                          | AlternateEquipmentModifier EquipmentMod
@@ -295,9 +294,6 @@ parseMaxDex = tag "MAXDEX" *> parseFormula
 parsePageUsage :: PParser Formula
 parsePageUsage = tag "PAGEUSAGE" *> parseFormula
 
-parseKey :: PParser String
-parseKey = tag "KEY" *> restOfTag
-
 parseEquipmentTag :: PParser EquipmentDefinition
 parseEquipmentTag = Description <$> parseDescription
                 <|> Weight <$> parseWeight
@@ -327,7 +323,6 @@ parseEquipmentTag = Description <$> parseDescription
                 <|> AlternateType <$> parseAltType
                 <|> NumberPages <$> parseNumPages
                 <|> PageUsage <$> parsePageUsage
-                <|> EquipmentKey <$> parseKey
                 <|> EquipmentType <$> parseEquipmentType
                 <|> EquipmentModifier <$> parseEquipmentModifier
                 <|> AlternateEquipmentModifier <$> parseAltEquipmentModifier

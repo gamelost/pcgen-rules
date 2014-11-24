@@ -289,13 +289,14 @@ parseChooseNumber = do
   _ <- labeled "CHOOSE:NUMBER"
   chooseMin <- labeled "|MIN=" *> parseInt
   chooseMax <- labeled "|MAX=" *> parseInt
-  chooseTitle <- labeled "|TITLE" *> parseString
+  chooseTitle <- labeled "|TITLE=" *> parseString
   return ChooseNumber { .. } where
     parseInt = textToInt <$> manyNumbers
 
 -- not fully implemented
 data ChooseSkill = ChoiceSkill String
                  | ChoiceSkillType String
+                 | ChoiceSkillTitle String
                    deriving (Show, Eq)
 
 parseChooseSkill :: PParser [ChooseSkill]
@@ -303,6 +304,7 @@ parseChooseSkill = do
   _ <- labeled "CHOOSE:SKILL|"
   parseChoice `sepBy` char '|' where
     parseChoice = ChoiceSkillType <$> (labeled "TYPE=" *> parseString)
+              <|> ChoiceSkillTitle <$> (labeled "TITLE=" *> parseString)
               <|> ChoiceSkill <$> parseString
 
 data ClassSkillType = CSkillName String

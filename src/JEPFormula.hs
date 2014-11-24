@@ -81,6 +81,8 @@ varBuiltins = [ "SynergyBonus"
               , "MindBladeEnchantment"
               , "COUNT[EQTYPE.ARMOR.EQUIPPED]" -- ??
               , "SHIELDACCHECK"
+              , "ACCHECK"
+              , "EQHANDS"
               , "SKILLRANK=Bluff"
               , "AntipaladinLVL"
               , "PaladinLvl"

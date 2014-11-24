@@ -26,6 +26,6 @@ for line in lines:
         if starting == -1: starting = 0
         if ending == -1: ending = len(target)
         assert(starting <= index <= ending)
-        print(filename, 'error:', target[starting:ending].strip())
+        print(filename, '\n\terror:', target[starting:ending].strip())
     except IndexError:
         print('error: unable to get line.')

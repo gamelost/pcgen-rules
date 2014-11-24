@@ -567,7 +567,7 @@ parsePreType = do
   _ <- char ','
   preTypeRequirements <- parseStringEquals `sepBy` char ','
   return PreType { .. } where
-    parseStringEquals = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~="
+    parseStringEquals = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~="
 
 -- PREVARx:y,z
 --   x is EQ, GT, GTEQ, LT, LTEQ, NEQ

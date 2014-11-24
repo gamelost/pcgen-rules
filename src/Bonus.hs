@@ -694,7 +694,7 @@ parseBonusWeaponProp = do
                       <|> try (P_ATTACKS <$ labeled "ATTACKS")
                       <|> try (P_CRITRANGEADD <$ labeled "CRITRANGEADD")
                       <|> try (P_CRITRANGEDOUBLE <$ labeled "CRITRANGEDOUBLE")
-                      <|> try (labeled "DAMAGEMULT:" *> (P_DAMAGEMULT <$> parseInteger))
+                      <|> try (labeled "DAMAGEMULT:" *> (P_DAMAGEMULT <$> parseInt))
                       <|> try (P_DAMAGESIZE <$ labeled "DAMAGESIZE")
                       <|> try (P_DAMAGESHORTRANGE <$ labeled "DAMAGE-SHORTRANGE")
                       <|> try (P_DAMAGE <$ labeled "DAMAGE")
@@ -703,7 +703,7 @@ parseBonusWeaponProp = do
                       <|> try (P_TOHIT <$ labeled "TOHIT")
                       <|> try (P_WEAPONBAB <$ labeled "WEAPONBAB")
                       <|> (P_WIELDCATEGORY <$ labeled "WIELDCATEGORY")
-    parseInteger = textToInt <$> manyNumbers
+    parseInt = textToInt <$> manyNumbers
 
 -- BONUS:WEAPONPROF=x|y,y...|z
 --   x is weapon proficiency name or type

@@ -6,6 +6,7 @@ module JEPFormula ( Formula(..)
                   , Roll(..)
                   , parseFormula
                   , parseQuotedString
+                  , parseInteger
                   , parseRolls
                   , evalJEPFormula
                   ) where
@@ -106,6 +107,7 @@ varBuiltins = [ "SynergyBonus"
               , "%CHOICE" -- TODO: probably not right
               , "m_hp" -- ??
               , "unit" -- ??
+              , "InventionLevel"
               , "SIZE"
               , "HEADPLUSTOTAL"
               , "PLUSTOTAL"

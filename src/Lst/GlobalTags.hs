@@ -287,8 +287,8 @@ data ChooseNumber = ChooseNumber { chooseMin :: Int
 parseChooseNumber :: PParser ChooseNumber
 parseChooseNumber = do
   _ <- labeled "CHOOSE:NUMBER"
-  chooseMin <- labeled "|MIN=" *> parseInt
-  chooseMax <- labeled "|MAX=" *> parseInt
+  chooseMin <- labeled "|MIN=" *> parseInteger
+  chooseMax <- labeled "|MAX=" *> parseInteger
   chooseTitle <- labeled "|TITLE=" *> parseString
   return ChooseNumber { .. } where
     parseInt = textToInt <$> manyNumbers

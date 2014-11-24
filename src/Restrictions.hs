@@ -39,6 +39,7 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PrePCLevelRestriction PrePCLevel
                     | PreSkillTotalRestriction PreSkillTot
                     | PreWeaponProfRestriction PreWeaponProf
+                    | PreWieldRestriction PreWield
                     | PreRuleRestriction PreRule
                     | PreMultipleRestriction PreMult
                     | Invert RestrictionTag
@@ -614,6 +615,30 @@ parsePreWeaponProf = do
                       <|> (labeled "TYPE=" *> (PreWeaponType <$> parseStringNoCommasBrackets))
                       <|> (PreWeaponName <$> parseStringNoCommasBrackets)
 
+-- PREWIELD:x,y
+--   x is number
+--   y is type
+data PreWieldType = Light
+                  | OneHanded
+                  | TwoHanded
+                    deriving (Show, Eq)
+
+data PreWield = PreWield { preWieldNumber :: Int
+                         , preWieldType :: PreWieldType }
+                deriving (Show, Eq)
+
+parsePreWield :: PParser PreWield
+parsePreWield = do
+  _ <- tag "PREWIELD"
+  preWieldNumber <- textToInt <$> manyNumbers
+  _ <- char ','
+  preWieldType <- parsePreWieldType
+  return PreWield { .. } where
+    parsePreWieldType = (Light <$ labeled "Light")
+                    <|> (OneHanded <$ labeled "OneHanded")
+                    <|> (TwoHanded <$ labeled "TwoHanded")
+                    <|> (TwoHanded <$ labeled "TWOHANDED")
+
 parsePossibleRestriction :: PParser RestrictionTag
 parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreClassSkillRestriction <$> parsePreClassSkill
@@ -642,6 +667,7 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreTemplateRestriction <$> parsePreTemplate
                        <|> PrePCLevelRestriction <$> parsePrePCLevel
                        <|> PreWeaponProfRestriction <$> parsePreWeaponProf
+                       <|> PreWieldRestriction <$> parsePreWield
                        <|> PreSkillTotalRestriction <$> parsePreSkillTotal
                        <|> PreSkillRestriction <$> parsePreSkill
                        <|> PreGenderRestriction <$> parsePreGender

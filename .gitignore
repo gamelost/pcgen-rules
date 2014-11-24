@@ -6,3 +6,4 @@ pcgen-rules
 /cabal.sandbox.config
 /dist/
 /.cabal-sandbox/
+/failed.list

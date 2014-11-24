@@ -377,12 +377,13 @@ data ItemCost = ItemCost { itemCostType :: [String]
 parseBonusItemCost :: PParser ItemCost
 parseBonusItemCost = do
   _ <- bonusTag "ITEMCOST"
-  itemCostType <- parseItemCostType `sepBy` char '.'
+  itemCostTypes <- parseItemCostType `sepBy` char ','
   itemCostFormula <- char '|' *> parseFormula
+  let itemCostType = concat itemCostTypes
   return ItemCost { .. } where
-    parseItemCostType = (labeled "TYPE:" >> parseStringNoPeriods)
-                    <|> (labeled "TYPE=" >> parseStringNoPeriods)
-                    <|> (labeled "TYPE." >> parseStringNoPeriods)
+    parseItemCostType = (labeled "TYPE:" >> parseStringNoPeriods `sepBy` char '.')
+                    <|> (labeled "TYPE=" >> parseStringNoPeriods `sepBy` char '.')
+                    <|> (labeled "TYPE." >> parseStringNoPeriods `sepBy` char '.')
     parseStringNoPeriods = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+/:?!%#'()[]~"
 
 -- BONUS:MISC|x|y
@@ -671,6 +672,7 @@ data BonusWeaponProp = BonusWeaponProp { bonusWeaponProperties :: [BonusWeaponPr
 
 data BonusWeaponProperty = P_ATTACKS
                          | P_ATTACKSPROGRESS
+                         | P_CRITRANGEADD -- undocumented
                          | P_CRITRANGEDOUBLE -- undocumented
                          | P_DAMAGE
                          | P_DAMAGEMULT Int
@@ -690,6 +692,7 @@ parseBonusWeaponProp = do
   return BonusWeaponProp { .. } where
     parseWeaponProperty = try (P_ATTACKSPROGRESS <$ labeled "ATTACKSPROGRESS")
                       <|> try (P_ATTACKS <$ labeled "ATTACKS")
+                      <|> try (P_CRITRANGEADD <$ labeled "CRITRANGEADD")
                       <|> try (P_CRITRANGEDOUBLE <$ labeled "CRITRANGEDOUBLE")
                       <|> try (labeled "DAMAGEMULT:" *> (P_DAMAGEMULT <$> parseInteger))
                       <|> try (P_DAMAGESIZE <$ labeled "DAMAGESIZE")

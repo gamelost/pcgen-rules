@@ -209,7 +209,7 @@ parseContains = do
     parseContainerTypes = try (ItemLimit <$> parseContainerTypeLimit)
                           <|> (ItemType <$> parseString)
     parseContainerTypeLimit = do
-      item <- parseString *> char '='
+      item <- parseString <* char '='
       number <- textToInt <$> manyNumbers
       return (item, number)
 

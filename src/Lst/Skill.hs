@@ -32,6 +32,7 @@ data SkillDefinition = Type [String]
                      | Classes Class
                      | Exclusive Bool
                      | Visibility (Visible, Bool)
+                     | Situation String
                        deriving Show
 
 type SkillTag = PParser SkillDefinition
@@ -41,6 +42,9 @@ parseExclusive = Exclusive <$> (tag "EXCLUSIVE" >> yesOrNo)
 
 parseType :: SkillTag
 parseType = Type <$> (tag "TYPE" >> parseString `sepBy` char '.')
+
+parseSituation :: SkillTag
+parseSituation = Situation <$> (tag "SITUATION" *> restOfTag)
 
 parseClasses :: SkillTag
 parseClasses = Classes <$> (tag "CLASSES" >> parseClass) where
@@ -80,6 +84,7 @@ parseSkillTag = parseArmorCheck
             <|> parseClasses
             <|> parseExclusive
             <|> parseVisibility
+            <|> parseSituation
 
 instance LSTObject SkillDefinition where
   parseSpecificTags = parseSkillTag

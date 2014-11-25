@@ -637,7 +637,6 @@ parsePreWield = do
     parsePreWieldType = (Light <$ labeled "Light")
                     <|> (OneHanded <$ labeled "OneHanded")
                     <|> (TwoHanded <$ labeled "TwoHanded")
-                    <|> (TwoHanded <$ labeled "TWOHANDED")
 
 parsePossibleRestriction :: PParser RestrictionTag
 parsePossibleRestriction = PreVarRestriction <$> parsePreVar

@@ -3,7 +3,7 @@
 module Bonus where
 
 import Text.Parsec.Char (char, space, string, satisfy)
-import Text.Parsec.Combinator (sepBy, option, many1)
+import Text.Parsec.Combinator (sepBy, option, many1, notFollowedBy)
 import Text.Parsec.Prim (many, try)
 import ClassyPrelude hiding (try)
 
@@ -58,9 +58,6 @@ parseBonusType = do
   let testForStack = stripSuffix ".STACK" bonusType
   return (fromMaybe bonusType testForStack, isJust testForStack) where
     types = labeled "|TYPE="
-        <|> labeled "|Type="
-        -- thanks to an hilarious typo in aeg_gods_equip_magic.lst
-        <|> labeled "|TYPR="
         <|> labeled "|SKILLTYPE="
 
 -- bonus types can be found either before or after restrictions
@@ -381,9 +378,7 @@ parseBonusItemCost = do
   itemCostFormula <- char '|' *> parseFormula
   let itemCostType = concat itemCostTypes
   return ItemCost { .. } where
-    parseItemCostType = (labeled "TYPE:" >> parseStringNoPeriods `sepBy` char '.')
-                    <|> (labeled "TYPE=" >> parseStringNoPeriods `sepBy` char '.')
-                    <|> (labeled "TYPE." >> parseStringNoPeriods `sepBy` char '.')
+    parseItemCostType = (labeled "TYPE." >> parseStringNoPeriods `sepBy` char '.')
     parseStringNoPeriods = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+/:?!%#'()[]~"
 
 -- BONUS:MISC|x|y
@@ -431,9 +426,6 @@ parseBonusMoveAdd = do
   return BonusMove { .. } where
     parseBonusMoveType = (AllMovement <$ labeled "TYPE.All")
                      <|> (labeled "TYPE." >> Movement <$> parseString)
-                     -- apg_domains.lst has "BONUS:MOVEADD|TYPE=Walk|10" so
-                     -- add this as a 'typo' parser
-                     <|> (labeled "TYPE=" >> Movement <$> parseString)
 
 -- BONUS:MOVEMULT|x...|y
 --   x is TYPE.movement or TYPE.All
@@ -454,7 +446,6 @@ parseBonusMoveMultiplier = do
   return BonusMoveMultiplier { .. } where
     parseBonusMoveMultiplierTypes = (BonusMoveMultiplierAll <$ labeled "TYPE.All")
                                 <|> (labeled "TYPE." >> BonusMoveMultiplierType <$> parseStringNoCommas)
-                                <|> (labeled "TYPE=" >> BonusMoveMultiplierType <$> parseStringNoCommas)
 
 -- BONUS:POSTMOVEADD|x|y
 --   x is movement type or all
@@ -475,7 +466,6 @@ parseBonusPostMoveAdd = do
   return BonusPostMoveAdd { .. } where
     parseBonusPostMoveAddType = (AllPostMovement <$ labeled "TYPE.All")
                             <|> (labeled "TYPE." *> (MovementPostType <$> parseString))
-                            <|> (labeled "TYPE=" *> (MovementPostType <$> parseString))
 
 -- BONUS:SIZEMOD|NUMBER|x
 --   x is formula
@@ -515,7 +505,6 @@ parseBonusSkill = do
     parseAll = All <$ labeled "ALL"
     parseSkillType = labeled "TYPE=" >> (BonusSkillType <$> parseStringNoCommas)
     parseStatName = (labeled "STAT." >> (StatName <$> parseStringNoCommas))
-                <|> (labeled "STAT=" >> (StatName <$> parseStringNoCommas))
     -- magical_treasures_equip_artifacts.lst has an asterisk.
     parseSkillName = BonusSkillName <$> parseStringNoCommasAsterisk
     parseSkillFormulaType = SkillFormula <$> try parseFormula
@@ -699,7 +688,6 @@ parseBonusWeaponProp = do
                       <|> try (P_DAMAGESHORTRANGE <$ labeled "DAMAGE-SHORTRANGE")
                       <|> try (P_DAMAGE <$ labeled "DAMAGE")
                       <|> try (P_TOHITSHORTRANGE <$ labeled "TOHIT-SHORTRANGE")
-                      <|> try (P_TOHIT <$ labeled "TO-HIT") -- playersguidetoarcanis_equip.lst
                       <|> try (P_TOHIT <$ labeled "TOHIT")
                       <|> try (P_WEAPONBAB <$ labeled "WEAPONBAB")
                       <|> (P_WIELDCATEGORY <$ labeled "WIELDCATEGORY")
@@ -730,7 +718,7 @@ data BonusWeaponProfProperty = CRITMULTADD
 
 data BonusWeaponProf = BonusWeaponProf { bonusWeaponProficency :: BonusWeapon
                                        , bonusWeaponProfProperties :: [BonusWeaponProfProperty]
-                                       , bonusWeaponProfFormula :: Formula }
+                                       , bonusWeaponProfFormulas :: Formula }
                      deriving (Show, Eq)
 
 parseBonusWeaponProf :: PParser BonusWeaponProf
@@ -739,7 +727,8 @@ parseBonusWeaponProf = do
   bonusWeaponProficency <- parseWeaponProficiency <* char '|'
   -- moderndispatch075_equip_armorshields.lst has no weapon property
   bonusWeaponProfProperties <- option [] ((parseWeaponProperty `sepBy` char ',') <* char '|')
-  bonusWeaponProfFormula <- parseFormula
+  --bonusWeaponProfFormulas <- parseFormulaNoRestrictions `sepBy` char '|'
+  bonusWeaponProfFormulas <- parseFormula
   return BonusWeaponProf { .. } where
     parseWeaponProficiency = try (labeled "TYPE=" >> (WeaponType <$> parseString))
                          <|> try (labeled "TYPE." >> (WeaponType <$> parseString))
@@ -750,7 +739,6 @@ parseBonusWeaponProf = do
                       <|> try (DAMAGEMULT <$ labeled "DAMAGEMULT")
                       <|> try (DAMAGESIZE <$ labeled "DAMAGESIZE")
                       <|> try (DAMAGESHORTRANGE <$ labeled "DAMAGESHORTRANGE")
-                      <|> try (DAMAGESHORTRANGE <$ labeled "DAMAGE-SHORTRANGE") -- srd_equip_wondrousitems.lst
                       <|> try (DAMAGE <$ labeled "DAMAGE")
                       <|> try (PCSIZE <$ labeled "PCSIZE")
                       <|> try (REACH <$ labeled "REACH")
@@ -758,6 +746,7 @@ parseBonusWeaponProf = do
                       <|> try (TOHITOVERSIZE <$ labeled "TOHITOVERSIZE")
                       <|> try (TOHIT <$ labeled "TOHIT")
                       <|> (WIELDCATEGORY <$ labeled "WIELDCATEGORY")
+    parseFormulaNoRestrictions = notFollowedBy (string "PRE") *> parseFormula
 
 -- BONUS:UDAM|x|y
 --   x is CLASS.text

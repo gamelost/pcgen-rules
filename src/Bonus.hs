@@ -41,6 +41,7 @@ data Bonus = BonusSkill Skill
            | BonusMovementMultiplier BonusMoveMultiplier
            | BonusDescription String
            | BonusCharacterStat BonusStat
+           | BonusCharacterStatChoice ()
            | BonusUnarmedDamage UnarmedDamage
            | TemporaryBonus TempBonus
              deriving (Show, Eq)
@@ -619,6 +620,11 @@ parseBonusStat = do
   bonusStatFormula <- char '|' *> parseFormula
   return BonusStat { .. }
 
+-- BONUS:STAT|%CHOICE
+-- TODO: define.
+parseBonusStatChoice :: PParser ()
+parseBonusStatChoice = () <$ (labeled "STAT|%CHOICE")
+
 -- BONUS:SPELLCAST|x;y|z
 data BonusSpellCastType = SpellCastClassName String
                         | SpellCastSpellType String
@@ -773,7 +779,6 @@ parseBonusWeaponProf = do
   bonusWeaponProficency <- parseWeaponProficiency <* char '|'
   -- moderndispatch075_equip_armorshields.lst has no weapon property
   bonusWeaponProfProperties <- option [] ((parseWeaponProperty `sepBy` char ',') <* char '|')
-  --bonusWeaponProfFormulas <- parseFormulaNoRestrictions `sepBy` char '|'
   bonusWeaponProfFormulas <- parseFormula
   return BonusWeaponProf { .. } where
     parseWeaponProficiency = try (labeled "TYPE=" >> (WeaponType <$> parseString))
@@ -792,7 +797,6 @@ parseBonusWeaponProf = do
                       <|> try (TOHITOVERSIZE <$ labeled "TOHITOVERSIZE")
                       <|> try (TOHIT <$ labeled "TOHIT")
                       <|> (WIELDCATEGORY <$ labeled "WIELDCATEGORY")
-    parseFormulaNoRestrictions = notFollowedBy (string "PRE") *> parseFormula
 
 -- BONUS:UDAM|x|y
 --   x is CLASS.text
@@ -871,6 +875,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusSpellCastingMultiple <$> parseBonusSpellCastMult
             <|> BonusSkillPoints <$> parseBonusSkillPoints
             <|> BonusPostMoveAddition <$> parseBonusPostMoveAdd
+            <|> BonusCharacterStatChoice <$> parseBonusStatChoice
             <|> BonusCharacterStat <$> parseBonusStat
             <|> BonusWeaponProficency <$> parseBonusWeaponProf
             <|> BonusWeaponProperty <$> parseBonusWeaponProp

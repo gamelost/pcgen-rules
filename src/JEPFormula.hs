@@ -113,6 +113,7 @@ varBuiltins = [ "SynergyBonus"
               , "PLUSTOTAL"
               , "VEHICLEWOUNDPOINTS"
               , "AlchemistBombAdditionalDice"
+              , "DancingRobesArmorBonus"
               , "BASECOST"
               , "WT"
               , "SPELLLEVEL"
@@ -131,6 +132,8 @@ listOfFunctions :: [String]
 listOfFunctions = [ "floor"
                   , "max"
                   , "min"
+                  , "MIN"
+                  , "MAX"
                   , "ceil"
                   ]
 
@@ -154,6 +157,8 @@ evalJEPFormula vars f = floor $ evalJEPFormulae vars f
 builtInFunction :: String -> [Rational] -> Rational
 builtInFunction "min" = minimum
 builtInFunction "max" = maximum
+builtInFunction "MIN" = minimum
+builtInFunction "MAX" = maximum
 builtInFunction "floor" = \x ->
   case length x of
     1 -> (toRational :: Int -> Rational) . floor $ head x

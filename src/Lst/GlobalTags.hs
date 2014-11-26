@@ -48,6 +48,7 @@ data GlobalTag = KeyStat String
                | ChooseLanguageTag [ChooseLanguage]
                | ChooseNumberChoicesTag Choices
                | ChooseNumberTag ChooseNumber
+               | ChooseManyNumbersTag ChooseManyNumbers
                | Damage [Roll]
                | SecondaryDamage [Roll]
                | CriticalRange Int
@@ -290,8 +291,20 @@ parseChooseNumber = do
   chooseMin <- labeled "|MIN=" *> parseInteger
   chooseMax <- labeled "|MAX=" *> parseInteger
   chooseTitle <- labeled "|TITLE=" *> parseString
-  return ChooseNumber { .. } where
-    parseInt = textToInt <$> manyNumbers
+  return ChooseNumber { .. }
+
+data ChooseManyNumbers = ChooseManyNumbers { chooseManyNumbers :: [Int]
+                                           , chooseManyMultiple :: Bool
+                                           , chooseManyTitle :: String }
+                       deriving (Show, Eq)
+
+parseChooseManyNumbers :: PParser ChooseManyNumbers
+parseChooseManyNumbers = do
+  _ <- labeled "CHOOSE:NUMBER"
+  chooseManyNumbers <- parseInteger `sepBy` char '|'
+  chooseManyMultiple <- option False (True <$ labeled "MULTIPLE|")
+  chooseManyTitle <- labeled "|TITLE=" *> parseString
+  return ChooseManyNumbers { .. }
 
 -- not fully implemented
 data ChooseSkill = ChoiceSkill String
@@ -525,7 +538,9 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> SecondaryDamage <$> parseAltDamage
           <|> ChooseLanguageTag <$> parseChooseLanguage
           <|> ChooseNumberChoicesTag <$> parseChooseNumChoices
-          <|> ChooseNumberTag <$> parseChooseNumber
+          -- if this CHOOSE:NUMBER fails, try the next one
+          <|> try (ChooseNumberTag <$> parseChooseNumber)
+          <|> try (ChooseManyNumbersTag <$> parseChooseManyNumbers)
           <|> ChooseSkillTag <$> parseChooseSkill
           <|> ClassSkill <$> parseClassSkill
           <|> DamageReduction <$> parseDR

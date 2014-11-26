@@ -3,7 +3,7 @@
 module Bonus where
 
 import Text.Parsec.Char (char, space, string, satisfy)
-import Text.Parsec.Combinator (sepBy, option, many1)
+import Text.Parsec.Combinator (sepBy, option, optional, many1)
 import Text.Parsec.Prim (many, try)
 import ClassyPrelude hiding (try)
 
@@ -12,6 +12,7 @@ import JEPFormula
 import Common
 
 data Bonus = BonusSkill Skill
+           | BonusSkillChoice Int
            | BonusSkillRank SkillRank
            | BonusVariable BonusVar
            | BonusWeaponProficency BonusWeaponProf
@@ -381,7 +382,7 @@ parseBonusItemCost = do
   itemCostFormula <- char '|' *> parseFormula
   let itemCostType = concat itemCostTypes
   return ItemCost { .. } where
-    parseItemCostType = (labeled "TYPE." >> parseStringNoPeriods `sepBy` char '.')
+    parseItemCostType = labeled "TYPE." >> parseStringNoPeriods `sepBy` char '.'
     parseStringNoPeriods = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+/:?!%#'()[]~"
 
 -- BONUS:MISC|x|y
@@ -551,12 +552,20 @@ parseBonusSkill = do
     parseList = List <$ labeled "LIST"
     parseAll = All <$ labeled "ALL"
     parseSkillType = labeled "TYPE=" >> (BonusSkillType <$> parseStringNoCommas)
-    parseStatName = (labeled "STAT." >> (StatName <$> parseStringNoCommas))
+    parseStatName = labeled "STAT." >> (StatName <$> parseStringNoCommas)
     -- magical_treasures_equip_artifacts.lst has an asterisk.
     parseSkillName = BonusSkillName <$> parseStringNoCommasAsterisk
     parseSkillFormulaType = SkillFormula <$> try parseFormula
                         <|> SkillText <$> parseStringNoCommas
     parseStringNoCommasAsterisk = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~*"
+
+-- BONUS:SKILL|%CHOICE
+-- TODO: define.
+parseBonusSkillChoice :: PParser Int
+parseBonusSkillChoice = do
+  _ <- labeled "SKILL|%CHOICE"
+  _ <- optional $ char '|'
+  option 1 (textToInt <$> manyNumbers)
 
 -- BONUS:SKILLRANK|x,x,...|y
 --   x is skill name, skill type (TYPE=x)
@@ -623,7 +632,7 @@ parseBonusStat = do
 -- BONUS:STAT|%CHOICE
 -- TODO: define.
 parseBonusStatChoice :: PParser ()
-parseBonusStatChoice = () <$ (labeled "STAT|%CHOICE")
+parseBonusStatChoice = () <$ labeled "STAT|%CHOICE"
 
 -- BONUS:SPELLCAST|x;y|z
 data BonusSpellCastType = SpellCastClassName String
@@ -853,6 +862,7 @@ parseBonusDescription = tag "TEMPDESC" >> restOfTag
 parseAnyBonus :: PParser Bonus
 parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusVariable <$> parseBonusVariable
+            <|> BonusSkillChoice <$> parseBonusSkillChoice
             <|> BonusSkill <$> parseBonusSkill
             <|> BonusAbilityPool <$> parseBonusAbilityPool
             <|> BonusCasterLevel <$> parseBonusCasterLevel

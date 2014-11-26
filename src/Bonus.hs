@@ -27,6 +27,8 @@ data Bonus = BonusSkill Skill
            | BonusHitPoint BonusHP
            | BonusItemCost ItemCost
            | BonusSizeModifier Formula
+           | BonusAddSave BonusSave
+           | BonusAddSituation BonusSituation
            | BonusDifficultyClass BonusDC
            | BonusVision BonusVisionData
            | BonusSlotItems BonusSlots
@@ -467,6 +469,50 @@ parseBonusPostMoveAdd = do
     parseBonusPostMoveAddType = (AllPostMovement <$ labeled "TYPE.All")
                             <|> (labeled "TYPE." *> (MovementPostType <$> parseString))
 
+-- BONUS:SAVE|x,x...|y
+--   x is save name or BASE.text or ALL
+--   y is formula
+data BonusSaveType = SaveName String
+                   | BaseSaveName String
+                   | SaveAll
+                     deriving (Show, Eq)
+
+data BonusSave = BonusSave { bonusSaveTypes :: [BonusSaveType]
+                           , bonusSaveFormula :: Formula }
+               deriving (Show, Eq)
+
+parseBonusSave :: PParser BonusSave
+parseBonusSave = do
+  _ <- bonusTag "SAVE"
+  bonusSaveTypes <- parseBonusSaveTypes `sepBy` char ','
+  _ <- char '|'
+  bonusSaveFormula <- parseFormula
+  return BonusSave { .. } where
+    parseBonusSaveTypes = (labeled "BASE." *> (BaseSaveName <$> parseStringNoPeriods))
+                      <|> (SaveAll <$ labeled "ALL")
+                      <|> (SaveName <$> parseStringNoPeriods)
+    parseStringNoPeriods = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+/:?!%#'()[]~"
+
+-- BONUS:SITUATION|x=y,x=y|z
+--   x is skill name
+--   y is situation
+--   z is formula
+data BonusSituation = BonusSituation { bonusSituations :: [(String, String)]
+                                     , bonusSituationFormula :: Formula }
+                    deriving (Show, Eq)
+
+parseBonusSituation :: PParser BonusSituation
+parseBonusSituation = do
+  _ <- bonusTag "SITUATION"
+  bonusSituations <- parseBonusSituations `sepBy` char ','
+  _ <- char '|'
+  bonusSituationFormula <- parseFormula
+  return BonusSituation { .. } where
+    parseBonusSituations = do
+      skill <- parseStringNoCommas <* char '='
+      situation <- parseStringNoCommas
+      return (skill, situation)
+
 -- BONUS:SIZEMOD|NUMBER|x
 --   x is formula
 parseBonusSizeMod :: PParser Formula
@@ -813,6 +859,8 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusHitPoint <$> parseBonusHP
             <|> BonusItemCost <$> parseBonusItemCost
             <|> BonusSizeModifier <$> parseBonusSizeMod
+            <|> BonusAddSave <$> parseBonusSave
+            <|> BonusAddSituation <$> parseBonusSituation
             <|> BonusDifficultyClass <$> parseBonusDC
             <|> BonusMiscellany <$> parseBonusMisc
             <|> BonusMovement <$> parseBonusMoveAdd

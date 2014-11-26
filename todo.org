@@ -2,7 +2,6 @@
 ** TODO narrow down parseString*: way too general
 ** TODO look at data/zen-test/... -- is this something we can use?
 ** TODO many, many typos
-- 1 unexpected "=" // unsolvable (1TYPE, missing |)
 - 1 unexpected '=' // unsolvable (ABILITY:FEAT|AUTOMATIC|TYPE=ItemCreation)
 - data/35e/rpg_objects/legends_of_the_ancients/macedon/loam_skills.lst is messed up
 * pcc [0/2]

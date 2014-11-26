@@ -3,7 +3,7 @@
 module Bonus where
 
 import Text.Parsec.Char (char, space, string, satisfy)
-import Text.Parsec.Combinator (sepBy, option, many1, notFollowedBy)
+import Text.Parsec.Combinator (sepBy, option, many1)
 import Text.Parsec.Prim (many, try)
 import ClassyPrelude hiding (try)
 
@@ -632,6 +632,7 @@ data BonusSpellCastType = SpellCastClassName String
 
 data BonusSpellCastSlot = SpellCastLevelNumber Int
                         | SpellCastLevelAll
+                        | SpellCastLevelChoice
                           deriving (Show, Eq)
 
 data BonusSpellCast = BonusSpellCast { bonusSpellCastType :: BonusSpellCastType
@@ -649,6 +650,7 @@ parseBonusSpellCast = do
     parseBonusSpellCastType = (labeled "CLASS=" *> (SpellCastClassName <$> parseString))
                           <|> (labeled "TYPE=" *> (SpellCastSpellType <$> parseString))
     parseBonusSpellCastSlot = (SpellCastLevelAll <$ labeled "LEVEL=ALL")
+                          <|> (SpellCastLevelChoice <$ labeled "LEVEL=%CHOICE")
                           <|> (labeled "LEVEL=" *> (SpellCastLevelNumber <$> slotToInt))
     slotToInt = textToInt <$> manyNumbers
 

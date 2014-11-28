@@ -109,12 +109,40 @@ varBuiltins = [ "SynergyBonus"
               , "GunGlyphMarksman"
               , "MAXVEHICLEMODS"
               , "DMGDIE"
+              , "ArrowEnhancement"
+              , "EnchantArrow"
               , "%CHOICE" -- TODO: probably not right
+              , "%LIST"
+              , "CRITMULT"
+              , "FeedbackDamage"
+              , "PowerDrainTime"
+              , "ItemEgo"
+              , "Severis"
+              , "SeverisEnhancementBonus"
+              , "sDefenseFlat"
+              , "sDefenseAuto"
+              , "sDefense"
+              , "sInit"
+              , "sHard"
+              , "sHDpre"
+              , "sHDpost"
+              , "sHDpost"
+              , "vcargo" -- ??
+              , "vinit" -- ??
+              , "vpass" -- ??
+              , "vcrew" -- ??
+              , "vmaneuver" -- ??
+              , "vt_speed" -- ??
+              , "v_max_speed" -- ??
+              , "vdefense" -- ??
+              , "vhard" -- ??
+              , "vhpee" -- ??
               , "m_hp" -- ??
               , "unit" -- ??
               , "InventionLevel"
               , "SIZE"
               , "HEADPLUSTOTAL"
+              , "ALTPLUSTOTAL"
               , "PLUSTOTAL"
               , "VEHICLEWOUNDPOINTS"
               , "AlchemistBombAdditionalDice"
@@ -122,7 +150,6 @@ varBuiltins = [ "SynergyBonus"
               , "ArmorDPValue"
               , "DissonanceEnhancementBonusMain"
               , "DissonanceEnhancementBonusAlt"
-              , "SeverisEnhancementBonus"
               -- COST only vars?
               , "BASECOST"
               , "SIZE"
@@ -133,6 +160,7 @@ varBuiltins = [ "SynergyBonus"
               , "%SPELLXPCOST"
               , "SPELLLEVEL"
               -- end
+              , "BAB"
               , "WT"
               , "TL"
               , "CL"

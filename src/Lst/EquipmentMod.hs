@@ -53,13 +53,13 @@ parseDescription = tag "DESC" *> restOfTag
 parseType :: PParser [String]
 parseType = tag "TYPE" >> parseString `sepBy` char '.'
 
--- parseCost :: PParser Formula
--- parseCost = tag "COST" *> parseFormula
+parseCost :: PParser Formula
+parseCost = tag "COST" *> parseFormula
 
 parseEquipmentModTag :: PParser EquipmentModDefinition
 parseEquipmentModTag = Description <$> parseDescription
                    <|> Type <$> parseType
-                   -- <|> Cost <$> parseCost
+                   <|> Cost <$> parseCost
                    <|> Visible <$> parseVisible
                    -- <|> SpecialProperty <$> parseSpecialProperty
 

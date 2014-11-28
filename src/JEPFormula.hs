@@ -37,7 +37,12 @@ data Operand = Divide
              | Multiply
              | Subtract
              | Add
+             | Exponent
+             | LesserEqualsThan
+             | LesserThan
+             | Equals
              | GreaterEqualsThan
+             | GreaterThan
                deriving (Show, Eq)
 
 data SkillType = RANK
@@ -118,9 +123,17 @@ varBuiltins = [ "SynergyBonus"
               , "DissonanceEnhancementBonusMain"
               , "DissonanceEnhancementBonusAlt"
               , "SeverisEnhancementBonus"
+              -- COST only vars?
               , "BASECOST"
-              , "WT"
+              , "SIZE"
+              , "%CASTERLEVEL"
+              , "%CHARGES"
+              , "%SPELLLEVEL"
+              , "%SPELLCOST"
+              , "%SPELLXPCOST"
               , "SPELLLEVEL"
+              -- end
+              , "WT"
               , "TL"
               , "CL"
               , "INT"
@@ -187,7 +200,13 @@ evalJEPFormulae vars (Arithmetic op f1 f2) =
      Multiply -> (*)
      Subtract -> (-)
      Add -> (+)
-     GreaterEqualsThan -> \ x y -> if x >= y then 1 else 0) -- TODO check this
+     --Exponent -> (**)
+     -- TODO: verify that the return of a "boolean" holds true for all cases
+     LesserThan ->        \ x y -> if x <  y then 1 else 0
+     LesserEqualsThan ->  \ x y -> if x <= y then 1 else 0
+     Equals ->            \ x y -> if x == y then 1 else 0
+     GreaterThan ->       \ x y -> if x >  y then 1 else 0
+     GreaterEqualsThan -> \ x y -> if x >= y then 1 else 0)
   (evalJEPFormulae vars f1)
   (evalJEPFormulae vars f2)
 evalJEPFormulae vars (Function what formulas) =
@@ -286,14 +305,22 @@ parseFunction = do
 
 table :: [[Operator T.Text () (State Variables) Formula]]
 table = [ [ Prefix negateFormula ]
+        , [ Infix exponentFormula AssocLeft ]
         , [ Infix multiplyFormula AssocLeft, Infix divideFormula AssocLeft ]
         , [ Infix addFormula AssocLeft, Infix subtractFormula AssocLeft ]
-        , [ Infix geFormula AssocLeft ]
+        , [ Infix lFormula AssocLeft, Infix leFormula AssocLeft
+          , Infix eFormula AssocLeft
+          , Infix gFormula AssocLeft, Infix geFormula AssocLeft]
         ] where
   multiplyFormula = operand "*" Multiply
   subtractFormula = operand "-" Subtract
   divideFormula = operand "/" Divide
   addFormula = operand "+" Add
+  exponentFormula = operand "^" Exponent
+  lFormula = operand "<" LesserThan
+  leFormula = operand "<=" LesserEqualsThan
+  eFormula = operand "==" Equals
+  gFormula = operand ">" GreaterThan
   geFormula = operand ">=" GreaterEqualsThan
   operand c o = try $ Arithmetic o <$ labeled c
   negateFormula = try $ Negate <$ char '-'

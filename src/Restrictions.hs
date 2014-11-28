@@ -45,24 +45,24 @@ data RestrictionTag = PreClassRestriction PreClass
                     | Invert RestrictionTag
                       deriving (Show, Eq)
 
-data Operator = Equal
-              | GreaterThan
-              | GreaterThanOrEqual
-              | LesserThan
-              | LesserThanOrEqual
-              | NotEqual
+data Operator = OpEqual
+              | OpGreaterThan
+              | OpGreaterThanOrEqual
+              | OpLesserThan
+              | OpLesserThanOrEqual
+              | OpNotEqual
                 deriving (Show, Eq)
 
 operatorPrefixes :: [PParser String]
 operatorPrefixes = tryStrings ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"]
 
 convertOperator :: String -> Operator
-convertOperator "EQ" = Equal
-convertOperator "GTEQ" = GreaterThanOrEqual
-convertOperator "GT" = GreaterThan
-convertOperator "LTEQ" = LesserThanOrEqual
-convertOperator "LT" = LesserThan
-convertOperator "NEQ" = NotEqual
+convertOperator "EQ" = OpEqual
+convertOperator "GTEQ" = OpGreaterThanOrEqual
+convertOperator "GT" = OpGreaterThan
+convertOperator "LTEQ" = OpLesserThanOrEqual
+convertOperator "LT" = OpLesserThan
+convertOperator "NEQ" = OpNotEqual
 convertOperator _ = error "invalid operator"
 
 -- PREABILITY:x,CATEGORY=y,z,z,z...

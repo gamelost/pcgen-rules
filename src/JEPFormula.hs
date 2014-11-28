@@ -152,6 +152,7 @@ listOfFunctions = [ "floor"
                   , "MIN"
                   , "MAX"
                   , "ceil"
+                  , "if"
                   ]
 
 getVariables :: PParser [String]
@@ -186,6 +187,13 @@ builtInFunction "ceil" = \x ->
     _ -> error "ceil was called with incorrect arity"
 builtInFunction _ = error "No such built-in function"
 
+-- TODO: not as accurate as I'd like.
+powerOf :: Rational -> Rational -> Rational
+powerOf x y =
+  let fx = fromRational x :: Double in
+  let fy = fromRational y :: Double in
+  toRational $ fx ** fy
+
 evalJEPFormulae :: Variables -> Formula -> Rational
 evalJEPFormulae _ (Number x) = toRational x
 evalJEPFormulae _ (Floating x) = toRational x
@@ -200,7 +208,7 @@ evalJEPFormulae vars (Arithmetic op f1 f2) =
      Multiply -> (*)
      Subtract -> (-)
      Add -> (+)
-     --Exponent -> (**)
+     Exponent -> powerOf
      -- TODO: verify that the return of a "boolean" holds true for all cases
      LesserThan ->        \ x y -> if x <  y then 1 else 0
      LesserEqualsThan ->  \ x y -> if x <= y then 1 else 0
@@ -308,9 +316,9 @@ table = [ [ Prefix negateFormula ]
         , [ Infix exponentFormula AssocLeft ]
         , [ Infix multiplyFormula AssocLeft, Infix divideFormula AssocLeft ]
         , [ Infix addFormula AssocLeft, Infix subtractFormula AssocLeft ]
-        , [ Infix lFormula AssocLeft, Infix leFormula AssocLeft
+        , [ Infix leFormula AssocLeft, Infix lFormula AssocLeft
           , Infix eFormula AssocLeft
-          , Infix gFormula AssocLeft, Infix geFormula AssocLeft]
+          , Infix geFormula AssocLeft, Infix gFormula AssocLeft]
         ] where
   multiplyFormula = operand "*" Multiply
   subtractFormula = operand "-" Subtract

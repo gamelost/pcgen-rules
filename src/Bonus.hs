@@ -3,7 +3,7 @@
 module Bonus where
 
 import Text.Parsec.Char (char, space, string, satisfy)
-import Text.Parsec.Combinator (sepBy, option, optional, many1)
+import Text.Parsec.Combinator (sepBy, option, many1)
 import Text.Parsec.Prim (many, try)
 import ClassyPrelude hiding (try)
 
@@ -564,8 +564,7 @@ parseBonusSkill = do
 parseBonusSkillChoice :: PParser Int
 parseBonusSkillChoice = do
   _ <- labeled "SKILL|%CHOICE"
-  _ <- optional $ char '|'
-  option 1 (textToInt <$> manyNumbers)
+  option 1 (try $ char '|' *> (textToInt <$> manyNumbers))
 
 -- BONUS:SKILLRANK|x,x,...|y
 --   x is skill name, skill type (TYPE=x)

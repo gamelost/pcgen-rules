@@ -108,6 +108,7 @@ varBuiltins = [ "SynergyBonus"
               , "ShimmerMailACBonus"
               , "GunGlyphMarksman"
               , "MAXVEHICLEMODS"
+              , "MAX_LEVEL"
               , "DMGDIE"
               , "ArrowEnhancement"
               , "EnchantArrow"
@@ -127,6 +128,10 @@ varBuiltins = [ "SynergyBonus"
               , "sHDpre"
               , "sHDpost"
               , "sHDpost"
+              , "sPilotCB"
+              , "sPilotDEX"
+              , "sGunnerAB"
+              , "sTacSpeed"
               , "vcargo" -- ??
               , "vinit" -- ??
               , "vpass" -- ??

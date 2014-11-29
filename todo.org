@@ -23,6 +23,13 @@
 - Tactics.COPY 1 (parses successfully though)
 * domain [0/1]
 ** TODO ADD:ABILITY|3|Special Ability|VIRTUAL|ArtificerSkills
+* equipmod [0/2]
+** ./data/3e/dragonwing_games/bastion_press/arms_and_armor/arms_equipmod.lst
+error: BONUS:SKILL|TYPE=Knowledge|2|TYPE=Circumstance|PRESKILL:1,TYPE=Knowledge
+TYPE=Knowledge needs a value: e.g., TYPE=Knowledge=1
+** ./data/35e/paradigm_concepts/arcanis/players_guide_to_arcanis/playersguidetoarcanis_equip_mods.lst
+error: BONUS:WEAPON|TOHIT.Melee|1|TYPE=Enhancement
+TOHIT.Melee is not valid.
 * JEP [0/0]
 * questions
 ** when are JEPs used? [2/6]

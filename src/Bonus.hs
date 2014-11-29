@@ -35,6 +35,7 @@ data Bonus = BonusSkill Skill
            | BonusSlotItems BonusSlots
            | BonusSpellCasting BonusSpellCast
            | BonusSpellCastingMultiple BonusSpellCastMult
+           | BonusSpellKnown BonusSpellCastMult
            | BonusSkillPoints Formula
            | BonusPostMoveAddition BonusPostMoveAdd
            | BonusMiscellany BonusMisc
@@ -686,6 +687,21 @@ parseBonusSpellCastMult = do
     parseBonusSpellCastMultType = (labeled "CLASS=" *> (SpellCastMultClassName <$> parseString))
                               <|> (labeled "TYPE=" *> (SpellCastMultSpellType <$> parseString))
 
+-- BONUS:SPELLKNOWN|x;y|z
+--   x is class name or spell type
+--   y is level number
+--   z is number of spells
+parseBonusSpellKnown :: PParser BonusSpellCastMult
+parseBonusSpellKnown = do
+  _ <- bonusTag "SPELLKNOWN"
+  bonusSpellCastMultType <- parseBonusSpellCastMultType <* char ';'
+  bonusSpellCastMultLevel <- textToInt <$> (labeled "LEVEL=" *> manyNumbers)
+  _ <- char '|'
+  bonusSpellCastMultNumber <- textToInt <$> manyNumbers
+  return BonusSpellCastMult { .. } where
+    parseBonusSpellCastMultType = (labeled "CLASS=" *> (SpellCastMultClassName <$> parseString))
+                              <|> (labeled "TYPE=" *> (SpellCastMultSpellType <$> parseString))
+
 -- BONUS:VAR|x,x,...|y
 --   x is variable name
 --   y is number, variable, or formula to adjust variable by
@@ -884,6 +900,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusSlotItems <$> parseBonusSlots
             <|> BonusSpellCasting <$> parseBonusSpellCast
             <|> BonusSpellCastingMultiple <$> parseBonusSpellCastMult
+            <|> BonusSpellKnown <$> parseBonusSpellKnown
             <|> BonusSkillPoints <$> parseBonusSkillPoints
             <|> BonusPostMoveAddition <$> parseBonusPostMoveAdd
             <|> BonusCharacterStatChoice <$> parseBonusStatChoice

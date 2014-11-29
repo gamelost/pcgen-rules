@@ -16,6 +16,7 @@ import Lst.ShieldProf(ShieldProficency)
 import Lst.ArmorProf(ArmorProficency)
 import Lst.Domain(DomainDefinition)
 import Lst.Equipment(EquipmentDefinition)
+import Lst.EquipmentMod(EquipmentModDefinition)
 
 -- generic, catch-all
 import Lst.Generic(LSTDefinition)
@@ -82,4 +83,5 @@ parseLSTToString "WEAPONPROF" = prettyPrint (parseLSTLine :: PParser (LSTLine We
 parseLSTToString "SKILL" = prettyPrint (parseLSTLine :: PParser (LSTLine SkillDefinition))
 parseLSTToString "DOMAIN" = prettyPrint (parseLSTLine :: PParser (LSTLine DomainDefinition))
 parseLSTToString "EQUIPMENT" = prettyPrint (parseLSTLine :: PParser (LSTLine EquipmentDefinition))
+parseLSTToString "EQUIPMOD" = prettyPrint (parseLSTLine :: PParser (LSTLine EquipmentModDefinition))
 parseLSTToString _ = prettyPrint (parseLSTLine :: PParser (LSTLine LSTDefinition))

@@ -40,7 +40,6 @@ data EquipmentDefinition = Description String
                          | NumberPages Int
                          | PageUsage Formula
                          | AlternateType [String]
-                         | EquipmentKey String
                          | EquipmentType [String]
                          | EquipmentModifier EquipmentMod
                          | AlternateEquipmentModifier EquipmentMod
@@ -57,11 +56,7 @@ parseACCheck = tag "ACCHECK" *> parseFormula
 
 parseEquipmentType :: PParser [String]
 parseEquipmentType = tag "TYPE" *> parseWordAndNumbers `sepBy1` char '.' where
-  -- arms_equip_armorshield.lst has a bug where it has a ',' instead of a '.'
-  -- martialmayhem_equip_weap_melee.lst has a ':'
-  -- aeg_gods_equip_magic.lst has "TYPE:<agic.Wondrous"
-  -- apg_equip_magic_items.lst has "Artifact/Major"
-  parseWordAndNumbers = many1 $ satisfy $ inClass "-A-Za-z0-9,: <_/"
+  parseWordAndNumbers = many1 $ satisfy $ inClass "-A-Za-z0-9, _/"
 
 parseDescription :: PParser String
 parseDescription = tag "DESC" *> restOfTag
@@ -214,10 +209,7 @@ parseContains = do
     parseContainerTypes = try (ItemLimit <$> parseContainerTypeLimit)
                           <|> (ItemType <$> parseString)
     parseContainerTypeLimit = do
-      item <- parseString
-      -- note that data/xcrawl/pandahead/xcrawl/xcrawl_equip.lst has "Any:100", ugh.
-      -- we do NOT account for that here.
-      _ <- char '='
+      item <- parseString <* char '='
       number <- textToInt <$> manyNumbers
       return (item, number)
 
@@ -295,9 +287,6 @@ parseMaxDex = tag "MAXDEX" *> parseFormula
 parsePageUsage :: PParser Formula
 parsePageUsage = tag "PAGEUSAGE" *> parseFormula
 
-parseKey :: PParser String
-parseKey = tag "KEY" *> restOfTag
-
 parseEquipmentTag :: PParser EquipmentDefinition
 parseEquipmentTag = Description <$> parseDescription
                 <|> Weight <$> parseWeight
@@ -327,7 +316,6 @@ parseEquipmentTag = Description <$> parseDescription
                 <|> AlternateType <$> parseAltType
                 <|> NumberPages <$> parseNumPages
                 <|> PageUsage <$> parsePageUsage
-                <|> EquipmentKey <$> parseKey
                 <|> EquipmentType <$> parseEquipmentType
                 <|> EquipmentModifier <$> parseEquipmentModifier
                 <|> AlternateEquipmentModifier <$> parseAltEquipmentModifier

@@ -39,29 +39,30 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PrePCLevelRestriction PrePCLevel
                     | PreSkillTotalRestriction PreSkillTot
                     | PreWeaponProfRestriction PreWeaponProf
+                    | PreWieldRestriction PreWield
                     | PreRuleRestriction PreRule
                     | PreMultipleRestriction PreMult
                     | Invert RestrictionTag
                       deriving (Show, Eq)
 
-data Operator = Equal
-              | GreaterThan
-              | GreaterThanOrEqual
-              | LesserThan
-              | LesserThanOrEqual
-              | NotEqual
+data Operator = OpEqual
+              | OpGreaterThan
+              | OpGreaterThanOrEqual
+              | OpLesserThan
+              | OpLesserThanOrEqual
+              | OpNotEqual
                 deriving (Show, Eq)
 
 operatorPrefixes :: [PParser String]
 operatorPrefixes = tryStrings ["EQ", "GTEQ", "GT", "LTEQ", "LT", "NEQ"]
 
 convertOperator :: String -> Operator
-convertOperator "EQ" = Equal
-convertOperator "GTEQ" = GreaterThanOrEqual
-convertOperator "GT" = GreaterThan
-convertOperator "LTEQ" = LesserThanOrEqual
-convertOperator "LT" = LesserThan
-convertOperator "NEQ" = NotEqual
+convertOperator "EQ" = OpEqual
+convertOperator "GTEQ" = OpGreaterThanOrEqual
+convertOperator "GT" = OpGreaterThan
+convertOperator "LTEQ" = OpLesserThanOrEqual
+convertOperator "LT" = OpLesserThan
+convertOperator "NEQ" = OpNotEqual
 convertOperator _ = error "invalid operator"
 
 -- PREABILITY:x,CATEGORY=y,z,z,z...
@@ -567,7 +568,7 @@ parsePreType = do
   _ <- char ','
   preTypeRequirements <- parseStringEquals `sepBy` char ','
   return PreType { .. } where
-    parseStringEquals = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~="
+    parseStringEquals = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()~="
 
 -- PREVARx:y,z
 --   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
@@ -614,6 +615,29 @@ parsePreWeaponProf = do
                       <|> (labeled "TYPE=" *> (PreWeaponType <$> parseStringNoCommasBrackets))
                       <|> (PreWeaponName <$> parseStringNoCommasBrackets)
 
+-- PREWIELD:x,y
+--   x is number
+--   y is type
+data PreWieldType = Light
+                  | OneHanded
+                  | TwoHanded
+                    deriving (Show, Eq)
+
+data PreWield = PreWield { preWieldNumber :: Int
+                         , preWieldType :: PreWieldType }
+                deriving (Show, Eq)
+
+parsePreWield :: PParser PreWield
+parsePreWield = do
+  _ <- tag "PREWIELD"
+  preWieldNumber <- textToInt <$> manyNumbers
+  _ <- char ','
+  preWieldType <- parsePreWieldType
+  return PreWield { .. } where
+    parsePreWieldType = (Light <$ labeled "Light")
+                    <|> (OneHanded <$ labeled "OneHanded")
+                    <|> (TwoHanded <$ labeled "TwoHanded")
+
 parsePossibleRestriction :: PParser RestrictionTag
 parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreClassSkillRestriction <$> parsePreClassSkill
@@ -642,6 +666,7 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreTemplateRestriction <$> parsePreTemplate
                        <|> PrePCLevelRestriction <$> parsePrePCLevel
                        <|> PreWeaponProfRestriction <$> parsePreWeaponProf
+                       <|> PreWieldRestriction <$> parsePreWield
                        <|> PreSkillTotalRestriction <$> parsePreSkillTotal
                        <|> PreSkillRestriction <$> parsePreSkill
                        <|> PreGenderRestriction <$> parsePreGender

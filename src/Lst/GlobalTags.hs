@@ -15,6 +15,7 @@ import JEPFormula
 import Common
 
 data GlobalTag = KeyStat String
+               | Key String
                | UseUntrained Bool
                | SortKey String
                | SourcePage String
@@ -47,6 +48,7 @@ data GlobalTag = KeyStat String
                | ChooseLanguageTag [ChooseLanguage]
                | ChooseNumberChoicesTag Choices
                | ChooseNumberTag ChooseNumber
+               | ChooseManyNumbersTag ChooseManyNumbers
                | Damage [Roll]
                | SecondaryDamage [Roll]
                | CriticalRange Int
@@ -95,6 +97,9 @@ parseAltDamage = tag "ALTDAMAGE" *> parseRolls
 
 parseSR :: PParser Formula
 parseSR = tag "SR" *> parseFormula
+
+parseKey :: PParser String
+parseKey = tag "KEY" *> restOfTag
 
 data Vision = Vision { visionTypes :: [String]
                      , visionRestrictions :: [RestrictionTag] }
@@ -283,15 +288,28 @@ data ChooseNumber = ChooseNumber { chooseMin :: Int
 parseChooseNumber :: PParser ChooseNumber
 parseChooseNumber = do
   _ <- labeled "CHOOSE:NUMBER"
-  chooseMin <- labeled "|MIN=" *> parseInt
-  chooseMax <- labeled "|MAX=" *> parseInt
-  chooseTitle <- labeled "|TITLE" *> parseString
-  return ChooseNumber { .. } where
-    parseInt = textToInt <$> manyNumbers
+  chooseMin <- labeled "|MIN=" *> parseInteger
+  chooseMax <- labeled "|MAX=" *> parseInteger
+  chooseTitle <- labeled "|TITLE=" *> parseString
+  return ChooseNumber { .. }
+
+data ChooseManyNumbers = ChooseManyNumbers { chooseManyNumbers :: [Int]
+                                           , chooseManyMultiple :: Bool
+                                           , chooseManyTitle :: String }
+                       deriving (Show, Eq)
+
+parseChooseManyNumbers :: PParser ChooseManyNumbers
+parseChooseManyNumbers = do
+  _ <- labeled "CHOOSE:NUMBER"
+  chooseManyNumbers <- parseInteger `sepBy` char '|'
+  chooseManyMultiple <- option False (True <$ labeled "MULTIPLE|")
+  chooseManyTitle <- labeled "|TITLE=" *> parseString
+  return ChooseManyNumbers { .. }
 
 -- not fully implemented
 data ChooseSkill = ChoiceSkill String
                  | ChoiceSkillType String
+                 | ChoiceSkillTitle String
                    deriving (Show, Eq)
 
 parseChooseSkill :: PParser [ChooseSkill]
@@ -299,6 +317,7 @@ parseChooseSkill = do
   _ <- labeled "CHOOSE:SKILL|"
   parseChoice `sepBy` char '|' where
     parseChoice = ChoiceSkillType <$> (labeled "TYPE=" *> parseString)
+              <|> ChoiceSkillTitle <$> (labeled "TITLE=" *> parseString)
               <|> ChoiceSkill <$> parseString
 
 data ClassSkillType = CSkillName String
@@ -496,6 +515,7 @@ parseUnknownTag = do
 
 parseGlobal :: PParser GlobalTag
 parseGlobal = KeyStat <$> parseKeyStat
+          <|> Key <$> parseKey
           <|> SortKey <$> parseSortKey
           <|> UseUntrained <$> parseUseUntrained
           <|> SourcePage <$> parseSourcePage
@@ -518,7 +538,9 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> SecondaryDamage <$> parseAltDamage
           <|> ChooseLanguageTag <$> parseChooseLanguage
           <|> ChooseNumberChoicesTag <$> parseChooseNumChoices
-          <|> ChooseNumberTag <$> parseChooseNumber
+          -- if this CHOOSE:NUMBER fails, try the next one
+          <|> try (ChooseNumberTag <$> parseChooseNumber)
+          <|> try (ChooseManyNumbersTag <$> parseChooseManyNumbers)
           <|> ChooseSkillTag <$> parseChooseSkill
           <|> ClassSkill <$> parseClassSkill
           <|> DamageReduction <$> parseDR

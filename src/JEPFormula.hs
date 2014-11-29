@@ -6,6 +6,7 @@ module JEPFormula ( Formula(..)
                   , Roll(..)
                   , parseFormula
                   , parseQuotedString
+                  , parseInteger
                   , parseRolls
                   , evalJEPFormula
                   ) where
@@ -36,7 +37,12 @@ data Operand = Divide
              | Multiply
              | Subtract
              | Add
+             | Exponent
+             | LesserEqualsThan
+             | LesserThan
+             | Equals
              | GreaterEqualsThan
+             | GreaterThan
                deriving (Show, Eq)
 
 data SkillType = RANK
@@ -81,6 +87,8 @@ varBuiltins = [ "SynergyBonus"
               , "MindBladeEnchantment"
               , "COUNT[EQTYPE.ARMOR.EQUIPPED]" -- ??
               , "SHIELDACCHECK"
+              , "ACCHECK"
+              , "EQHANDS"
               , "SKILLRANK=Bluff"
               , "AntipaladinLVL"
               , "PaladinLvl"
@@ -98,8 +106,79 @@ varBuiltins = [ "SynergyBonus"
               , "TrapCR"
               , "PSIONLEVEL"
               , "ShimmerMailACBonus"
+              , "GunGlyphMarksman"
+              , "MAXVEHICLEMODS"
+              , "MAX_LEVEL"
+              , "DMGDIE"
+              , "ArrowEnhancement"
+              , "EnchantArrow"
+              , "%CHOICE" -- TODO: probably not right
+              , "%LIST"
+              , "CRITMULT"
+              , "FeedbackDamage"
+              , "PowerDrainTime"
+              , "ItemEgo"
+              , "SeverisEnhancementBonus"
+              , "Severis"
+              , "sDefenseFlat"
+              , "sDefenseAuto"
+              , "sDefense"
+              , "sInit"
+              , "sHard"
+              , "sHDpre"
+              , "sHDpost"
+              , "sHDpost"
+              , "sPilotCB"
+              , "sPilotDEX"
+              , "sGunnerAB"
+              , "sTacSpeed"
+              , "sLength"
+              , "sSize"
+              , "sGrapple"
+              , "sWeight"
+              , "sTargetingSB"
+              , "sCrewTrain"
+              , "sCrewNUM"
+              , "sPass"
+              , "sCargo"
+              , "ShipTypeMod"
+              , "sDefenseAuto"
+              , "sGrapple"
+              , "vcargo" -- ??
+              , "vinit" -- ??
+              , "vpass" -- ??
+              , "vcrew" -- ??
+              , "vmaneuver" -- ??
+              , "vt_speed" -- ??
+              , "v_max_speed" -- ??
+              , "vdefense" -- ??
+              , "vhard" -- ??
+              , "vhpee" -- ??
+              , "m_hp" -- ??
+              , "unit" -- ??
+              , "InventionLevel"
+              , "SIZE"
+              , "HEADPLUSTOTAL"
+              , "ALTPLUSTOTAL"
+              , "PLUSTOTAL"
+              , "VEHICLEWOUNDPOINTS"
               , "AlchemistBombAdditionalDice"
+              , "DancingRobesArmorBonus"
+              , "ArmorDPValue"
+              , "DissonanceEnhancementBonusMain"
+              , "DissonanceEnhancementBonusAlt"
+              -- COST only vars?
+              , "BASECOST"
+              , "SIZE"
+              , "%CASTERLEVEL"
+              , "%CHARGES"
+              , "%SPELLLEVEL"
+              , "%SPELLCOST"
+              , "%SPELLXPCOST"
               , "SPELLLEVEL"
+              -- end
+              , "BAB"
+              , "WT"
               , "TL"
               , "CL"
               , "INT"
@@ -115,7 +194,10 @@ listOfFunctions :: [String]
 listOfFunctions = [ "floor"
                   , "max"
                   , "min"
+                  , "MIN"
+                  , "MAX"
                   , "ceil"
+                  , "if"
                   ]
 
 getVariables :: PParser [String]
@@ -138,6 +220,8 @@ evalJEPFormula vars f = floor $ evalJEPFormulae vars f
 builtInFunction :: String -> [Rational] -> Rational
 builtInFunction "min" = minimum
 builtInFunction "max" = maximum
+builtInFunction "MIN" = minimum
+builtInFunction "MAX" = maximum
 builtInFunction "floor" = \x ->
   case length x of
     1 -> (toRational :: Int -> Rational) . floor $ head x
@@ -147,6 +231,13 @@ builtInFunction "ceil" = \x ->
     1 -> (toRational :: Int -> Rational) . ceiling $ head x
     _ -> error "ceil was called with incorrect arity"
 builtInFunction _ = error "No such built-in function"
+
+-- TODO: not as accurate as I'd like.
+powerOf :: Rational -> Rational -> Rational
+powerOf x y =
+  let fx = fromRational x :: Double in
+  let fy = fromRational y :: Double in
+  toRational $ fx ** fy
 
 evalJEPFormulae :: Variables -> Formula -> Rational
 evalJEPFormulae _ (Number x) = toRational x
@@ -162,7 +253,13 @@ evalJEPFormulae vars (Arithmetic op f1 f2) =
      Multiply -> (*)
      Subtract -> (-)
      Add -> (+)
-     GreaterEqualsThan -> \ x y -> if x >= y then 1 else 0) -- TODO check this
+     Exponent -> powerOf
+     -- TODO: verify that the return of a "boolean" holds true for all cases
+     LesserThan ->        \ x y -> if x <  y then 1 else 0
+     LesserEqualsThan ->  \ x y -> if x <= y then 1 else 0
+     Equals ->            \ x y -> if x == y then 1 else 0
+     GreaterThan ->       \ x y -> if x >  y then 1 else 0
+     GreaterEqualsThan -> \ x y -> if x >= y then 1 else 0)
   (evalJEPFormulae vars f1)
   (evalJEPFormulae vars f2)
 evalJEPFormulae vars (Function what formulas) =
@@ -205,7 +302,7 @@ parseFloat = parseSignedNumber where
   sign = (negate <$ char '-') <|> (id <$ optional (char '+'))
   parseFloatOrInt = textToFloat <$> try (parseFloatingNumber <|> manyNumbers)
   parseFloatingNumber = do
-    n <- option "" manyNumbers
+    n <- option "0" manyNumbers
     d <- char '.'
     r <- manyNumbers
     return $ n ++ d : r
@@ -261,14 +358,22 @@ parseFunction = do
 
 table :: [[Operator T.Text () (State Variables) Formula]]
 table = [ [ Prefix negateFormula ]
+        , [ Infix exponentFormula AssocLeft ]
         , [ Infix multiplyFormula AssocLeft, Infix divideFormula AssocLeft ]
         , [ Infix addFormula AssocLeft, Infix subtractFormula AssocLeft ]
-        , [ Infix geFormula AssocLeft ]
+        , [ Infix leFormula AssocLeft, Infix lFormula AssocLeft
+          , Infix eFormula AssocLeft
+          , Infix geFormula AssocLeft, Infix gFormula AssocLeft]
         ] where
   multiplyFormula = operand "*" Multiply
   subtractFormula = operand "-" Subtract
   divideFormula = operand "/" Divide
   addFormula = operand "+" Add
+  exponentFormula = operand "^" Exponent
+  lFormula = operand "<" LesserThan
+  leFormula = operand "<=" LesserEqualsThan
+  eFormula = operand "==" Equals
+  gFormula = operand ">" GreaterThan
   geFormula = operand ">=" GreaterEqualsThan
   operand c o = try $ Arithmetic o <$ labeled c
   negateFormula = try $ Negate <$ char '-'

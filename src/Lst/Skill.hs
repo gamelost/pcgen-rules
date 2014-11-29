@@ -31,31 +31,27 @@ data SkillDefinition = Type [String]
                      | ArmorClassCheck ArmorCheck
                      | Classes Class
                      | Exclusive Bool
-                     | UniqueKey String
                      | Visibility (Visible, Bool)
+                     | Situation String
                        deriving Show
 
-type SkillTag = PParser SkillDefinition
+parseExclusive :: PParser Bool
+parseExclusive = tag "EXCLUSIVE" >> yesOrNo
 
-parseExclusive :: SkillTag
-parseExclusive = Exclusive <$> (tag "EXCLUSIVE" >> yesOrNo)
+parseType :: PParser [String]
+parseType = tag "TYPE" >> parseString `sepBy` char '.'
 
-parseUniqueKey :: SkillTag
-parseUniqueKey  = UniqueKey <$> (tag "KEY" >> restOfTag)
+parseSituation :: PParser String
+parseSituation = tag "SITUATION" *> restOfTag
 
-parseType :: SkillTag
-parseType = Type <$> (tag "TYPE" >> parseString `sepBy` char '.')
-
-parseClasses :: SkillTag
-parseClasses = Classes <$> (tag "CLASSES" >> parseClass) where
+parseClasses :: PParser Class
+parseClasses = tag "CLASSES" >> parseClass where
   parseClass :: PParser Class
   parseClass = try (AllClasses <$ labeled "ALL")
            <|> (Subset <$> (parseString `sepBy` char '|'))
 
-parseArmorCheck :: SkillTag
-parseArmorCheck = do
-  a <- tag "ACHECK" >> liftM matchArmorCheck allCaps
-  return $ ArmorClassCheck a where
+parseArmorCheck :: PParser ArmorCheck
+parseArmorCheck = tag "ACHECK" >> liftM matchArmorCheck allCaps where
     matchArmorCheck :: String -> ArmorCheck
     matchArmorCheck "DOUBLE" = Double
     matchArmorCheck "PROFICIENT" = Proficient
@@ -64,11 +60,11 @@ parseArmorCheck = do
     matchArmorCheck "YES" = Yes
     matchArmorCheck _ = No
 
-parseVisibility :: SkillTag
+parseVisibility :: PParser (Visible, Bool)
 parseVisibility = do
   v <- tag "VISIBLE" >> liftM matchVisibility allCaps
   ro <- option False (True <$ labeled "|READONLY")
-  return $ Visibility (v, ro) where
+  return (v, ro) where
     matchVisibility :: String -> Visible
     matchVisibility "ALWAYS" = Always
     matchVisibility "YES" = Always
@@ -78,13 +74,13 @@ parseVisibility = do
     matchVisibility "CSHEET" = Export
     matchVisibility _ = Always
 
-parseSkillTag :: SkillTag
-parseSkillTag = parseArmorCheck
-            <|> parseType
-            <|> parseClasses
-            <|> parseExclusive
-            <|> parseVisibility
-            <|> parseUniqueKey
+parseSkillTag :: PParser SkillDefinition
+parseSkillTag = ArmorClassCheck <$> parseArmorCheck
+            <|> Type <$> parseType
+            <|> Classes <$> parseClasses
+            <|> Exclusive <$> parseExclusive
+            <|> Visibility <$> parseVisibility
+            <|> Situation <$> parseSituation
 
 instance LSTObject SkillDefinition where
   parseSpecificTags = parseSkillTag

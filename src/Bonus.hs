@@ -12,6 +12,7 @@ import JEPFormula
 import Common
 
 data Bonus = BonusSkill Skill
+           | BonusSkillChoice Int
            | BonusSkillRank SkillRank
            | BonusVariable BonusVar
            | BonusWeaponProficency BonusWeaponProf
@@ -27,11 +28,14 @@ data Bonus = BonusSkill Skill
            | BonusHitPoint BonusHP
            | BonusItemCost ItemCost
            | BonusSizeModifier Formula
+           | BonusAddSave BonusSave
+           | BonusAddSituation BonusSituation
            | BonusDifficultyClass BonusDC
            | BonusVision BonusVisionData
            | BonusSlotItems BonusSlots
            | BonusSpellCasting BonusSpellCast
            | BonusSpellCastingMultiple BonusSpellCastMult
+           | BonusSpellKnown BonusSpellCastMult
            | BonusSkillPoints Formula
            | BonusPostMoveAddition BonusPostMoveAdd
            | BonusMiscellany BonusMisc
@@ -39,6 +43,7 @@ data Bonus = BonusSkill Skill
            | BonusMovementMultiplier BonusMoveMultiplier
            | BonusDescription String
            | BonusCharacterStat BonusStat
+           | BonusCharacterStatChoice ()
            | BonusUnarmedDamage UnarmedDamage
            | TemporaryBonus TempBonus
              deriving (Show, Eq)
@@ -58,9 +63,6 @@ parseBonusType = do
   let testForStack = stripSuffix ".STACK" bonusType
   return (fromMaybe bonusType testForStack, isJust testForStack) where
     types = labeled "|TYPE="
-        <|> labeled "|Type="
-        -- thanks to an hilarious typo in aeg_gods_equip_magic.lst
-        <|> labeled "|TYPR="
         <|> labeled "|SKILLTYPE="
 
 -- bonus types can be found either before or after restrictions
@@ -377,12 +379,11 @@ data ItemCost = ItemCost { itemCostType :: [String]
 parseBonusItemCost :: PParser ItemCost
 parseBonusItemCost = do
   _ <- bonusTag "ITEMCOST"
-  itemCostType <- parseItemCostType `sepBy` char '.'
+  itemCostTypes <- parseItemCostType `sepBy` char ','
   itemCostFormula <- char '|' *> parseFormula
+  let itemCostType = concat itemCostTypes
   return ItemCost { .. } where
-    parseItemCostType = (labeled "TYPE:" >> parseStringNoPeriods)
-                    <|> (labeled "TYPE=" >> parseStringNoPeriods)
-                    <|> (labeled "TYPE." >> parseStringNoPeriods)
+    parseItemCostType = labeled "TYPE." >> parseStringNoPeriods `sepBy` char '.'
     parseStringNoPeriods = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+/:?!%#'()[]~"
 
 -- BONUS:MISC|x|y
@@ -430,9 +431,6 @@ parseBonusMoveAdd = do
   return BonusMove { .. } where
     parseBonusMoveType = (AllMovement <$ labeled "TYPE.All")
                      <|> (labeled "TYPE." >> Movement <$> parseString)
-                     -- apg_domains.lst has "BONUS:MOVEADD|TYPE=Walk|10" so
-                     -- add this as a 'typo' parser
-                     <|> (labeled "TYPE=" >> Movement <$> parseString)
 
 -- BONUS:MOVEMULT|x...|y
 --   x is TYPE.movement or TYPE.All
@@ -453,7 +451,6 @@ parseBonusMoveMultiplier = do
   return BonusMoveMultiplier { .. } where
     parseBonusMoveMultiplierTypes = (BonusMoveMultiplierAll <$ labeled "TYPE.All")
                                 <|> (labeled "TYPE." >> BonusMoveMultiplierType <$> parseStringNoCommas)
-                                <|> (labeled "TYPE=" >> BonusMoveMultiplierType <$> parseStringNoCommas)
 
 -- BONUS:POSTMOVEADD|x|y
 --   x is movement type or all
@@ -474,7 +471,50 @@ parseBonusPostMoveAdd = do
   return BonusPostMoveAdd { .. } where
     parseBonusPostMoveAddType = (AllPostMovement <$ labeled "TYPE.All")
                             <|> (labeled "TYPE." *> (MovementPostType <$> parseString))
-                            <|> (labeled "TYPE=" *> (MovementPostType <$> parseString))
+
+-- BONUS:SAVE|x,x...|y
+--   x is save name or BASE.text or ALL
+--   y is formula
+data BonusSaveType = SaveName String
+                   | BaseSaveName String
+                   | SaveAll
+                     deriving (Show, Eq)
+
+data BonusSave = BonusSave { bonusSaveTypes :: [BonusSaveType]
+                           , bonusSaveFormula :: Formula }
+               deriving (Show, Eq)
+
+parseBonusSave :: PParser BonusSave
+parseBonusSave = do
+  _ <- bonusTag "SAVE"
+  bonusSaveTypes <- parseBonusSaveTypes `sepBy` char ','
+  _ <- char '|'
+  bonusSaveFormula <- parseFormula
+  return BonusSave { .. } where
+    parseBonusSaveTypes = (labeled "BASE." *> (BaseSaveName <$> parseStringNoPeriods))
+                      <|> (SaveAll <$ labeled "ALL")
+                      <|> (SaveName <$> parseStringNoPeriods)
+    parseStringNoPeriods = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+/:?!%#'()[]~"
+
+-- BONUS:SITUATION|x=y,x=y|z
+--   x is skill name
+--   y is situation
+--   z is formula
+data BonusSituation = BonusSituation { bonusSituations :: [(String, String)]
+                                     , bonusSituationFormula :: Formula }
+                    deriving (Show, Eq)
+
+parseBonusSituation :: PParser BonusSituation
+parseBonusSituation = do
+  _ <- bonusTag "SITUATION"
+  bonusSituations <- parseBonusSituations `sepBy` char ','
+  _ <- char '|'
+  bonusSituationFormula <- parseFormula
+  return BonusSituation { .. } where
+    parseBonusSituations = do
+      skill <- parseStringNoCommas <* char '='
+      situation <- parseStringNoCommas
+      return (skill, situation)
 
 -- BONUS:SIZEMOD|NUMBER|x
 --   x is formula
@@ -513,13 +553,19 @@ parseBonusSkill = do
     parseList = List <$ labeled "LIST"
     parseAll = All <$ labeled "ALL"
     parseSkillType = labeled "TYPE=" >> (BonusSkillType <$> parseStringNoCommas)
-    parseStatName = (labeled "STAT." >> (StatName <$> parseStringNoCommas))
-                <|> (labeled "STAT=" >> (StatName <$> parseStringNoCommas))
+    parseStatName = labeled "STAT." >> (StatName <$> parseStringNoCommas)
     -- magical_treasures_equip_artifacts.lst has an asterisk.
     parseSkillName = BonusSkillName <$> parseStringNoCommasAsterisk
     parseSkillFormulaType = SkillFormula <$> try parseFormula
                         <|> SkillText <$> parseStringNoCommas
     parseStringNoCommasAsterisk = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'()[]~*"
+
+-- BONUS:SKILL|%CHOICE
+-- TODO: define.
+parseBonusSkillChoice :: PParser Int
+parseBonusSkillChoice = do
+  _ <- labeled "SKILL|%CHOICE"
+  option 1 (try $ char '|' *> (textToInt <$> manyNumbers))
 
 -- BONUS:SKILLRANK|x,x,...|y
 --   x is skill name, skill type (TYPE=x)
@@ -583,6 +629,11 @@ parseBonusStat = do
   bonusStatFormula <- char '|' *> parseFormula
   return BonusStat { .. }
 
+-- BONUS:STAT|%CHOICE
+-- TODO: define.
+parseBonusStatChoice :: PParser ()
+parseBonusStatChoice = () <$ labeled "STAT|%CHOICE"
+
 -- BONUS:SPELLCAST|x;y|z
 data BonusSpellCastType = SpellCastClassName String
                         | SpellCastSpellType String
@@ -590,6 +641,7 @@ data BonusSpellCastType = SpellCastClassName String
 
 data BonusSpellCastSlot = SpellCastLevelNumber Int
                         | SpellCastLevelAll
+                        | SpellCastLevelChoice
                           deriving (Show, Eq)
 
 data BonusSpellCast = BonusSpellCast { bonusSpellCastType :: BonusSpellCastType
@@ -607,6 +659,7 @@ parseBonusSpellCast = do
     parseBonusSpellCastType = (labeled "CLASS=" *> (SpellCastClassName <$> parseString))
                           <|> (labeled "TYPE=" *> (SpellCastSpellType <$> parseString))
     parseBonusSpellCastSlot = (SpellCastLevelAll <$ labeled "LEVEL=ALL")
+                          <|> (SpellCastLevelChoice <$ labeled "LEVEL=%CHOICE")
                           <|> (labeled "LEVEL=" *> (SpellCastLevelNumber <$> slotToInt))
     slotToInt = textToInt <$> manyNumbers
 
@@ -626,6 +679,21 @@ data BonusSpellCastMult = BonusSpellCastMult { bonusSpellCastMultType :: BonusSp
 parseBonusSpellCastMult :: PParser BonusSpellCastMult
 parseBonusSpellCastMult = do
   _ <- bonusTag "SPELLCASTMULT"
+  bonusSpellCastMultType <- parseBonusSpellCastMultType <* char ';'
+  bonusSpellCastMultLevel <- textToInt <$> (labeled "LEVEL=" *> manyNumbers)
+  _ <- char '|'
+  bonusSpellCastMultNumber <- textToInt <$> manyNumbers
+  return BonusSpellCastMult { .. } where
+    parseBonusSpellCastMultType = (labeled "CLASS=" *> (SpellCastMultClassName <$> parseString))
+                              <|> (labeled "TYPE=" *> (SpellCastMultSpellType <$> parseString))
+
+-- BONUS:SPELLKNOWN|x;y|z
+--   x is class name or spell type
+--   y is level number
+--   z is number of spells
+parseBonusSpellKnown :: PParser BonusSpellCastMult
+parseBonusSpellKnown = do
+  _ <- bonusTag "SPELLKNOWN"
   bonusSpellCastMultType <- parseBonusSpellCastMultType <* char ';'
   bonusSpellCastMultLevel <- textToInt <$> (labeled "LEVEL=" *> manyNumbers)
   _ <- char '|'
@@ -662,7 +730,7 @@ parseBonusVision = do
   bonusVisionFormula <- parseFormula
   return BonusVisionData { .. }
 
--- BONUS:WEAPON=x,x|y
+-- BONUS:WEAPON|x,x|y
 --   x is weapon property
 --   y is number, variable, or formula to add
 data BonusWeaponProp = BonusWeaponProp { bonusWeaponProperties :: [BonusWeaponProperty]
@@ -671,6 +739,7 @@ data BonusWeaponProp = BonusWeaponProp { bonusWeaponProperties :: [BonusWeaponPr
 
 data BonusWeaponProperty = P_ATTACKS
                          | P_ATTACKSPROGRESS
+                         | P_CRITRANGEADD -- undocumented
                          | P_CRITRANGEDOUBLE -- undocumented
                          | P_DAMAGE
                          | P_DAMAGEMULT Int
@@ -690,17 +759,17 @@ parseBonusWeaponProp = do
   return BonusWeaponProp { .. } where
     parseWeaponProperty = try (P_ATTACKSPROGRESS <$ labeled "ATTACKSPROGRESS")
                       <|> try (P_ATTACKS <$ labeled "ATTACKS")
+                      <|> try (P_CRITRANGEADD <$ labeled "CRITRANGEADD")
                       <|> try (P_CRITRANGEDOUBLE <$ labeled "CRITRANGEDOUBLE")
-                      <|> try (labeled "DAMAGEMULT:" *> (P_DAMAGEMULT <$> parseInteger))
+                      <|> try (labeled "DAMAGEMULT:" *> (P_DAMAGEMULT <$> parseInt))
                       <|> try (P_DAMAGESIZE <$ labeled "DAMAGESIZE")
                       <|> try (P_DAMAGESHORTRANGE <$ labeled "DAMAGE-SHORTRANGE")
                       <|> try (P_DAMAGE <$ labeled "DAMAGE")
                       <|> try (P_TOHITSHORTRANGE <$ labeled "TOHIT-SHORTRANGE")
-                      <|> try (P_TOHIT <$ labeled "TO-HIT") -- playersguidetoarcanis_equip.lst
                       <|> try (P_TOHIT <$ labeled "TOHIT")
                       <|> try (P_WEAPONBAB <$ labeled "WEAPONBAB")
                       <|> (P_WIELDCATEGORY <$ labeled "WIELDCATEGORY")
-    parseInteger = textToInt <$> manyNumbers
+    parseInt = textToInt <$> manyNumbers
 
 -- BONUS:WEAPONPROF=x|y,y...|z
 --   x is weapon proficiency name or type
@@ -727,7 +796,7 @@ data BonusWeaponProfProperty = CRITMULTADD
 
 data BonusWeaponProf = BonusWeaponProf { bonusWeaponProficency :: BonusWeapon
                                        , bonusWeaponProfProperties :: [BonusWeaponProfProperty]
-                                       , bonusWeaponProfFormula :: Formula }
+                                       , bonusWeaponProfFormulas :: Formula }
                      deriving (Show, Eq)
 
 parseBonusWeaponProf :: PParser BonusWeaponProf
@@ -736,7 +805,7 @@ parseBonusWeaponProf = do
   bonusWeaponProficency <- parseWeaponProficiency <* char '|'
   -- moderndispatch075_equip_armorshields.lst has no weapon property
   bonusWeaponProfProperties <- option [] ((parseWeaponProperty `sepBy` char ',') <* char '|')
-  bonusWeaponProfFormula <- parseFormula
+  bonusWeaponProfFormulas <- parseFormula
   return BonusWeaponProf { .. } where
     parseWeaponProficiency = try (labeled "TYPE=" >> (WeaponType <$> parseString))
                          <|> try (labeled "TYPE." >> (WeaponType <$> parseString))
@@ -747,7 +816,6 @@ parseBonusWeaponProf = do
                       <|> try (DAMAGEMULT <$ labeled "DAMAGEMULT")
                       <|> try (DAMAGESIZE <$ labeled "DAMAGESIZE")
                       <|> try (DAMAGESHORTRANGE <$ labeled "DAMAGESHORTRANGE")
-                      <|> try (DAMAGESHORTRANGE <$ labeled "DAMAGE-SHORTRANGE") -- srd_equip_wondrousitems.lst
                       <|> try (DAMAGE <$ labeled "DAMAGE")
                       <|> try (PCSIZE <$ labeled "PCSIZE")
                       <|> try (REACH <$ labeled "REACH")
@@ -809,6 +877,7 @@ parseBonusDescription = tag "TEMPDESC" >> restOfTag
 parseAnyBonus :: PParser Bonus
 parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusVariable <$> parseBonusVariable
+            <|> BonusSkillChoice <$> parseBonusSkillChoice
             <|> BonusSkill <$> parseBonusSkill
             <|> BonusAbilityPool <$> parseBonusAbilityPool
             <|> BonusCasterLevel <$> parseBonusCasterLevel
@@ -821,6 +890,8 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusHitPoint <$> parseBonusHP
             <|> BonusItemCost <$> parseBonusItemCost
             <|> BonusSizeModifier <$> parseBonusSizeMod
+            <|> BonusAddSave <$> parseBonusSave
+            <|> BonusAddSituation <$> parseBonusSituation
             <|> BonusDifficultyClass <$> parseBonusDC
             <|> BonusMiscellany <$> parseBonusMisc
             <|> BonusMovement <$> parseBonusMoveAdd
@@ -829,8 +900,10 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusSlotItems <$> parseBonusSlots
             <|> BonusSpellCasting <$> parseBonusSpellCast
             <|> BonusSpellCastingMultiple <$> parseBonusSpellCastMult
+            <|> BonusSpellKnown <$> parseBonusSpellKnown
             <|> BonusSkillPoints <$> parseBonusSkillPoints
             <|> BonusPostMoveAddition <$> parseBonusPostMoveAdd
+            <|> BonusCharacterStatChoice <$> parseBonusStatChoice
             <|> BonusCharacterStat <$> parseBonusStat
             <|> BonusWeaponProficency <$> parseBonusWeaponProf
             <|> BonusWeaponProperty <$> parseBonusWeaponProp

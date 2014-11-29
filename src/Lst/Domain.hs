@@ -14,7 +14,6 @@ type DomainSpell = (String, Int, String)
 data DomainDefinition = DomainDescription String
                       | DomainSpellLevel [DomainSpell]
                       | DomainType String
-                      | DomainKey String
                         deriving Show
 
 parseDescription :: PParser String
@@ -22,9 +21,6 @@ parseDescription = tag "DESC" *> restOfTag
 
 parseType :: PParser String
 parseType = tag "TYPE" *> restOfTag
-
-parseKey :: PParser String
-parseKey = tag "KEY" *> restOfTag
 
 parseSpellLevel :: PParser [DomainSpell]
 parseSpellLevel = do
@@ -40,7 +36,6 @@ parseSpellLevel = do
 parseDomainTag :: PParser DomainDefinition
 parseDomainTag = DomainDescription <$> parseDescription
              <|> DomainType <$> parseType
-             <|> DomainKey <$> parseKey
              <|> DomainSpellLevel <$> parseSpellLevel
 
 instance LSTObject DomainDefinition where

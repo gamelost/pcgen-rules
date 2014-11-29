@@ -73,7 +73,7 @@ textToInt t = read t :: Int
 textToFloat :: String -> Float
 textToFloat t = read t :: Float
 
--- accomodate crlf line terminators.
+-- accommodate crlf line terminators.
 crlf :: PParser Char
 crlf = char '\r' *> char '\n' <?> "crlf new-line"
 

@@ -118,8 +118,8 @@ varBuiltins = [ "SynergyBonus"
               , "FeedbackDamage"
               , "PowerDrainTime"
               , "ItemEgo"
-              , "Severis"
               , "SeverisEnhancementBonus"
+              , "Severis"
               , "sDefenseFlat"
               , "sDefenseAuto"
               , "sDefense"
@@ -132,6 +132,18 @@ varBuiltins = [ "SynergyBonus"
               , "sPilotDEX"
               , "sGunnerAB"
               , "sTacSpeed"
+              , "sLength"
+              , "sSize"
+              , "sGrapple"
+              , "sWeight"
+              , "sTargetingSB"
+              , "sCrewTrain"
+              , "sCrewNUM"
+              , "sPass"
+              , "sCargo"
+              , "ShipTypeMod"
+              , "sDefenseAuto"
+              , "sGrapple"
               , "vcargo" -- ??
               , "vinit" -- ??
               , "vpass" -- ??
@@ -290,7 +302,7 @@ parseFloat = parseSignedNumber where
   sign = (negate <$ char '-') <|> (id <$ optional (char '+'))
   parseFloatOrInt = textToFloat <$> try (parseFloatingNumber <|> manyNumbers)
   parseFloatingNumber = do
-    n <- option "" manyNumbers
+    n <- option "0" manyNumbers
     d <- char '.'
     r <- manyNumbers
     return $ n ++ d : r

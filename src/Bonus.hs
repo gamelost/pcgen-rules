@@ -714,7 +714,7 @@ parseBonusVision = do
   bonusVisionFormula <- parseFormula
   return BonusVisionData { .. }
 
--- BONUS:WEAPON=x,x|y
+-- BONUS:WEAPON|x,x|y
 --   x is weapon property
 --   y is number, variable, or formula to add
 data BonusWeaponProp = BonusWeaponProp { bonusWeaponProperties :: [BonusWeaponProperty]

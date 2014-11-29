@@ -29,7 +29,7 @@ data EquipmentModDefinition = Description String
                             | ChooseEqBuilder EqBuilder
                             | ChooseString StringBuilder
                             | ChooseNumber ()
-                            | ChooseEquipment [String]
+                            | ChooseEquipment ()
                             | ChooseStatBonus ()
                             | ChooseSkillBonus ()
                             | ChooseWeaponProfBonus ()
@@ -148,7 +148,7 @@ parseChooseEqBuilder = do
   _ <- labeled "CHOOSE:EQBUILDER.SPELL"
   eqBuilderText <- tryOption $ char '|' *> parseString <* char '|'
   eqBuilderMinimumLevel <- option (Number 0) $ parseFormula <* char '|'
-  eqBuilderMaximumLevel <- option (Variable "MAX_LEVEL") $ parseFormula
+  eqBuilderMaximumLevel <- option (Variable "MAX_LEVEL") parseFormula
   return EqBuilder { .. }
 
 -- CHOOSE:STRING|x|x..|y
@@ -171,9 +171,10 @@ parseChooseString = do
 parseChooseNumber :: PParser ()
 parseChooseNumber = () <$ (labeled "CHOOSE:NUMBER|" >> restOfTag)
 
-parseChooseEquipment :: PParser [String]
-parseChooseEquipment = labeled "CHOOSE:EQUIPMENT|" *> parseEquipmentType `sepBy` char ',' where
-  parseEquipmentType = labeled "TYPE=" *> parseString <|> parseString
+-- CHOOSE:EQUIPMENT
+--   not implemented.
+parseChooseEquipment :: PParser ()
+parseChooseEquipment = () <$ (labeled "CHOOSE:EQUIPMENT|" >> restOfTag)
 
 -- CHOOSE:STATBONUS|w|x|y|z
 --   not implemented.

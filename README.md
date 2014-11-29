@@ -6,7 +6,7 @@ pcgen-rules extracts and processes the rules and data from [PCGen](http://pcgen.
 
 You will need the PCGen data files in a separate directory. Edit the `Makefile` accordingly if you use a directory other than `data/`.
 
-Currently the code just parses `.pcc` and `.lst` files; this is still a work in progress. See [todo.org](todo.org) for a more detailed listing of what needs to be done.
+Currently the code just parses `.pcc` and `.lst` files; this is still a work in progress. See [todo.org](todo.org) for a more detailed listing of what needs to be done. (I have begun the process of cleaning up the PCGen data as certain parts were too messy to deal with. Ping me if you want an updated data/ listing; I plan to push this listing upstream eventually.)
 
 `.lst` file parsing status:
 
@@ -18,7 +18,7 @@ Currently the code just parses `.pcc` and `.lst` files; this is still a work in 
 - [ ] COMPANIONMOD (block-based) (0/51)
 - [ ] DEITY (block-based) (0/62)
 - [x] DOMAIN (48/49)
-- [ ] EQUIPMOD (0/115)
+- [x] EQUIPMOD (113/115)
 - [x] EQUIPMENT (700/709)
 - [ ] SPELL (0/209)
 - [ ] FEAT (0/347)

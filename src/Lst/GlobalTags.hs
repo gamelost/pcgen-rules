@@ -26,6 +26,7 @@ data GlobalTag = KeyStat String
                | DescriptionEmphasized Bool
                | OutputName String
                | AbilityTag Ability
+               | MoveTag [Move]
                | VisionTag Vision
                | Select Formula
                | SpecialAbilityTag [String]
@@ -114,6 +115,17 @@ parseKit = do
   kitNumber <- parseInteger <* char '|'
   kitChoices <- parseStringNoCommas `sepBy` char ','
   return Kit { .. }
+
+data Move = Move { moveMode :: String
+                 , moveRate :: Formula }
+          deriving (Eq, Show)
+
+parseMove :: PParser [Move]
+parseMove = tag "MOVE" *> parseMoves `sepBy` char ',' where
+  parseMoves = do
+    moveMode <- parseStringNoCommas <* char ','
+    moveRate <- parseFormula
+    return Move { .. }
 
 data Vision = Vision { visionTypes :: [String]
                      , visionRestrictions :: [RestrictionTag] }
@@ -601,6 +613,7 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> NaturalAttacksTag <$> parseNaturalAttacks
           <|> DefineStat <$> parseDefineStat
           <|> VirtualFeatTag <$> parseVirtualFeat
+          <|> MoveTag <$> parseMove
           <|> VisionTag <$> parseVision
           <|> KitTag <$> parseKit
           <|> Unknown <$> parseUnknownTag -- must be the very LAST thing tried

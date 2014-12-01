@@ -27,6 +27,7 @@ data Bonus = BonusSkill Skill
            | BonusModifyEquipmentRange BonusEquipmentRange
            | BonusHitPoint BonusHP
            | BonusItemCost ItemCost
+           | BonusFeat Formula
            | BonusSizeModifier Formula
            | BonusAddSave BonusSave
            | BonusAddSituation BonusSituation
@@ -348,6 +349,11 @@ parseBonusEquipmentPenalty = do
                                  <|> (MaxDexerity <$ labeled "MAXDEX")
                                  <|> (SpellFailurePenalty <$ labeled "SPELLFAILURE")
     parseBonusPenaltyType = labeled "|TYPE=" *> parseString
+
+-- BONUS:FEAT|POOL|x
+--   x is formula
+parseBonusFeat :: PParser Formula
+parseBonusFeat = bonusTag "FEAT|POOL" >> parseFormula
 
 -- BONUS:HP|x|y
 --   x is ALTHP or CURRENTMAX
@@ -889,6 +895,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusModifyEquipmentWeight <$> parseBonusEquipmentWeight
             <|> BonusHitPoint <$> parseBonusHP
             <|> BonusItemCost <$> parseBonusItemCost
+            <|> BonusFeat <$> parseBonusFeat
             <|> BonusSizeModifier <$> parseBonusSizeMod
             <|> BonusAddSave <$> parseBonusSave
             <|> BonusAddSituation <$> parseBonusSituation

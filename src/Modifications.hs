@@ -16,7 +16,11 @@ import Common
 
 data Operation = Add | Copy | Modify | Forget deriving Show
 
-data LSTData a = Name String
+data LSTStart a = Name String
+                | Block a
+                  deriving Show
+
+data LSTData a = Start (LSTStart a)
                | Bonus BonusTag
                | Clear ClearTag
                | Global GlobalTag
@@ -31,12 +35,18 @@ data LSTLine a = LSTLine { operation :: Operation
 class LSTObject a where
   parseSpecificTags :: PParser a
 
+  -- default implementation; block-based formats will have to override.
+  parseBeginning :: PParser (LSTStart a, Operation)
+  parseBeginning = do
+    (name, operation) <- parseStart
+    return (Name name, operation)
+
   parseLSTLine :: PParser (LSTLine a)
   parseLSTLine = do
-    (name, operation) <- parseStart <* tabs
+    (starting, operation) <- parseBeginning <* tabs
     allTags <- many (parseAllTags <* tabs) <* ending
     return LSTLine { operation = operation
-                   , tags = Name name : allTags } where
+                   , tags = Start starting : allTags } where
       ending = eol <|> ('\0' <$ eof) <|> tabs *> eol
       parseAllTags = Clear <$> parseClear -- should be first
                  <|> Specific <$> parseSpecificTags

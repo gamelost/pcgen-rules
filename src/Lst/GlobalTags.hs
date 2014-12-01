@@ -53,6 +53,7 @@ data GlobalTag = KeyStat String
                | SecondaryDamage [Roll]
                | CriticalRange Int
                | ChooseSkillTag [ChooseSkill]
+               | KitTag Kit
                | Unknown (String, String)
                  deriving (Eq, Show)
 
@@ -100,6 +101,17 @@ parseSR = tag "SR" *> parseFormula
 
 parseKey :: PParser String
 parseKey = tag "KEY" *> restOfTag
+
+data Kit = Kit { kitNumber :: Int
+               , kitChoices :: [String] }
+         deriving (Eq, Show)
+
+parseKit :: PParser Kit
+parseKit = do
+  _ <- tag "KIT"
+  kitNumber <- parseInteger <* char '|'
+  kitChoices <- parseStringNoCommas `sepBy` char ','
+  return Kit { .. }
 
 data Vision = Vision { visionTypes :: [String]
                      , visionRestrictions :: [RestrictionTag] }
@@ -553,4 +565,5 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> DefineStat <$> parseDefineStat
           <|> VirtualFeatTag <$> parseVirtualFeat
           <|> VisionTag <$> parseVision
+          <|> KitTag <$> parseKit
           <|> Unknown <$> parseUnknownTag -- must be the very LAST thing tried

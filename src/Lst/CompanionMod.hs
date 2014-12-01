@@ -2,12 +2,10 @@
 
 module Lst.CompanionMod where
 
-import Text.Parsec.Char (char, noneOf, string)
-import Text.Parsec.Combinator (sepBy, many1, option, notFollowedBy)
-import Text.Parsec.Prim (many, try)
-import ClassyPrelude hiding (try)
+import Text.Parsec.Char (char)
+import Text.Parsec.Combinator (sepBy)
+import ClassyPrelude
 
-import Restrictions (RestrictionTag, parseAdditionalRestrictions)
 import Modifications
 import JEPFormula hiding (Add)
 import Common

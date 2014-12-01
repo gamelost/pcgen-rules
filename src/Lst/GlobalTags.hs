@@ -37,7 +37,9 @@ data GlobalTag = KeyStat String
                | SpellResistance Formula
                | DamageReduction DamageReductionType
                | AddFeatTag AddFeat
+               | AddLanguageTag AddLanguage
                | AddSpellCasterTag AddSpellCaster
+               | AutoArmorProfTag [AutoArmorProf]
                | AutoEquipTag [String]
                | AutoFeatTag AutoFeat
                | AutoLanguageTag AutoLanguage
@@ -187,6 +189,28 @@ parseAddFeat = do
                  <|> (labeled "TYPE=" >> FeatType <$> parseStringNoCommas)
                  <|> (FeatName <$> parseStringNoCommas)
 
+-- ADD:LANGUAGE|x|y,y...
+--   x is formula
+--   y is language name, type, or ALL
+data AddLanguageType = LanguageName String
+                     | LanguageType String
+                     | AllLanguages
+                       deriving (Show, Eq)
+
+data AddLanguage = AddLanguage { languageNumChoices :: Formula
+                               , languageTypes :: [AddLanguageType] }
+                 deriving (Show, Eq)
+
+parseAddLanguage :: PParser AddLanguage
+parseAddLanguage = do
+  _ <- labeled "ADD:LANGUAGE|"
+  languageNumChoices <- parseFormula <* char '|'
+  languageTypes <- parseLanguageTypes `sepBy` char ','
+  return AddLanguage { .. } where
+    parseLanguageTypes = (labeled "TYPE=" >> LanguageType <$> parseStringNoCommas)
+                     <|> (AllLanguages <$ labeled "ALL")
+                     <|> (LanguageName <$> parseStringNoCommas)
+
 -- ADD:SPELLCASTER|x|y,y
 --   x is optional formula
 --   y is class name, spellcasting class type, or ANY
@@ -207,11 +231,22 @@ parseAddSpellCaster = do
     parseSpellCasterType = (AnySpellClass <$ labeled "ANY")
                        <|> (SpellType <$> parseString)
 
+-- AUTO:ARMORPROF|x|x...
+--   x is armor name or armor type
+data AutoArmorProf = ArmorName String
+                   | ArmorType String
+                     deriving (Show, Eq)
+
+parseAutoArmorProf :: PParser [AutoArmorProf]
+parseAutoArmorProf = labeled "AUTO:ARMORPROF|" >> parseAutoArmor `sepBy` char '|' where
+  parseAutoArmor = (labeled "ARMORTYPE=" >> ArmorType <$> parseString)
+               <|> (ArmorName <$> parseString)
+
 -- AUTO:LANG|x|x...
 --   x is language, language type, ALL, LIST, CLEAR.
 data AutoLanguage = Language String
-                  | LanguageType String
-                  | AllLanguages
+                  | AutoLanguageType String
+                  | AutoAllLanguages
                   | ListLanguages
                   | ClearLanguages
                   | Invert AutoLanguage
@@ -219,8 +254,8 @@ data AutoLanguage = Language String
 
 parseAutoLanguage :: PParser AutoLanguage
 parseAutoLanguage = labeled "AUTO:LANG|" >> parseLanguages where
-  parseLanguages = LanguageType <$> (labeled "TYPE=" *> parseString)
-               <|> (AllLanguages <$ labeled "ALL")
+  parseLanguages = AutoLanguageType <$> (labeled "TYPE=" *> parseString)
+               <|> (AutoAllLanguages <$ labeled "ALL")
                <|> (ListLanguages <$ labeled "%LIST")
                <|> (ClearLanguages <$ labeled "CLEAR")
                <|> Invert <$> (char '!' >> parseLanguages)
@@ -541,7 +576,9 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> Define <$> parseDefine
           <|> AbilityTag <$> parseAbility
           <|> AddFeatTag <$> parseAddFeat
+          <|> AddLanguageTag <$> parseAddLanguage
           <|> AddSpellCasterTag <$> parseAddSpellCaster
+          <|> AutoArmorProfTag <$> parseAutoArmorProf
           <|> AutoEquipTag <$> parseAutoEquip
           <|> AutoFeatTag <$> parseAutoFeat
           <|> AutoLanguageTag <$> parseAutoLanguage

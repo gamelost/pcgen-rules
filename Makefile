@@ -10,7 +10,7 @@ all:
 # ex: make test-tags TYPE=language
 test-tags:
 	@echo '** testing tags that have lst type' $(LST_TYPE)
-	for file in `grep -R --include="*.pcc" "$(LST_TYPE):" $(DATA_DIR) | grep -v '#' | cut -d ':' -f 3 | cut -d '|' -f 1 | tr -d '\r' | xargs basename -a | sort | uniq`; \
+	for file in `grep -R -I --include="*.pcc" "$(LST_TYPE):" $(DATA_DIR) | grep -v '#' | cut -d ':' -f 3 | cut -d '|' -f 1 | tr -d '\r' | xargs basename -a | sort | uniq`; \
 	do \
 		echo "processing $$file"; \
 		$(PCGEN) $$file $(LST_TYPE); \

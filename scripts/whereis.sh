@@ -28,4 +28,4 @@ for line in lines:
         assert(starting <= index <= ending)
         print(filename, '\n\terror:', target[starting:ending].strip())
     except IndexError:
-        print('error: unable to get line.')
+        print('error:', line)

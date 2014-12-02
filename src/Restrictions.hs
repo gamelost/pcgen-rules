@@ -544,7 +544,7 @@ parsePreTemplate = do
   _ <- tag "PRETEMPLATE"
   preTemplateNumber <- textToInt <$> manyNumbers
   _ <- char ','
-  preTemplateNames <- parseStringNoCommas `sepBy` char ','
+  preTemplateNames <- parseStringNoCommasBrackets `sepBy` char ','
   return PreTemplate { .. }
 
 -- PRETEXT:x

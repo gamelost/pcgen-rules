@@ -476,7 +476,9 @@ parseNaturalAttacks = do
 parseSpecialAbilityName :: PParser [String]
 parseSpecialAbilityName = do
   _ <- tag "SAB"
-  parseStringNoCommasBrackets `sepBy` char '|'
+  parseStringNoBrackets `sepBy` char '|' where
+    -- allow commas.
+    parseStringNoBrackets = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()~"
 
 -- SPELLS:s|u|v|w|x,y|x,y|z|z
 --   s is name of spellbook (or .CLEARALL, not implemented)

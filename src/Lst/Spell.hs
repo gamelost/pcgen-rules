@@ -30,6 +30,8 @@ data SpellDefinition = Description String
                      | XPCost Int
                      | BonusLevelStat Stat
                      | Variants [String]
+                     | Domains Domain
+                     | SpellPointCosts [SpellPointCost]
                        deriving Show
 
 data ClassType = ClassName String
@@ -38,7 +40,7 @@ data ClassType = ClassName String
                  deriving (Show, Eq)
 
 data Class = Class { classTypes :: [([ClassType], Int)]
-                   , classRestrictions :: Maybe RestrictionTag }
+                   , classRestriction :: Maybe RestrictionTag }
            deriving (Show, Eq)
 
 parseClasses :: PParser Class
@@ -46,7 +48,7 @@ parseClasses = do
   _ <- tag "CLASSES"
   classTypes <- parseClassTypes `sepBy` char '|'
   -- restrictions are denoted by [...]
-  classRestrictions <- tryOption (char '[' >> parseRestriction <* char ']')
+  classRestriction <- tryOption (char '[' >> parseRestriction <* char ']')
   return Class { .. } where
     parseClassTypes = do
       types <- parseClassType `sepBy` char ','
@@ -56,6 +58,34 @@ parseClasses = do
     parseClassType = AllClasses <$ labeled "ALL"
                  <|> (labeled "TYPE." *> (ClassType <$> parseStringNoCommas))
                  <|> (ClassName <$> parseStringNoCommas)
+
+data Domain = Domain { domainNames :: [([String], Int)]
+                     , domainRestriction :: Maybe RestrictionTag }
+            deriving (Show, Eq)
+
+parseDomains :: PParser Domain
+parseDomains = do
+  _ <- tag "DOMAINS"
+  domainNames <- parseDomainTypes `sepBy` char '|'
+  -- restrictions are denoted by [...]
+  domainRestriction <- tryOption (char '[' >> parseRestriction <* char ']')
+  return Domain { .. } where
+    parseDomainTypes = do
+      domains <- parseStringNoCommas `sepBy` char ','
+      _ <- char '='
+      number <- parseInteger
+      return (domains, number)
+
+data SpellPointCost = SpellPointCost { spellEffect :: String
+                                     , spellCost :: Int }
+                    deriving (Show, Eq)
+
+parseSpellPointCost :: PParser [SpellPointCost]
+parseSpellPointCost = tag "SPELLPOINTCOST" *> parseSPCostTypes `sepBy` char '|' where
+  parseSPCostTypes = do
+    spellEffect <- parseString <* char '='
+    spellCost <- parseInteger
+    return SpellPointCost { .. }
 
 data Stat = Charisma
           | Constitution
@@ -157,6 +187,8 @@ parseSpellTag = Classes <$> parseClasses
             <|> XPCost <$> parseXPCost
             <|> BonusLevelStat <$> parseStat
             <|> Variants <$> parseVariants
+            <|> Domains <$> parseDomains
+            <|> SpellPointCosts <$> parseSpellPointCost
 
 instance LSTObject SpellDefinition where
   parseSpecificTags = parseSpellTag

@@ -78,6 +78,10 @@ parseSourceWeb = tag "SOURCEWEB" >> restOfTag
 parseSourceLong :: PParser String
 parseSourceLong = tag "SOURCELONG" >> restOfTag
 
+-- used in Spell lst types
+parseSourceLink :: PParser String
+parseSourceLink = tag "SOURCELINK" >> restOfTag
+
 parseSourceShort :: PParser String
 parseSourceShort = tag "SOURCESHORT" >> restOfTag
 
@@ -589,6 +593,7 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> UseUntrained <$> parseUseUntrained
           <|> SourcePage <$> parseSourcePage
           <|> SourceWeb <$> parseSourceWeb
+          <|> SourceWeb <$> parseSourceLink
           <|> SourceShort <$> parseSourceShort
           <|> SourceLong <$> parseSourceLong
           <|> ProductIdentity <$> parseProductIdentity

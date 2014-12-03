@@ -26,6 +26,7 @@ parseClearOnly = do
                                , "AUTO"
                                , "LANG"
                                , "TARGETAREA"
+                               , "SCHOOL"
                                , "SAB"]
   return $ Clear $ stripClear what where
     tryPrefixes = tryStrings . map (++ ":.CLEAR")

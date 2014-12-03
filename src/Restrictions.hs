@@ -32,6 +32,8 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreSizeRestriction PreSize
                     | PreLegsRestriction PreLegs
                     | PreHandsRestriction PreHands
+                    | PreRegionRestriction String
+                    | PreSubClassRestriction PreSubClass
                     | PreAttackRestriction PreAttack
                     | PreSkillRestriction PreSkill
                     | PreGenderRestriction PreGender
@@ -423,6 +425,12 @@ parsePreRace = do
              <|> RaceName <$> parseStringPercentage
     parseStringPercentage = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#%'()~"
 
+-- PREREGION:x
+--   x: the region name.
+parsePreRegion :: PParser String
+parsePreRegion = tag "PREREGION" *> parseStringNoBrackets where
+  parseStringNoBrackets = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()~"
+
 -- PRERULE:x,y
 --   x is number of rules required
 --   y is rule name
@@ -531,6 +539,21 @@ parsePreStat = do
       stat <- allCaps <* char '='
       num <- textToInt <$> manyNumbers
       return (stat, num)
+
+-- PRESUBCLASS:x,y,y...
+--   x is number
+--   y is subclass name
+data PreSubClass = PreSubClass { preSubClassNumber :: Int
+                               , preSubClassNames :: [String] }
+                 deriving (Show, Eq)
+
+parsePreSubClass :: PParser PreSubClass
+parsePreSubClass = do
+  _ <- tag "PRESUBCLASS"
+  preSubClassNumber <- textToInt <$> manyNumbers
+  _ <- char ','
+  preSubClassNames <- parseStringNoCommasBrackets `sepBy` char ','
+  return PreSubClass { .. }
 
 -- PRETEMPLATE:x,y,y...
 --   x is number
@@ -654,6 +677,8 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreSizeRestriction <$> parsePreSize
                        <|> PreLegsRestriction <$> parsePreLegs
                        <|> PreHandsRestriction <$> parsePreHands
+                       <|> PreRegionRestriction <$> parsePreRegion
+                       <|> PreSubClassRestriction <$> parsePreSubClass
                        <|> PreAttackRestriction <$> parsePreAttack
                        <|> PreRuleRestriction <$> parsePreRule
                        <|> PreAlignRestriction <$> parsePreAlign

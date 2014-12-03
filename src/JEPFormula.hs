@@ -22,6 +22,7 @@ import Control.Monad.State (State, get, msum)
 import ClassyPrelude hiding (try, minimum, maximum, head)
 import Prelude(minimum, maximum, head)
 
+import Hardcoded -- for variables
 import Common
 
 data Die = Die { number :: Int
@@ -62,138 +63,6 @@ data Formula = Number Int
              | Negate Formula
              | Arithmetic Operand Formula Formula
                deriving (Show, Eq)
-
--- since we don't fully parse all variables yet, hard-code some to get
--- past the parser verification process
-varBuiltins :: [String]
-varBuiltins = [ "SynergyBonus"
-              , "Reputation"
-              , "DomainLVL"
-              , "DomainPowerTimes"
-              , "DomainAbilityTriggerLVL"
-              , "Insanity"
-              , "AlignmentAuraBase"
-              , "ATWILL"
-              , "AllowHolyAvenger"
-              , "FlurryOfFistsExtraAttacks"
-              , "FlurryAttacks"
-              , "FlurryPenalty"
-              , "FlurryBABBonus"
-              , "FlurryExtraAttacks"
-              , "MeditantFlurryBABBonus"
-              , "MeditantFlurryExtraAttacks"
-              , "MindBladeRANGE"
-              , "MindBladeDAMAGESIZEADJ"
-              , "MindBladeEnchantment"
-              , "COUNT[EQTYPE.ARMOR.EQUIPPED]" -- ??
-              , "SHIELDACCHECK"
-              , "ACCHECK"
-              , "EQHANDS"
-              , "CompanionExtraHD"
-              , "SKILLRANK=Bluff"
-              , "AntipaladinLVL"
-              , "PaladinLvl"
-              , "PsiBladeDamage"
-              , "PsiBladeEnhancement"
-              , "PsiShieldDefense"
-              , "PsiCrystalLVL"
-              , "PCrystalLevel"
-              , "STRSCORE"
-              , "ShieldBonus"
-              , "SamuraiArmorBonus"
-              , "GunneryPenalty"
-              , "RobotSpeedIncreaseCost"
-              , "RobotPurchaseDC"
-              , "InventionLevel"
-              , "BaseInventionLevel"
-              , "TrapCR"
-              , "PSIONLEVEL"
-              , "ShimmerMailACBonus"
-              , "GunGlyphMarksman"
-              , "MAXVEHICLEMODS"
-              , "MAX_LEVEL"
-              , "DMGDIE"
-              , "ArrowEnhancement"
-              , "EnchantArrow"
-              , "%CHOICE" -- TODO: probably not right
-              , "%LIST"
-              , "CRITMULT"
-              , "MASTER"
-              , "FamiliarBonusHP"
-              , "FeedbackDamage"
-              , "PowerDrainTime"
-              , "ItemEgo"
-              , "SeverisEnhancementBonus"
-              , "Severis"
-              , "sDefenseFlat"
-              , "sDefenseAuto"
-              , "sDefense"
-              , "sInit"
-              , "sHard"
-              , "sHDpre"
-              , "sHDpost"
-              , "sHDpost"
-              , "sPilotCB"
-              , "sPilotDEX"
-              , "sGunnerAB"
-              , "sTacSpeed"
-              , "sLength"
-              , "sSize"
-              , "sGrapple"
-              , "sWeight"
-              , "sTargetingSB"
-              , "sCrewTrain"
-              , "sCrewNUM"
-              , "sPass"
-              , "sCargo"
-              , "ShipTypeMod"
-              , "sDefenseAuto"
-              , "sGrapple"
-              , "vcargo" -- ??
-              , "vinit" -- ??
-              , "vpass" -- ??
-              , "vcrew" -- ??
-              , "vmaneuver" -- ??
-              , "vt_speed" -- ??
-              , "v_max_speed" -- ??
-              , "vdefense" -- ??
-              , "vhard" -- ??
-              , "vhpee" -- ??
-              , "m_hp" -- ??
-              , "unit" -- ??
-              , "InventionLevel"
-              , "SIZE"
-              , "HEADPLUSTOTAL"
-              , "ALTPLUSTOTAL"
-              , "PLUSTOTAL"
-              , "VEHICLEWOUNDPOINTS"
-              , "AlchemistBombAdditionalDice"
-              , "DancingRobesArmorBonus"
-              , "ArmorDPValue"
-              , "DissonanceEnhancementBonusMain"
-              , "DissonanceEnhancementBonusAlt"
-              -- COST only vars?
-              , "BASECOST"
-              , "SIZE"
-              , "%CASTERLEVEL"
-              , "%CHARGES"
-              , "%SPELLLEVEL"
-              , "%SPELLCOST"
-              , "%SPELLXPCOST"
-              , "SPELLLEVEL"
-              -- end
-              , "BAB"
-              , "WT"
-              , "TL"
-              , "CL"
-              , "INT"
-              , "DEX"
-              , "STR"
-              , "CON"
-              , "WIS"
-              , "CHA"
-              , "NOB"
-              ]
 
 listOfFunctions :: [String]
 listOfFunctions = [ "floor"
@@ -340,6 +209,12 @@ parseQuotedString = labeled "ARMOR.0.ACCHECK"
 parseVarFunction :: PParser Formula
 parseVarFunction = Variable <$> (labeled "var(" >> parseQuotedString <* labeled ")")
 
+-- similar to var() but retrieves variable from the companion's master PC.
+parseMasterVarFunction :: PParser Formula
+parseMasterVarFunction = Variable <$> parseMasterVar where
+  parseMasterVar = (labeled "mastervar(" >> parseQuotedString <* labeled ")")
+               <|> (labeled "MASTERVAR(" >> parseQuotedString <* labeled ")")
+
 -- treat the skillinfo() function specially
 parseSkillInfoFunction :: PParser Formula
 parseSkillInfoFunction = do
@@ -391,6 +266,7 @@ parseExpression :: PParser Formula
 parseExpression = try parseFunction
               <|> try parseGroup
               <|> try parseVarFunction
+              <|> try parseMasterVarFunction
               <|> try parseSkillInfoFunction
               <|> try parseFloating
               <|> try parseNumber

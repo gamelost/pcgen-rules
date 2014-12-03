@@ -30,6 +30,10 @@ TYPE=Knowledge needs a value: e.g., TYPE=Knowledge=1
 ** ./data/35e/paradigm_concepts/arcanis/players_guide_to_arcanis/playersguidetoarcanis_equip_mods.lst
 error: BONUS:WEAPON|TOHIT.Melee|1|TYPE=Enhancement
 TOHIT.Melee is not valid.
+* companionmod [0/1]
+** ./data/modern/blue_devil_games/dawning_star/operation_quick_launch/ds_oql_companionmod.lst
+error: BONUS:COMBAT|Armor|2|TYPE=NaturalArmor.STACK
+Armor is not a valid option.
 * JEP [0/0]
 * questions
 ** when are JEPs used? [2/6]

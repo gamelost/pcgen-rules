@@ -15,7 +15,7 @@ Currently the code just parses `.pcc` and `.lst` files; this is still a work in 
 - [x] WEAPONPROF (130/130)
 - [x] ARMORPROF (50/50)
 - [x] SKILL (139/139)
-- [x] COMPANIONMOD (block-based) (45/51)
+- [x] COMPANIONMOD (block-based) (50/51)
 - [ ] DEITY (block-based) (0/62)
 - [x] DOMAIN (48/49)
 - [x] EQUIPMOD (113/115)

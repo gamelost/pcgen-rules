@@ -202,7 +202,7 @@ parseAddFeat = do
                  <|> (FeatName <$> parseStringNoCommas)
 
 -- ADD:LANGUAGE|x|y,y...
---   x is formula
+--   x is optional formula
 --   y is language name, type, or ALL
 data AddLanguageType = LanguageName String
                      | LanguageType String
@@ -216,7 +216,7 @@ data AddLanguage = AddLanguage { languageNumChoices :: Formula
 parseAddLanguage :: PParser AddLanguage
 parseAddLanguage = do
   _ <- labeled "ADD:LANGUAGE|"
-  languageNumChoices <- parseFormula <* char '|'
+  languageNumChoices <- option (Number 1) $ parseFormula <* char '|'
   languageTypes <- parseLanguageTypes `sepBy` char ','
   return AddLanguage { .. } where
     parseLanguageTypes = (labeled "TYPE=" >> LanguageType <$> parseStringNoCommas)
@@ -408,19 +408,27 @@ data DefineStatType = Lock
 
 data DefineStatScore = DefineStatScore { defineStatType :: DefineStatType
                                        , defineStatName :: String
-                                       , defineStatFormula :: Formula }
+                                       , defineStatFormula :: Maybe Formula }
                      deriving (Show, Eq)
+
+-- specially handle NONSTAT.
+parseDefineNonStat :: PParser DefineStatScore
+parseDefineNonStat = do
+  _ <- labeled "DEFINESTAT:NONSTAT|"
+  defineStatName <- parseString
+  let defineStatType = NonStat
+  let defineStatFormula = Nothing
+  return DefineStatScore { .. }
 
 parseDefineStat :: PParser DefineStatScore
 parseDefineStat = do
   _ <- tag "DEFINESTAT"
   defineStatType <- parseDefineStatType
   defineStatName <- char '|' *> parseString
-  defineStatFormula <- char '|' *> parseFormula
+  defineStatFormula <- Just <$> (char '|' *> parseFormula)
   return DefineStatScore { .. } where
     parseDefineStatType = (Lock <$ labeled "LOCK")
                       <|> (Unlock <$ labeled "UNLOCK")
-                      <|> (NonStat <$ labeled "NONSTAT")
                       <|> (Stat <$ labeled "STAT")
                       <|> (MinValue <$ labeled "MINVALUE")
                       <|> (MaxValue <$ labeled "MAXVALUE")
@@ -613,6 +621,7 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> SpecialAbilityTag <$> parseSpecialAbilityName
           <|> UnarmedDamage <$> parseUnarmedDamage
           <|> NaturalAttacksTag <$> parseNaturalAttacks
+          <|> DefineStat <$> parseDefineNonStat
           <|> DefineStat <$> parseDefineStat
           <|> VirtualFeatTag <$> parseVirtualFeat
           <|> MoveTag <$> parseMove

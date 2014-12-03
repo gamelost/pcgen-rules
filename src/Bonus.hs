@@ -15,6 +15,7 @@ data Bonus = BonusSkill Skill
            | BonusSkillChoice Int
            | BonusSkillRank SkillRank
            | BonusVariable BonusVar
+           | BonusWieldCategory WieldCategory
            | BonusWeaponProficency BonusWeaponProf
            | BonusWeaponProperty BonusWeaponProp
            | BonusAbilityPool BonusAbility
@@ -844,6 +845,31 @@ parseBonusUnarmedDamage = do
   unarmedFormula <- parseFormula
   return UnarmedDamage { .. }
 
+-- BONUS:WIELDCATEGORY|x,x,..|y
+--   x is wield category type
+--   y is formula
+data WieldCategoryType = Light
+                       | OneHanded
+                       | TwoHanded
+                       | AllWieldCategories
+                         deriving (Show, Eq)
+
+data WieldCategory = WieldCategory { wieldCategories :: [WieldCategoryType]
+                                   , wieldFormula :: Formula }
+                   deriving (Show, Eq)
+
+parseBonusWieldCategory :: PParser WieldCategory
+parseBonusWieldCategory = do
+  _ <- bonusTag "WIELDCATEGORY"
+  wieldCategories <- parseWieldCategory `sepBy` char ','
+  _ <- char '|'
+  wieldFormula <- parseFormula
+  return WieldCategory { .. } where
+    parseWieldCategory = (Light <$ labeled "Light")
+                     <|> (OneHanded <$ labeled "OneHanded")
+                     <|> (TwoHanded <$ labeled "TwoHanded")
+                     <|> (AllWieldCategories <$ labeled "ALL")
+
 -- TEMPBONUS:x,x,...|y|z
 --   x is PC, ANYPC, or EQ
 --   y is equipment type (only when x==EQ)
@@ -912,6 +938,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusPostMoveAddition <$> parseBonusPostMoveAdd
             <|> BonusCharacterStatChoice <$> parseBonusStatChoice
             <|> BonusCharacterStat <$> parseBonusStat
+            <|> BonusWieldCategory <$> parseBonusWieldCategory
             <|> BonusWeaponProficency <$> parseBonusWeaponProf
             <|> BonusWeaponProperty <$> parseBonusWeaponProp
             <|> BonusUnarmedDamage <$> parseBonusUnarmedDamage

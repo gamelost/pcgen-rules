@@ -52,6 +52,7 @@ data GlobalTag = KeyStat String
                | ChooseNumberChoicesTag Choices
                | ChooseNumberTag ChooseNumber
                | ChooseManyNumbersTag ChooseManyNumbers
+               | ChooseNoChoice ()
                | Damage [Roll]
                | SecondaryDamage [Roll]
                | CriticalRange Int
@@ -325,6 +326,9 @@ parseChooseLanguage = do
   parseChoice `sepBy` char ',' where
     parseChoice = ChoiceLanguageType <$> (labeled "TYPE=" *> parseString)
               <|> ChoiceLanguage <$> parseString
+
+parseChooseNoChoice :: PParser ()
+parseChooseNoChoice = () <$ labeled "CHOOSE:NOCHOICE"
 
 -- not fully implemented
 data Choices = Choices { choiceNumber :: Int
@@ -619,6 +623,7 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> try (ChooseNumberTag <$> parseChooseNumber)
           <|> try (ChooseManyNumbersTag <$> parseChooseManyNumbers)
           <|> ChooseSkillTag <$> parseChooseSkill
+          <|> ChooseNoChoice <$> parseChooseNoChoice
           <|> ClassSkill <$> parseClassSkill
           <|> DamageReduction <$> parseDR
           <|> SpellResistance <$> parseSR

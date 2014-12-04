@@ -22,6 +22,7 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreDeityRestriction PreDeity
                     | PreDomainRestriction PreDomain
                     | PreTemplateRestriction PreTemplate
+                    | PreTotalAttackBonus Int
                     | PreTextRestriction String
                     | PreFeatRestriction PreFeat
                     | PreItemRestriction PreItem
@@ -575,6 +576,11 @@ parsePreTemplate = do
 parsePreText :: PParser String
 parsePreText = tag "PRETEXT" *> restOfTag
 
+-- PRETOTALAB:x
+--   x is integer
+parsePreTotalAB :: PParser Int
+parsePreTotalAB = tag "PRETOTALAB" *> parseInteger
+
 -- PRETYPE:x,y,y...
 --   x is number
 --   y is type requirement
@@ -689,6 +695,7 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreLevelRestriction <$> parsePreLevel
                        <|> PreTextRestriction <$> parsePreText
                        <|> PreTemplateRestriction <$> parsePreTemplate
+                       <|> PreTotalAttackBonus <$> parsePreTotalAB
                        <|> PrePCLevelRestriction <$> parsePrePCLevel
                        <|> PreWeaponProfRestriction <$> parsePreWeaponProf
                        <|> PreWieldRestriction <$> parsePreWield

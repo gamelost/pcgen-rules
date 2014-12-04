@@ -353,8 +353,9 @@ parseChooseNumber = do
   _ <- labeled "CHOOSE:NUMBER"
   chooseMin <- labeled "|MIN=" *> parseInteger
   chooseMax <- labeled "|MAX=" *> parseInteger
-  chooseTitle <- labeled "|TITLE=" *> parseString
-  return ChooseNumber { .. }
+  chooseTitle <- labeled "|TITLE=" *> parseStringSemicolon
+  return ChooseNumber { .. } where
+   parseStringSemicolon = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()[]~;"
 
 data ChooseManyNumbers = ChooseManyNumbers { chooseManyNumbers :: [Int]
                                            , chooseManyMultiple :: Bool

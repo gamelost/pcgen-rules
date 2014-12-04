@@ -159,7 +159,8 @@ parseSubSchool :: PParser [String]
 parseSubSchool = tag "SUBSCHOOL" *> parseString `sepBy1` char '|'
 
 parseDescriptor :: PParser [String]
-parseDescriptor = tag "DESCRIPTOR" *> parseString `sepBy1` char '|'
+parseDescriptor = tag "DESCRIPTOR" *> parseStringEquals `sepBy1` char '|' where
+   parseStringEquals = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()[]~;="
 
 parseVariants :: PParser [String]
 parseVariants = tag "VARIANTS" *> parseString `sepBy1` char '|'

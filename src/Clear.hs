@@ -13,9 +13,10 @@ data ClearTag = Clear String
               deriving (Show, Eq)
 
 parseClear :: PParser ClearTag
-parseClear = parseClearOnly <|> parseClearAll
+parseClear = ClearAll <$> parseClearAll
+         <|> Clear <$> parseClearOnly
 
-parseClearOnly :: PParser ClearTag
+parseClearOnly :: PParser String
 parseClearOnly = do
   -- intentionally very limited (for now).
   what <- choice $ tryPrefixes [ "RANGE"
@@ -28,15 +29,15 @@ parseClearOnly = do
                                , "TARGETAREA"
                                , "SCHOOL"
                                , "SAB"]
-  return $ Clear $ stripClear what where
+  return $ stripClear what where
     tryPrefixes = tryStrings . map (++ ":.CLEAR")
     stripClear = fromJust . stripSuffix ":.CLEAR"
 
-parseClearAll :: PParser ClearTag
+parseClearAll :: PParser String
 parseClearAll = do
   -- intentionally very limited (for now).
   what <- choice $ tryPrefixes [ "CLASSES"
                                , "DESC" ]
-  return $ Clear $ stripClear what where
+  return $ stripClear what where
     tryPrefixes = tryStrings . map (++ ":.CLEARALL")
     stripClear = fromJust . stripSuffix ":.CLEARALL"

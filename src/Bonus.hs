@@ -2,7 +2,7 @@
 
 module Bonus where
 
-import Text.Parsec.Char (char, space, string, satisfy)
+import Text.Parsec.Char (char, space, satisfy)
 import Text.Parsec.Combinator (sepBy, option, many1)
 import Text.Parsec.Prim (many, try)
 import ClassyPrelude hiding (try)
@@ -878,7 +878,7 @@ data Target = PC | ANYPC | EQUIPMENT
               deriving (Show, Eq)
 
 data TempBonus = TempBonus { target :: Target
-                           , equipmentType :: Maybe String
+                           , equipmentType :: Maybe [String]
                            , additionalBonuses :: [Bonus]
                            -- TODO: can this ever apply to temp bonus itself?
                            , additionalRestrictions :: [RestrictionTag] }
@@ -888,7 +888,7 @@ parseTemporaryBonus :: PParser TempBonus
 parseTemporaryBonus = do
   _ <- tag "TEMPBONUS"
   target <- parseTarget
-  equipmentType <- tryOption $ parseEquipmentType target
+  equipmentType <- parseEquipmentType target
   -- additionalBonuses <- char '|' >> parseAnyBonus `sepBy` char '|'
   additionalBonuses <- many $ try bonuses
   additionalRestrictions <- option [] parseAdditionalRestrictions
@@ -897,8 +897,8 @@ parseTemporaryBonus = do
     parseTarget = (PC <$ labeled "PC")
               <|> (ANYPC <$ labeled "ANYPC")
               <|> (EQUIPMENT <$ labeled "EQ")
-    parseEquipmentType EQUIPMENT = parseString
-    parseEquipmentType _ = string "\t" -- better way to do this?
+    parseEquipmentType EQUIPMENT = Just <$> (char '|' *> parseString `sepBy` char ';')
+    parseEquipmentType _ = return Nothing
     bonuses = char '|' >> parseAnyBonus
 
 -- TEMPDESC:x

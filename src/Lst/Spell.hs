@@ -32,6 +32,7 @@ data SpellDefinition = Description String
                      | Variants [String]
                      | Domains Domain
                      | SpellPointCosts [SpellPointCost]
+                     | PreSpellBook Bool
                        deriving Show
 
 data ClassType = ClassName String
@@ -168,6 +169,9 @@ parseVariants = tag "VARIANTS" *> parseString `sepBy1` char '|'
 parseDescription :: PParser String
 parseDescription = tag "DESC" *> restOfTag
 
+parsePreSpellBook :: PParser Bool
+parsePreSpellBook = tag "PRESPELLBOOK" *> yesOrNo
+
 parseSpellTag :: PParser SpellDefinition
 parseSpellTag = Classes <$> parseClasses
             <|> Description <$> parseDescription
@@ -190,6 +194,7 @@ parseSpellTag = Classes <$> parseClasses
             <|> Variants <$> parseVariants
             <|> Domains <$> parseDomains
             <|> SpellPointCosts <$> parseSpellPointCost
+            <|> PreSpellBook <$> parsePreSpellBook
 
 instance LSTObject SpellDefinition where
   parseSpecificTags = parseSpellTag

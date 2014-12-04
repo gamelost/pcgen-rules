@@ -1,24 +1,20 @@
 * general [0/3]
 ** TODO narrow down parseString*: way too general
 ** TODO look at data/zen-test/... -- is this something we can use?
-** TODO many, many typos
-- 1 unexpected '=' // unsolvable (ABILITY:FEAT|AUTOMATIC|TYPE=ItemCreation)
-- data/35e/rpg_objects/legends_of_the_ancients/macedon/loam_skills.lst is messed up
 * pcc [0/2]
 ** TODO implement INCLUDE for lst files
 ** TODO implement EXCLUDE for lst files
-* modifications [0/3]
-** TODO implement CLASS:x.FORGET
-** TODO CLASS:.COPY
-** TODO SKILL.COPY= ...
-* restrictions [0/2]
-** TODO PREFEAT is not fully implemented
-** TODO PRERULE should be matching against known rules, not accepting any string
 * skill [0/1]
-** TODO 1 failures
-- Tactics.COPY 1 (parses successfully though)
+** TODO ./data/pathfinder/paizo/roleplaying_game/core_essentials/ce_skills.lst
+error: BONUS:SITUATION|Samurai Mount|SamuraiMountACP
+SamuraiMount needs to be in x=y format
+* companionmod [0/1]
+** TODO ./data/modern/blue_devil_games/dawning_star/operation_quick_launch/ds_oql_companionmod.lst
+error: BONUS:COMBAT|Armor|2|TYPE=NaturalArmor.STACK
+armor is not a valid option.
 * domain [0/1]
-** TODO ADD:ABILITY|3|Special Ability|VIRTUAL|ArtificerSkills
+** TODO ADD:ABILITY is not added yet.
+ADD:ABILITY|3|Special Ability|VIRTUAL|ArtificerSkills
 * equipmod [0/2]
 ** TODO ./data/3e/dragonwing_games/bastion_press/arms_and_armor/arms_equipmod.lst
 error: BONUS:SKILL|TYPE=Knowledge|2|TYPE=Circumstance|PRESKILL:1,TYPE=Knowledge
@@ -26,10 +22,35 @@ TYPE=Knowledge needs a value: e.g., TYPE=Knowledge=1
 ** TODO ./data/35e/paradigm_concepts/arcanis/players_guide_to_arcanis/playersguidetoarcanis_equip_mods.lst
 error: BONUS:WEAPON|TOHIT.Melee|1|TYPE=Enhancement
 TOHIT.Melee is not valid.
-* companionmod [0/1]
-** TODO ./data/modern/blue_devil_games/dawning_star/operation_quick_launch/ds_oql_companionmod.lst
-error: BONUS:COMBAT|Armor|2|TYPE=NaturalArmor.STACK
-Armor is not a valid option.
+* equipment [0/14]
+** TODO ./data/pathfinder/paizo/roleplaying_game/advanced_race_guide/arg_equip_general.lst
+error: BONUS:SITUATION|SKILL=xxx,Conceal Small Object|2|TYPE=Circumstance
+** TODO ./data/pathfinder/paizo/roleplaying_game/advanced_race_guide/arg_equip_magic_items.lst
+error: TEMPBONUS:ANYPC|SITUATION|SKILL=Acrobatics,Jump|4|TYPE=Competence
+** TODO ./data/3e/rpg_objects/darwins_world/artifacts/artifactsoaequipweapranged.lst
+error: SPROP:Power=Backpack|Beltpack, Rate=Normal, Reload=Standard Action
+** TODO ./data/35e/paradigm_concepts/arcanis/forged_in_magic/forgedmagic_equip_wonderousitems.lst
+error: BONUS:SITUATION|Diplomacy=Wild Empathy (Animals),Wild Empathy (Magical Beasts)|5|TYPE=Competence
+** TODO ./data/modern/wizards_of_the_coast/msrd/future/future_cybernetics/futurecybernetics_implants.lst
+error: VFEAT:Advanced Combat Martial Arts|PREMULT:2,[PRETOTALAB:8],[PREFEAT:2,Combat Martial Arts,Improved Combat Martial Arts]
+** TODO ./data/gaslight/battlefield_press/gaslight/gaslight_players_guide/gaslight_equipment.lst
+error: BONUS:SITUATION|Deception=Disguise|CircumstanceAdjustment|TYPE=Circumstance
+** TODO ./data/zen_test/pcgen_test_advanced/pcgen_broken_tests/pbt_equip.lst
+unexpected end of input
+** TODO ./data/35e/wizards_of_the_coast/rsrd/basics/rsrd_equip_magic_items.lst
+error: BONUS:VAR|SeeEtheralRange|120|TYPE=Base|
+** TODO ./data/35e/nitehawk_interactive/shadmar/shadmar_equip.lst
+error: ABILITY:FEAT|AUTOMATIC|TYPE=ItemCreation
+** TODO ./data/3e/wizards_of_the_coast/srd/advanced/srd_equip_wondrousitems.lst
+error: BONUS:WEAPONPROF=Longbow|DAMAGE-SHORTRANGE|1|PREWEAPONPROF:1,Longbow|TYPE=Competence
+** TODO ./data/3e/fantasy_flight_games/dragonstar/starfarers_handbook/starfarershb_equip_mech.lst
+error: BONUS:SKILL|Speak Language|1|TYPE;MechUpgrade
+** TODO ./data/pathfinder/paizo/roleplaying_game/ultimate_equipment/ue_equip_magic_items.lst
+error: BONUS:STAT|CHA|-10|Bard,Oracle,Summoner,Sorceror
+** TODO ./data/pathfinder/dreamscarred_press/ultimate_psionics/up_equipment.lst
+error: ABILITY:Special Ability|AUTOMATIC|Dancing Robes of Sharatwan Attunement|PREMULT:4,[PREFEAT:2,Two-Weapon Fighting,Weapon Finesse],[PRESKILL:2,Diplomacy=4,Intimidate=4],[PREVARGTEQ:TL,4],[PRETEXT:Ability to form two mind blades]
+** TODO ./data/3e/avalanche_press/vlad_the_impaler/vlad_weapons.lst
+error: BONUS:WEAPONPROF=Cannon|TOHIT|-4|GunneryPenalty
 * spell [0/4]
 ** TODO ./data/pathfinder/paizo/roleplaying_game/advanced_players_guide/apg_spells.lst
 error: TEMPBONUS:ANYPC|LOADMULT|TYPE=SIZE|2|PRESIZEGTEQ:M
@@ -43,7 +64,6 @@ needs to be in x=y,x=y format.
 ** TODO ./data/35e/paradigm_concepts/arcanis/players_guide_to_arcanis/pgta_spells_rsrd.lst
 error: TEMPBONUS:PC|SKILL|Disguise,Climb,Jump|TYPE=Temporary
 needs a formula.
-* JEP [0/0]
 * questions
 ** when are JEPs used? [2/6]
 - [ ] EVAL() (only in KIT files)

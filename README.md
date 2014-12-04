@@ -21,7 +21,7 @@ Currently the code just parses `.pcc` and `.lst` files; this is still a work in 
 - [x] EQUIPMOD (113/115)
 - [x] EQUIPMENT (695/709)
 - [x] SPELL (205/209)
-- [ ] FEAT (0/347)
+- [x] FEAT (0/347)
 - [ ] RACE (0/281)
 - [ ] KIT (block-based) (0/284)
 - [ ] TEMPLATE (0/192)

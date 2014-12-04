@@ -68,6 +68,7 @@ varBuiltins = [ "SynergyBonus"
               , "CHASCORE"
               , "WISSCORE"
               , "STAT.3.BASE" -- ?
+              , "STAT.0.BASE" -- ?
               , "ARMOR.SHIELD.EQUIPPED.ACBONUS"
               , "SPELLFAILURE"
               , "CASTERLEVEL"

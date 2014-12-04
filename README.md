@@ -20,7 +20,7 @@ Currently the code just parses `.pcc` and `.lst` files; this is still a work in 
 - [x] DOMAIN (48/49)
 - [x] EQUIPMOD (113/115)
 - [x] EQUIPMENT (700/709)
-- [x] SPELL (199/209)
+- [x] SPELL (205/209)
 - [ ] FEAT (0/347)
 - [ ] RACE (0/281)
 - [ ] KIT (block-based) (0/284)

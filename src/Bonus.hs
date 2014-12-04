@@ -661,14 +661,13 @@ parseBonusSpellCast = do
   _ <- bonusTag "SPELLCAST"
   bonusSpellCastType <- parseBonusSpellCastType <* char ';'
   bonusSpellCastSlot <- parseBonusSpellCastSlot <* char '|'
-  bonusSpellCastNumber <- textToInt <$> manyNumbers
+  bonusSpellCastNumber <- parseInteger
   return BonusSpellCast { .. } where
     parseBonusSpellCastType = (labeled "CLASS=" *> (SpellCastClassName <$> parseString))
                           <|> (labeled "TYPE=" *> (SpellCastSpellType <$> parseString))
     parseBonusSpellCastSlot = (SpellCastLevelAll <$ labeled "LEVEL=ALL")
                           <|> (SpellCastLevelChoice <$ labeled "LEVEL=%CHOICE")
-                          <|> (labeled "LEVEL=" *> (SpellCastLevelNumber <$> slotToInt))
-    slotToInt = textToInt <$> manyNumbers
+                          <|> (labeled "LEVEL=" *> (SpellCastLevelNumber <$> parseInteger))
 
 -- BONUS:SPELLCASTMULT|x;y|z
 --   x is class name or spell type
@@ -889,7 +888,6 @@ parseTemporaryBonus = do
   _ <- tag "TEMPBONUS"
   target <- parseTarget
   equipmentType <- parseEquipmentType target
-  -- additionalBonuses <- char '|' >> parseAnyBonus `sepBy` char '|'
   additionalBonuses <- many $ try bonuses
   additionalRestrictions <- option [] parseAdditionalRestrictions
   return TempBonus { .. } where

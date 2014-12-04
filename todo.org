@@ -14,26 +14,35 @@
 * restrictions [0/2]
 ** TODO PREFEAT is not fully implemented
 ** TODO PRERULE should be matching against known rules, not accepting any string
-* choose [0/1]
-** TODO should be its own file?
-- fairly complicated; do I need this yet?
-- generic catch-all?
 * skill [0/1]
 ** TODO 1 failures
 - Tactics.COPY 1 (parses successfully though)
 * domain [0/1]
 ** TODO ADD:ABILITY|3|Special Ability|VIRTUAL|ArtificerSkills
 * equipmod [0/2]
-** ./data/3e/dragonwing_games/bastion_press/arms_and_armor/arms_equipmod.lst
+** TODO ./data/3e/dragonwing_games/bastion_press/arms_and_armor/arms_equipmod.lst
 error: BONUS:SKILL|TYPE=Knowledge|2|TYPE=Circumstance|PRESKILL:1,TYPE=Knowledge
 TYPE=Knowledge needs a value: e.g., TYPE=Knowledge=1
-** ./data/35e/paradigm_concepts/arcanis/players_guide_to_arcanis/playersguidetoarcanis_equip_mods.lst
+** TODO ./data/35e/paradigm_concepts/arcanis/players_guide_to_arcanis/playersguidetoarcanis_equip_mods.lst
 error: BONUS:WEAPON|TOHIT.Melee|1|TYPE=Enhancement
 TOHIT.Melee is not valid.
 * companionmod [0/1]
-** ./data/modern/blue_devil_games/dawning_star/operation_quick_launch/ds_oql_companionmod.lst
+** TODO ./data/modern/blue_devil_games/dawning_star/operation_quick_launch/ds_oql_companionmod.lst
 error: BONUS:COMBAT|Armor|2|TYPE=NaturalArmor.STACK
 Armor is not a valid option.
+* spell [0/4]
+** TODO ./data/pathfinder/paizo/roleplaying_game/advanced_players_guide/apg_spells.lst
+error: TEMPBONUS:ANYPC|LOADMULT|TYPE=SIZE|2|PRESIZEGTEQ:M
+LOADMULT is undefined.
+** TODO ./data/modern/wizards_of_the_coast/msrd/arcana/basics/arcanabasics_spells.lst
+error: TEMPBONUS:ANYPC|SAVE|ALL|1|TYPE=Resistance|TEMPDESC:Grants Defense and saving throw bonus
+order of TEMPDESC/TYPE is confusing.
+** TODO ./data/pathfinder/paizo/roleplaying_game/core_rulebook/cr_spells.lst
+error: TEMPBONUS:PC|SITUATION|SKILL=Acrobatics,Acrobatics (Jump)|12
+needs to be in x=y,x=y format.
+** TODO ./data/35e/paradigm_concepts/arcanis/players_guide_to_arcanis/pgta_spells_rsrd.lst
+error: TEMPBONUS:PC|SKILL|Disguise,Climb,Jump|TYPE=Temporary
+needs a formula.
 * JEP [0/0]
 * questions
 ** when are JEPs used? [2/6]

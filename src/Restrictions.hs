@@ -32,6 +32,8 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreTypeRestriction PreType
                     | PreSizeRestriction PreSize
                     | PreLegsRestriction PreLegs
+                    | PreLangRestriction PreLang
+                    | PreSpecialAbilityRestriction PreSA
                     | PreHandsRestriction PreHands
                     | PreRegionRestriction String
                     | PreSubClassRestriction PreSubClass
@@ -39,6 +41,7 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreSkillRestriction PreSkill
                     | PreGenderRestriction PreGender
                     | PreLevelRestriction PreLevel
+                    | PreLevelMaxRestriction Int
                     | PrePCLevelRestriction PrePCLevel
                     | PreSkillTotalRestriction PreSkillTot
                     | PreWeaponProfRestriction PreWeaponProf
@@ -118,7 +121,7 @@ data PreAttack = PreAttack { preAttackNumber :: Int }
 parsePreAttack :: PParser PreAttack
 parsePreAttack = do
   _ <- tag "PREATT"
-  preAttackNumber <- textToInt <$> manyNumbers
+  preAttackNumber <- parseInteger
   return PreAttack { .. }
 
 -- PRECLASS:x,y=z,y=z,y=z...
@@ -302,7 +305,7 @@ parsePreHands :: PParser PreHands
 parsePreHands = do
   op <- labeled "PREHANDS" *> choice operatorPrefixes
   _ <- char ':'
-  preHandsNumber <- textToInt <$> manyNumbers
+  preHandsNumber <- parseInteger
   return PreHands { preHandsOperator = convertOperator op, .. }
 
 -- PREITEM:x,y,y,...
@@ -326,6 +329,28 @@ parsePreItem = do
              <|> (AnyItem <$ char '%')
              <|> ItemType <$> parseStringNoCommas
 
+-- PRELANG:x,y,y...
+--   x is number
+--   y is type of language or ALL
+data PreLangType = LanguageType String
+                 | Language String
+                 | AnyLanguage
+                   deriving (Show, Eq)
+
+data PreLang = PreLang { preLangNumber :: Int
+                       , preLangTypes :: [PreLangType] }
+               deriving (Show, Eq)
+
+parsePreLang :: PParser PreLang
+parsePreLang = do
+  _ <- tag "PRELANG"
+  preLangNumber <- parseInteger <* char ','
+  preLangTypes <- parsePreLangType `sepBy` char ','
+  return PreLang { .. } where
+    parsePreLangType = (labeled "TYPE=" *> (LanguageType <$> parseStringNoCommas))
+                   <|> (AnyLanguage <$ labeled "ALL")
+                   <|> (Language <$> parseStringNoCommas)
+
 -- PRELEGSx:y
 --   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
 --   y is number
@@ -337,7 +362,7 @@ parsePreLegs :: PParser PreLegs
 parsePreLegs = do
   op <- labeled "PRELEGS" *> choice operatorPrefixes
   _ <- char ':'
-  preLegsNumber <- textToInt <$> manyNumbers
+  preLegsNumber <- parseInteger
   return PreLegs { preLegsOperator = convertOperator op, .. }
 
 -- PRELEVEL:x,y
@@ -354,6 +379,11 @@ parsePreLevel = do
   requiredLevelMax <- tryOption (labeled "MAX=" *> parseFormula)
   let _ = assert (isJust requiredLevelMin || isJust requiredLevelMax)
   return PreLevel { .. }
+
+-- PRELEVELMAX:x
+--   x is number (maximum level)
+parsePreLevelMax :: PParser Int
+parsePreLevelMax = tag "PRELEVELMAX" *> parseInteger
 
 -- PREMOVE:x,y=z,y=z...
 --   x is minimum number movement types to pass
@@ -446,6 +476,20 @@ parsePreRule = do
   ruleName <- parseString -- not correct but will do for now
   return PreRule { ruleNumber = textToInt n, .. }
 
+-- PRESA:x,y,y...
+--   x is number
+--   y is special ability
+data PreSA = PreSA { preSANumber :: Int
+                   , preSATypes :: [String] }
+             deriving (Show, Eq)
+
+parsePreSA :: PParser PreSA
+parsePreSA = do
+  _ <- tag "PRESA"
+  preSANumber <- parseInteger <* char ','
+  preSATypes <- parseStringNoCommas `sepBy` char ','
+  return PreSA { .. }
+
 -- PRESIZEx:y
 --   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
 --   y is F, D, T, S, M, L, H, G, C
@@ -532,13 +576,13 @@ data PreStat = PreStat { statNumber :: Int
 parsePreStat :: PParser PreStat
 parsePreStat = do
   _ <- tag "PRESTAT"
-  statNumber <- textToInt <$> manyNumbers
+  statNumber <- parseInteger
   _ <- char ','
   statChecks <- parseStatCheck `sepBy` char ','
   return PreStat { .. } where
     parseStatCheck = do
       stat <- allCaps <* char '='
-      num <- textToInt <$> manyNumbers
+      num <- parseInteger
       return (stat, num)
 
 -- PRESUBCLASS:x,y,y...
@@ -551,7 +595,7 @@ data PreSubClass = PreSubClass { preSubClassNumber :: Int
 parsePreSubClass :: PParser PreSubClass
 parsePreSubClass = do
   _ <- tag "PRESUBCLASS"
-  preSubClassNumber <- textToInt <$> manyNumbers
+  preSubClassNumber <- parseInteger
   _ <- char ','
   preSubClassNames <- parseStringNoCommasBrackets `sepBy` char ','
   return PreSubClass { .. }
@@ -566,7 +610,7 @@ data PreTemplate = PreTemplate { preTemplateNumber :: Int
 parsePreTemplate :: PParser PreTemplate
 parsePreTemplate = do
   _ <- tag "PRETEMPLATE"
-  preTemplateNumber <- textToInt <$> manyNumbers
+  preTemplateNumber <- parseInteger
   _ <- char ','
   preTemplateNames <- parseStringNoCommasBrackets `sepBy` char ','
   return PreTemplate { .. }
@@ -593,7 +637,7 @@ data PreType = PreType { preTypeNumber :: Int
 parsePreType :: PParser PreType
 parsePreType = do
   _ <- tag "PRETYPE"
-  preTypeNumber <- textToInt <$> manyNumbers
+  preTypeNumber <- parseInteger
   _ <- char ','
   preTypeRequirements <- parseStringEquals `sepBy` char ','
   return PreType { .. } where
@@ -636,7 +680,7 @@ data PreWeaponProf = PreWeaponProf { preWeaponProfNumber :: Int
 parsePreWeaponProf :: PParser PreWeaponProf
 parsePreWeaponProf = do
   _ <- tag "PREWEAPONPROF"
-  preWeaponProfNumber <- textToInt <$> manyNumbers
+  preWeaponProfNumber <- parseInteger
   _ <- char ','
   preWeaponProfType <- parseWeaponProfType `sepBy` char ','
   return PreWeaponProf { .. } where
@@ -659,7 +703,7 @@ data PreWield = PreWield { preWieldNumber :: Int
 parsePreWield :: PParser PreWield
 parsePreWield = do
   _ <- tag "PREWIELD"
-  preWieldNumber <- textToInt <$> manyNumbers
+  preWieldNumber <- parseInteger
   _ <- char ','
   preWieldType <- parsePreWieldType
   return PreWield { .. } where
@@ -682,6 +726,8 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreTypeRestriction <$> parsePreType
                        <|> PreSizeRestriction <$> parsePreSize
                        <|> PreLegsRestriction <$> parsePreLegs
+                       <|> PreLangRestriction <$> parsePreLang
+                       <|> PreSpecialAbilityRestriction <$> parsePreSA
                        <|> PreHandsRestriction <$> parsePreHands
                        <|> PreRegionRestriction <$> parsePreRegion
                        <|> PreSubClassRestriction <$> parsePreSubClass
@@ -693,6 +739,7 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreEquipPrimaryRestriction <$> parsePreEquipSecondary
                        <|> PreEquipSecondaryRestriction <$> parsePreEquipSecondary
                        <|> PreLevelRestriction <$> parsePreLevel
+                       <|> PreLevelMaxRestriction <$> parsePreLevelMax
                        <|> PreTextRestriction <$> parsePreText
                        <|> PreTemplateRestriction <$> parsePreTemplate
                        <|> PreTotalAttackBonus <$> parsePreTotalAB

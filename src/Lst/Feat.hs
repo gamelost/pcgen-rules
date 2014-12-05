@@ -44,7 +44,7 @@ parseCost = tag "COST" *> parseFormula
 parseAddSpellLevel :: PParser Formula
 parseAddSpellLevel = tag "ADDSPELLLEVEL" *> parseFormula
 
-parseAppliedName :: PParser Formula
+parseAppliedName :: PParser String
 parseAppliedName = tag "APPLIEDNAME" *> restOfTag
 
 parseTemplate :: PParser [String]

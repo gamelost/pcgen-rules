@@ -34,6 +34,8 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreLegsRestriction PreLegs
                     | PreLangRestriction PreLang
                     | PreSpecialAbilityRestriction PreSA
+                    | PreSpellResistanceRestriction PreSR
+                    | PreDamageResistanceRestriction PreDR
                     | PreHandsRestriction PreHands
                     | PreRegionRestriction String
                     | PreSubClassRestriction PreSubClass
@@ -47,6 +49,7 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreWeaponProfRestriction PreWeaponProf
                     | PreWieldRestriction PreWield
                     | PreRuleRestriction PreRule
+                    | PreCheckBaseRestriction PreCheckBase
                     | PreMultipleRestriction PreMult
                     | Invert RestrictionTag
                       deriving (Show, Eq)
@@ -123,6 +126,25 @@ parsePreAttack = do
   _ <- tag "PREATT"
   preAttackNumber <- parseInteger
   return PreAttack { .. }
+
+-- PRECHECKBASE:x,y=z,y=z...
+--   x is number of base checks to succeed
+--   y is a check name (from statsandchecks.lst)
+--   z is number to compare to
+data PreCheckBase = PreCheckBase { preCheckBaseNumber :: Int
+                                 , preCheckBaseChecks :: [(String, Int)] }
+                  deriving (Show, Eq)
+
+parsePreCheckBase :: PParser PreCheckBase
+parsePreCheckBase = do
+  _ <- tag "PRECHECKBASE"
+  preCheckBaseNumber <- parseInteger <* char ','
+  preCheckBaseChecks <- parsePreCheckBaseChecks `sepBy` char ','
+  return PreCheckBase { .. } where
+    parsePreCheckBaseChecks = do
+      check <- parseString <* char '='
+      value <- parseInteger
+      return (check, value)
 
 -- PRECLASS:x,y=z,y=z,y=z...
 --   x is number of classes to pass
@@ -205,6 +227,25 @@ parsePreDomain = do
   return PreDomain { domainNumber = textToInt n, .. } where
     parseDomain = (DomainAny <$ labeled "ANY")
               <|> DomainName <$> parseStringNoCommasBrackets
+
+-- PREDR:x,y=z,y=z...
+--   x is number of conditions to be met
+--   y is type of DR
+--   z is number to meet or exceed
+data PreDR = PreDR { preDamageResistanceNumber :: Int
+                   , preDamageResistanceChecks :: [(String, Int)] }
+             deriving (Show, Eq)
+
+parsePreDR :: PParser PreDR
+parsePreDR = do
+  _ <- tag "PREDR"
+  preDamageResistanceNumber <- parseInteger
+  preDamageResistanceChecks <- parseResistanceChecks `sepBy` char ','
+  return PreDR { .. } where
+    parseResistanceChecks = do
+      check <- parseString <* char '='
+      value <- parseInteger
+      return (check, value)
 
 -- PREEQUIP:x,y,y...
 --   x is number
@@ -565,6 +606,19 @@ parsePreSkillTotal = do
     parseSkills = SkillType <$> (labeled "TYPE=" >> parseStringNoCommas)
               <|> SkillName <$> parseStringNoCommas
 
+-- PRESRx:y
+--   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
+--   y is integer
+data PreSR = PreSR { spellResistanceOperator :: Operator
+                   , spellResistanceMin :: Int }
+             deriving (Show, Eq)
+
+parsePreSR :: PParser PreSR
+parsePreSR = do
+  op <- labeled "PRESR" >> choice operatorPrefixes
+  spellResistanceMin <- char ':' >> parseInteger
+  return PreSR { spellResistanceOperator = convertOperator op, .. }
+
 -- PRESTAT:x,y=z,y=z,..
 --   x is number
 --   y is stats abbrevation
@@ -655,7 +709,8 @@ data PreVarType = PreVarFormula Formula
                   deriving (Show, Eq)
 
 data PreVar = PreVar { operator :: Operator
-                     , variables :: [PreVarType] } deriving (Show, Eq)
+                     , variables :: [PreVarType] }
+              deriving (Show, Eq)
 
 parsePreVar :: PParser PreVar
 parsePreVar = do
@@ -728,11 +783,14 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreLegsRestriction <$> parsePreLegs
                        <|> PreLangRestriction <$> parsePreLang
                        <|> PreSpecialAbilityRestriction <$> parsePreSA
+                       <|> PreSpellResistanceRestriction <$> parsePreSR
+                       <|> PreDamageResistanceRestriction <$> parsePreDR
                        <|> PreHandsRestriction <$> parsePreHands
                        <|> PreRegionRestriction <$> parsePreRegion
                        <|> PreSubClassRestriction <$> parsePreSubClass
                        <|> PreAttackRestriction <$> parsePreAttack
                        <|> PreRuleRestriction <$> parsePreRule
+                       <|> PreCheckBaseRestriction <$> parsePreCheckBase
                        <|> PreAlignRestriction <$> parsePreAlign
                        <|> PreEquipRestriction <$> parsePreEquip
                        <|> PreEquipBothRestriction <$> parsePreEquipBoth

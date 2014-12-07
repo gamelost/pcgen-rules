@@ -44,6 +44,13 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreGenderRestriction PreGender
                     | PreLevelRestriction PreLevel
                     | PreLevelMaxRestriction Int
+                    | PreSpellRestriction PreSpell
+                    | PreSpellBookRestriction Bool
+                    | PreSpellCastRestriction [PreSpellCast]
+                    | PreSpellDescriptorRestriction PreSpellDescriptor
+                    | PreSpellSchoolRestriction PreSpellSchool
+                    | PreSpellSchoolSubRestriction PreSpellSchoolSub
+                    | PreSpellTypeRestriction PreSpellType
                     | PrePCLevelRestriction PrePCLevel
                     | PreSkillTotalRestriction PreSkillTot
                     | PreWeaponProfRestriction PreWeaponProf
@@ -606,6 +613,122 @@ parsePreSkillTotal = do
     parseSkills = SkillType <$> (labeled "TYPE=" >> parseStringNoCommas)
               <|> SkillName <$> parseStringNoCommas
 
+-- PRESPELL:x,y,y,...
+--   x is number of spells required
+--   y is name of spell
+data PreSpell = PreSpell { preSpellNumber :: Int
+                         , preSpells :: [String] }
+              deriving (Show, Eq)
+
+parsePreSpell :: PParser PreSpell
+parsePreSpell = do
+  _ <- tag "PRESPELL"
+  preSpellNumber <- parseInteger <* char ','
+  preSpells <- parseStringNoCommas `sepBy` char ','
+  return PreSpell { .. }
+
+-- PRESPELLBOOK:x
+--   x is YES or NO
+parsePreSpellBook :: PParser Bool
+parsePreSpellBook = tag "PRESPELLBOOK" *> yesOrNo
+
+-- PRESPELLCAST:x=y,x=y,...
+--   x is MEMORIZE, TYPE
+--   y is Y or N (MEMORIZE only) or spell type (TYPE only)
+data PreSpellCast = SpellType String
+                  | MustMemorize
+                  | DoNotHaveToMemorize
+                    deriving (Show, Eq)
+
+parsePreSpellCast :: PParser [PreSpellCast]
+parsePreSpellCast = tag "PRESPELLCAST" *> parsePreSpellCastType `sepBy` char ',' where
+  parsePreSpellCastType = (MustMemorize <$ labeled "MEMORIZE=Y")
+                      <|> (DoNotHaveToMemorize <$ labeled "MEMORIZE=N")
+                      <|> (labeled "TYPE=" *> (SpellType <$> parseStringNoCommas))
+
+-- PRESPELLDESCRIPTOR:x,y=z,y=z,...
+--   x is number of spells known
+--   y is spell descriptor
+--   z is minimum spell level
+data PreSpellDescriptor = PreSpellDescriptor { preSpellDescriptorNumber :: Int
+                                             , preSpellDescriptors :: [(String, Int)] }
+                          deriving (Show, Eq)
+
+parsePreSpellDescriptor :: PParser PreSpellDescriptor
+parsePreSpellDescriptor = do
+  _ <- tag "PRESPELLDESCRIPTOR"
+  preSpellDescriptorNumber <- parseInteger <* char ','
+  preSpellDescriptors <- parsePreSpellDescriptors `sepBy` char ','
+  return PreSpellDescriptor { .. } where
+    parsePreSpellDescriptors = do
+      descriptor <- parseString <* char '='
+      level <- parseInteger
+      return (descriptor, level)
+
+-- PRESPELLSCHOOL:x,y=z,y=z,...
+--   x is number of spells known
+--   y is name of school of magic
+--   z is minimum spell level
+data PreSpellSchool = PreSpellSchool { preSpellSchoolNumber :: Int
+                                     , preSpellSchools :: [(String, Int)] }
+                         deriving (Show, Eq)
+
+parsePreSpellSchool :: PParser PreSpellSchool
+parsePreSpellSchool = do
+  _ <- tag "PRESPELLSCHOOL"
+  preSpellSchoolNumber <- parseInteger <* char ','
+  preSpellSchools <- parsePreSpellSchools `sepBy` char ','
+  return PreSpellSchool { .. } where
+    parsePreSpellSchools = do
+      descriptor <- parseString <* char '='
+      level <- parseInteger
+      return (descriptor, level)
+
+-- PRESPELLSCHOOLSUB:x,y=z,y=z
+--   x is number of spells known
+--   y is name of sub-school of magic
+--   z is minimum spell level
+data PreSpellSchoolSub = PreSpellSchoolSub { preSpellSchoolSubNumber :: Int
+                                           , preSpellSchoolSubs :: [(String, Int)] }
+                         deriving (Show, Eq)
+
+parsePreSpellSchoolSub :: PParser PreSpellSchoolSub
+parsePreSpellSchoolSub = do
+  _ <- tag "PRESPELLSCHOOLSUB"
+  preSpellSchoolSubNumber <- parseInteger <* char ','
+  preSpellSchoolSubs <- parsePreSpellSchoolSubs `sepBy` char ','
+  return PreSpellSchoolSub { .. } where
+    parsePreSpellSchoolSubs = do
+      descriptor <- parseString <* char '='
+      level <- parseInteger
+      return (descriptor, level)
+
+-- PRESPELLTYPE:x,y=z,y=z,...
+--   x is number of spells known
+--   y is Arcane, Divine, Psionic, or ANY
+--   z is spell level
+data PreSpellTypeType = Arcane Int
+                      | Divine Int
+                      | Psionic Int
+                      | AnySpellType
+                        deriving (Show, Eq)
+
+data PreSpellType = PreSpellType { preSpellTypeNumber :: Int
+                                 , preSpellTypes :: [PreSpellTypeType] }
+                         deriving (Show, Eq)
+
+parsePreSpellType :: PParser PreSpellType
+parsePreSpellType = do
+  _ <- tag "PRESPELLTYPE"
+  preSpellTypeNumber <- parseInteger <* char ','
+  preSpellTypes <- parsePreSpellTypes `sepBy` char ','
+  return PreSpellType { .. } where
+    parsePreSpellTypes = (AnySpellType <$ labeled "ANY")
+                     <|> Arcane <$> parseSpellType "Arcane"
+                     <|> Divine <$> parseSpellType "Divine"
+                     <|> Psionic <$> parseSpellType "Psionic"
+    parseSpellType spell = labeled spell >> char '=' *> parseInteger
+
 -- PRESRx:y
 --   x is EQ, GT, GTEQ, LT, LTEQ, NEQ
 --   y is integer
@@ -798,6 +921,13 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreEquipSecondaryRestriction <$> parsePreEquipSecondary
                        <|> PreLevelRestriction <$> parsePreLevel
                        <|> PreLevelMaxRestriction <$> parsePreLevelMax
+                       <|> PreSpellRestriction <$> parsePreSpell
+                       <|> PreSpellBookRestriction <$> parsePreSpellBook
+                       <|> PreSpellCastRestriction <$> parsePreSpellCast
+                       <|> PreSpellDescriptorRestriction <$> parsePreSpellDescriptor
+                       <|> PreSpellSchoolRestriction <$> parsePreSpellSchool
+                       <|> PreSpellSchoolSubRestriction <$> parsePreSpellSchoolSub
+                       <|> PreSpellTypeRestriction <$> parsePreSpellType
                        <|> PreTextRestriction <$> parsePreText
                        <|> PreTemplateRestriction <$> parsePreTemplate
                        <|> PreTotalAttackBonus <$> parsePreTotalAB

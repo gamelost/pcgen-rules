@@ -46,6 +46,8 @@ data GlobalTag = KeyStat String
                | AutoLanguageTag AutoLanguage
                | AutoWeaponProfTag [AutoWeaponProf]
                | ClassSkill [ClassSkillType]
+               | CompanionListTag CompanionList
+               | ServesAsTag ServesAs
                | SpellTag Spell
                | SpellsKnown [SpellKnown]
                | ChooseLanguageTag [ChooseLanguage]
@@ -403,6 +405,33 @@ parseClassSkill = do
               <|> (labeled "TYPE=" >> CSkillType <$> parseString)
               <|> CSkillName <$> parseString
 
+-- COMPANIONLIST:x|y,y,...|z
+--   x is companion type
+--   y is companion race type
+--   z is level adjustment (optional)
+data CompanionRaceListType = CompanionRace String
+                           | CompanionRaceType String
+                           | CompanionRaceSubType String
+                             deriving (Show, Eq)
+
+data CompanionList = CompanionList { companionListType :: String
+                                   , companionListRaceTypes :: [CompanionRaceListType]
+                                   , followerAdjustment :: Maybe Int }
+                   deriving (Show, Eq)
+
+parseCompanionList :: PParser CompanionList
+parseCompanionList = do
+  _ <- tag "COMPANIONLIST"
+  companionListType <- parseString
+  _ <- traceM (show companionListType)
+  companionListRaceTypes <- parseRaceTypes `sepBy` char ','
+  _ <- traceM (show companionListRaceTypes)
+  followerAdjustment <- tryOption (labeled "|FOLLOWERADJUSTMENT" *> parseInteger)
+  return CompanionList { .. } where
+    parseRaceTypes = (labeled "RACETYPE=" *> (CompanionRaceType <$> parseStringNoCommas))
+                 <|> (labeled "RACESUBTYPE=" *> (CompanionRaceSubType <$> parseStringNoCommas))
+                 <|> (CompanionRace <$> parseStringNoCommas)
+
 -- DEFINESTAT:x|y|z
 --   x is LOCK, UNLOCK, NONSTAT, STAT, MINVALUE, MAXVALUE
 --   y is stat name
@@ -496,6 +525,30 @@ parseSpecialAbilityName = do
   parseStringNoBrackets `sepBy` char '|' where
     -- allow commas.
     parseStringNoBrackets = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()~"
+
+-- SERVESAS:x|y|y
+--   x is ABILITY category, CLASS, RACE, or SKILL
+--   y is object name
+data ServesAsType = ServesAsAbility String
+                  | ServesAsClass
+                  | ServesAsRace
+                  | ServesAsSkill
+                    deriving (Show, Eq)
+
+data ServesAs = ServesAs { servesAsType :: ServesAsType
+                         , servesAsObjects :: [String] }
+              deriving (Show, Eq)
+
+parseServesAs :: PParser ServesAs
+parseServesAs = do
+  _ <- tag "SERVESAS"
+  servesAsType <- parseServesAsType <* char '|'
+  servesAsObjects <- parseString `sepBy` char '|'
+  return ServesAs { .. } where
+    parseServesAsType = (ServesAsClass <$ labeled "CLASS")
+                    <|> (ServesAsSkill <$ labeled "SKILL")
+                    <|> (ServesAsRace <$ labeled "RACE")
+                    <|> (labeled "ABILITY=" *> (ServesAsAbility <$> parseString))
 
 -- SPELLS:s|u|v|w|x,y|x,y|z|z
 --   s is name of spellbook (or .CLEARALL, not implemented)
@@ -625,6 +678,8 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> ChooseSkillTag <$> parseChooseSkill
           <|> ChooseNoChoice <$> parseChooseNoChoice
           <|> ClassSkill <$> parseClassSkill
+          <|> CompanionListTag <$> parseCompanionList
+          <|> ServesAsTag <$> parseServesAs
           <|> DamageReduction <$> parseDR
           <|> SpellResistance <$> parseSR
           <|> SpellTag <$> parseSpells

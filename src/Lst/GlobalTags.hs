@@ -50,15 +50,9 @@ data GlobalTag = KeyStat String
                | ServesAsTag ServesAs
                | SpellTag Spell
                | SpellsKnown [SpellKnown]
-               | ChooseLanguageTag [ChooseLanguage]
-               | ChooseNumberChoicesTag Choices
-               | ChooseNumberTag ChooseNumber
-               | ChooseManyNumbersTag ChooseManyNumbers
-               | ChooseNoChoice ()
                | Damage [Roll]
                | SecondaryDamage [Roll]
                | CriticalRange Int
-               | ChooseSkillTag [ChooseSkill]
                | KitTag Kit
                | Unknown (String, String)
                  deriving (Eq, Show)
@@ -316,79 +310,6 @@ parseAutoWeaponProf = do
                       <|> (labeled "TYPE=" >> WeaponType <$> parseString)
                       <|> (labeled "TYPE." >> WeaponType <$> parseString)
                       <|> (WeaponName <$> parseString)
-
--- not fully implemented
-data ChooseLanguage = ChoiceLanguage String
-                    | ChoiceLanguageType String
-                      deriving (Show, Eq)
-
-parseChooseLanguage :: PParser [ChooseLanguage]
-parseChooseLanguage = do
-  _ <- labeled "CHOOSE:LANG|"
-  parseChoice `sepBy` char ',' where
-    parseChoice = ChoiceLanguageType <$> (labeled "TYPE=" *> parseString)
-              <|> ChoiceLanguage <$> parseString
-
-parseChooseNoChoice :: PParser ()
-parseChooseNoChoice = () <$ labeled "CHOOSE:NOCHOICE"
-
--- not fully implemented
-data Choices = Choices { choiceNumber :: Int
-                       , choices :: [String]
-                       , choiceType :: Maybe String }
-                   deriving (Show, Eq)
-
-parseChooseNumChoices :: PParser Choices
-parseChooseNumChoices = do
-  _ <- labeled "CHOOSE:NUMCHOICES="
-  choiceNumber <- textToInt <$> manyNumbers
-  choices <- many1 $ try (char '|' *> parseChoiceString)
-  choiceType <- tryOption (labeled "|TYPE=" *> parseString)
-  return Choices { .. } where
-    parseChoiceString = disallowed *> parseString
-    disallowed = notFollowedBy (string "TYPE")
-
--- not fully implemented
-data ChooseNumber = ChooseNumber { chooseMin :: Int
-                                 , chooseMax :: Int
-                                 , chooseTitle :: String }
-                    deriving (Show, Eq)
-
-parseChooseNumber :: PParser ChooseNumber
-parseChooseNumber = do
-  _ <- labeled "CHOOSE:NUMBER"
-  chooseMin <- labeled "|MIN=" *> parseInteger
-  chooseMax <- labeled "|MAX=" *> parseInteger
-  chooseTitle <- labeled "|TITLE=" *> parseStringSemicolon
-  return ChooseNumber { .. } where
-   parseStringSemicolon = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()[]~;"
-
-data ChooseManyNumbers = ChooseManyNumbers { chooseManyNumbers :: [Int]
-                                           , chooseManyMultiple :: Bool
-                                           , chooseManyTitle :: String }
-                       deriving (Show, Eq)
-
-parseChooseManyNumbers :: PParser ChooseManyNumbers
-parseChooseManyNumbers = do
-  _ <- labeled "CHOOSE:NUMBER"
-  chooseManyNumbers <- parseInteger `sepBy` char '|'
-  chooseManyMultiple <- option False (True <$ labeled "MULTIPLE|")
-  chooseManyTitle <- labeled "|TITLE=" *> parseString
-  return ChooseManyNumbers { .. }
-
--- not fully implemented
-data ChooseSkill = ChoiceSkill String
-                 | ChoiceSkillType String
-                 | ChoiceSkillTitle String
-                   deriving (Show, Eq)
-
-parseChooseSkill :: PParser [ChooseSkill]
-parseChooseSkill = do
-  _ <- labeled "CHOOSE:SKILL|"
-  parseChoice `sepBy` char '|' where
-    parseChoice = ChoiceSkillType <$> (labeled "TYPE=" *> parseString)
-              <|> ChoiceSkillTitle <$> (labeled "TITLE=" *> parseString)
-              <|> ChoiceSkill <$> parseString
 
 data ClassSkillType = CSkillName String
                     | CSkillType String
@@ -670,13 +591,6 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> AutoWeaponProfTag <$> parseAutoWeaponProf
           <|> Damage <$> parseDamage
           <|> SecondaryDamage <$> parseAltDamage
-          <|> ChooseLanguageTag <$> parseChooseLanguage
-          <|> ChooseNumberChoicesTag <$> parseChooseNumChoices
-          -- if this CHOOSE:NUMBER fails, try the next one
-          <|> try (ChooseNumberTag <$> parseChooseNumber)
-          <|> try (ChooseManyNumbersTag <$> parseChooseManyNumbers)
-          <|> ChooseSkillTag <$> parseChooseSkill
-          <|> ChooseNoChoice <$> parseChooseNoChoice
           <|> ClassSkill <$> parseClassSkill
           <|> CompanionListTag <$> parseCompanionList
           <|> ServesAsTag <$> parseServesAs
@@ -694,3 +608,9 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> VisionTag <$> parseVision
           <|> KitTag <$> parseKit
           <|> Unknown <$> parseUnknownTag -- must be the very LAST thing tried
+
+    --   1 CCSKILL with contents
+    --   2 AUTO with contents
+    --   2 FOLLOWERS with contents
+    --   3 CHANGEPROF with contents
+    --   9 SPELLLEVEL with contents

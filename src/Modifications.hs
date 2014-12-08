@@ -9,6 +9,7 @@ import ClassyPrelude
 
 import Restrictions (parseRestriction, RestrictionTag)
 import Lst.GlobalTags (parseGlobal, GlobalTag)
+import Choice (parseChoice, ChoiceTag)
 import Bonus (parseBonus, BonusTag)
 import Clear (parseClear, ClearTag)
 
@@ -23,6 +24,7 @@ data LSTStart a = Name String
 data LSTData a = Start (LSTStart a)
                | Bonus BonusTag
                | Clear ClearTag
+               | Choice ChoiceTag
                | Global GlobalTag
                | Restriction RestrictionTag
                | Specific a
@@ -52,6 +54,7 @@ class LSTObject a where
                  <|> Specific <$> parseSpecificTags
                  <|> Restriction <$> parseRestriction
                  <|> Bonus <$> parseBonus
+                 <|> Choice <$> parseChoice
                  <|> Global <$> parseGlobal -- should be last
 
 parseStart :: PParser (String, Operation)

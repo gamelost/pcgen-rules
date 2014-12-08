@@ -4,8 +4,8 @@ module Lst.EquipmentMod where
 
 import Text.Parsec.Char (char, noneOf, string)
 import Text.Parsec.Combinator (sepBy, many1, option, notFollowedBy)
-import Text.Parsec.Prim (many, try)
-import ClassyPrelude hiding (try)
+import Text.Parsec.Prim (many)
+import ClassyPrelude
 
 import Restrictions (RestrictionTag, parseAdditionalRestrictions)
 import Modifications
@@ -25,14 +25,6 @@ data EquipmentModDefinition = Description String
                             | Replaces [String]
                             | IType [String]
                             | Type [String]
-                            | ChooseNoChoice ()
-                            | ChooseEqBuilder EqBuilder
-                            | ChooseString StringBuilder
-                            | ChooseNumber ()
-                            | ChooseEquipment ()
-                            | ChooseStatBonus ()
-                            | ChooseSkillBonus ()
-                            | ChooseWeaponProfBonus ()
                               deriving Show
 
 data FormatCatType = CatFront
@@ -130,67 +122,6 @@ parseCost = tag "COST" *> parseFormula
 parsePlus :: PParser Int
 parsePlus = tag "PLUS" *> parseInteger
 
-parseChooseNoChoice :: PParser ()
-parseChooseNoChoice = () <$ labeled "CHOOSE:NOCHOICE"
-
--- CHOOSE:EQBUILDER.SPELL|w|x|y|z
---   w is optional text
---   x is optional spell type (not used)
---   y is optional minimum level
---   z is optional maximum level
-data EqBuilder = EqBuilder { eqBuilderText :: Maybe String
-                           , eqBuilderMinimumLevel :: Formula
-                           , eqBuilderMaximumLevel :: Formula }
-               deriving (Show, Eq)
-
-parseChooseEqBuilder :: PParser EqBuilder
-parseChooseEqBuilder = do
-  _ <- labeled "CHOOSE:EQBUILDER.SPELL"
-  eqBuilderText <- tryOption $ char '|' *> parseString <* char '|'
-  eqBuilderMinimumLevel <- option (Number 0) $ parseFormula <* char '|'
-  eqBuilderMaximumLevel <- option (Variable "MAX_LEVEL") parseFormula
-  return EqBuilder { .. }
-
--- CHOOSE:STRING|x|x..|y
---   x is choice to be offered
---   y is TITLE=text
-data StringBuilder = StringBuilder { stringBuilderChoices :: [String]
-                                   , stringBuilderTitle :: String }
-                   deriving (Show, Eq)
-
-parseChooseString :: PParser StringBuilder
-parseChooseString = do
-  _ <- labeled "CHOOSE:STRING|"
-  stringBuilderChoices <- many1 (parseChoiceString <* char '|')
-  stringBuilderTitle <- labeled "TITLE=" *> parseString
-  return StringBuilder { .. } where
-    parseChoiceString = try $ notFollowedBy (labeled "TITLE=") *> parseString
-
--- CHOOSE:NUMBER|v|w|x|y|z
---   not implemented. (NOSIGN/MULTIPLE seems to be undocumented)
-parseChooseNumber :: PParser ()
-parseChooseNumber = () <$ (labeled "CHOOSE:NUMBER|" >> restOfTag)
-
--- CHOOSE:EQUIPMENT
---   not implemented.
-parseChooseEquipment :: PParser ()
-parseChooseEquipment = () <$ (labeled "CHOOSE:EQUIPMENT|" >> restOfTag)
-
--- CHOOSE:STATBONUS|w|x|y|z
---   not implemented.
-parseChooseStatBonus :: PParser ()
-parseChooseStatBonus = () <$ (labeled "CHOOSE:STATBONUS|" >> restOfTag)
-
--- CHOOSE:SKILLBONUS|w|x|y|z
---   not implemented.
-parseChooseSkillBonus :: PParser ()
-parseChooseSkillBonus = () <$ (labeled "CHOOSE:SKILLBONUS|" >> restOfTag)
-
--- CHOOSE:WEAPONPROFICIENCY|x
---   not implemented (or documented).
-parseChooseWeaponProfBonus :: PParser ()
-parseChooseWeaponProfBonus = () <$ (labeled "CHOOSE:WEAPONPROFICIENCY|" >> restOfTag)
-
 parseEquipmentModTag :: PParser EquipmentModDefinition
 parseEquipmentModTag = Description <$> parseDescription
                    <|> Visible <$> parseVisible
@@ -205,14 +136,6 @@ parseEquipmentModTag = Description <$> parseDescription
                    <|> Replaces <$> parseReplaces
                    <|> IType <$> parseIType
                    <|> Type <$> parseType
-                   <|> ChooseNoChoice <$> parseChooseNoChoice
-                   <|> ChooseEqBuilder <$> parseChooseEqBuilder
-                   <|> ChooseString <$> parseChooseString
-                   <|> ChooseNumber <$> parseChooseNumber
-                   <|> ChooseEquipment <$> parseChooseEquipment
-                   <|> ChooseStatBonus <$> parseChooseStatBonus
-                   <|> ChooseSkillBonus <$> parseChooseSkillBonus
-                   <|> ChooseWeaponProfBonus <$> parseChooseWeaponProfBonus
 
 instance LSTObject EquipmentModDefinition where
   parseSpecificTags = parseEquipmentModTag

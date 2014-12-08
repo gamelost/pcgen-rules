@@ -6,7 +6,6 @@ import Text.Parsec.Char (char, satisfy)
 import Text.Parsec.Combinator (sepBy, sepBy1, many1)
 import ClassyPrelude
 
-import Restrictions (RestrictionTag, parseRestriction)
 import Modifications
 import JEPFormula hiding (Add)
 import Common

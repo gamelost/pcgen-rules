@@ -46,6 +46,8 @@ data GlobalTag = KeyStat String
                | AutoLanguageTag AutoLanguage
                | AutoWeaponProfTag [AutoWeaponProf]
                | ClassSkill [ClassSkillType]
+               | CrossClassSkill [CrossClassSkillType]
+               | ChangeProficiency [ChangeProf]
                | CompanionListTag CompanionList
                | ServesAsTag ServesAs
                | SpellTag Spell
@@ -311,6 +313,8 @@ parseAutoWeaponProf = do
                       <|> (labeled "TYPE." >> WeaponType <$> parseString)
                       <|> (WeaponName <$> parseString)
 
+-- CSKILL:x|x
+--   x is skill name or type or ALL, LIST
 data ClassSkillType = CSkillName String
                     | CSkillType String
                     | CSkillAll
@@ -318,13 +322,45 @@ data ClassSkillType = CSkillName String
                       deriving (Show, Eq)
 
 parseClassSkill :: PParser [ClassSkillType]
-parseClassSkill = do
-  _ <- tag "CSKILL"
-  parseCSkill `sepBy` char '|' where
+parseClassSkill = tag "CSKILL" *> parseCSkill `sepBy` char '|' where
     parseCSkill = (CSkillAll <$ labeled "ALL")
               <|> (CSkillList <$ labeled "LIST")
               <|> (labeled "TYPE=" >> CSkillType <$> parseString)
               <|> CSkillName <$> parseString
+
+-- CCSKILL:x|x
+--   x is skill name or type or LIST
+data CrossClassSkillType = CCSkillName String
+                         | CCSkillType String
+                         | CCSkillList
+                           deriving (Show, Eq)
+
+parseCClassSkill :: PParser [CrossClassSkillType]
+parseCClassSkill = tag "CCSKILL" *> parseCSkill `sepBy` char '|' where
+    parseCSkill = (CCSkillList <$ labeled "LIST")
+              <|> (labeled "TYPE=" >> CCSkillType <$> parseString)
+              <|> CCSkillName <$> parseString
+
+-- CHANGEPROF:x,x=y|x,x=y
+--   x is weapon name or type
+--   y is category of proficiency to change to
+data ChangeProficiencyWeaponType = ProficiencyWeaponName String
+                                 | ProficiencyWeaponType String
+                                   deriving (Show, Eq)
+
+data ChangeProf = ChangeProf { changeProficiencyWeaponType :: [ChangeProficiencyWeaponType]
+                             , changeProficiencyWeaponTypeTo :: String }
+                deriving (Show, Eq)
+
+parseChangeProf :: PParser [ChangeProf]
+parseChangeProf = tag "CHANGEPROF" *> parseChangeProfSeries `sepBy` char '|' where
+  parseChangeProfSeries = do
+    changeProficiencyWeaponType <- parseChangeType `sepBy` char ','
+    _ <- char '='
+    changeProficiencyWeaponTypeTo <- parseString
+    return ChangeProf { .. }
+  parseChangeType = (labeled "TYPE." *> (ProficiencyWeaponType <$> parseStringNoCommas))
+                <|> (ProficiencyWeaponName <$> parseStringNoCommas)
 
 -- COMPANIONLIST:x|y,y,...|z
 --   x is companion type
@@ -592,6 +628,8 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> Damage <$> parseDamage
           <|> SecondaryDamage <$> parseAltDamage
           <|> ClassSkill <$> parseClassSkill
+          <|> CrossClassSkill <$> parseCClassSkill
+          <|> ChangeProficiency <$> parseChangeProf
           <|> CompanionListTag <$> parseCompanionList
           <|> ServesAsTag <$> parseServesAs
           <|> DamageReduction <$> parseDR
@@ -608,9 +646,3 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> VisionTag <$> parseVision
           <|> KitTag <$> parseKit
           <|> Unknown <$> parseUnknownTag -- must be the very LAST thing tried
-
-    --   1 CCSKILL with contents
-    --   2 AUTO with contents
-    --   2 FOLLOWERS with contents
-    --   3 CHANGEPROF with contents
-    --   9 SPELLLEVEL with contents

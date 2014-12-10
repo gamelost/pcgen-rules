@@ -22,6 +22,7 @@ data ChoiceTag = ChooseLanguageTag [ChooseLanguage]
                | ChooseEqBuilder EqBuilder
                | ChooseSchools [ChooseSchoolType]
                | ChooseString StringBuilder
+               | ChoosePCStat [PCStat]
                | ChooseUserInput UserInput
                -- stubbed out
                | ChooseSpells ()
@@ -145,6 +146,21 @@ parseChooseSchools = labeled "CHOOSE:SCHOOLS|" *> parseSchoolTypes `sepBy` char 
                  <|> (AllSchools <$ labeled "ALL")
                  <|> (SchoolName <$> parseString)
 
+-- CHOOSE:PCSTAT|x|x|...
+-- x is stat abbrevation, stat type or ALL
+data PCStat = StatAbbrevation String
+            | StatType String
+            | NotStatType String
+            | AllStats
+              deriving (Show, Eq)
+
+parseChoosePCStat :: PParser [PCStat]
+parseChoosePCStat = labeled "CHOOSE:PCSTAT|" *> parsePCStat `sepBy` char '|' where
+  parsePCStat = (labeled "TYPE=" *> (StatType <$> parseString))
+            <|> (labeled "!TYPE=" *> (NotStatType <$> parseString))
+            <|> (AllStats <$ labeled "ALL")
+            <|> (StatAbbrevation <$> parseString)
+
 -- CHOOSE:STRING|x|x..|y
 --   x is choice to be offered
 --   y is TITLE=text
@@ -249,6 +265,7 @@ parseChoice = ChooseLanguageTag <$> parseChooseLanguage
           <|> ChooseNoChoice <$> parseChooseNoChoice
           <|> ChooseEqBuilder <$> parseChooseEqBuilder
           <|> ChooseString <$> parseChooseString
+          <|> ChoosePCStat <$> parseChoosePCStat
           <|> ChooseUserInput <$> parseChooseUserInput
           <|> ChooseSchools <$> parseChooseSchools
           <|> ChooseSpells <$> parseChooseSpells

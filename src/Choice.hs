@@ -17,7 +17,9 @@ data ChoiceTag = ChooseLanguageTag [ChooseLanguage]
                | ChooseNoChoice ()
                | ChooseSkillTag [ChooseSkill]
                | ChooseEqBuilder EqBuilder
+               | ChooseSchools [ChooseSchoolType]
                | ChooseString StringBuilder
+               | ChooseUserInput UserInput
                | ChooseEquipment ()
                | ChooseStatBonus ()
                | ChooseSkillBonus ()
@@ -117,6 +119,19 @@ parseChooseEqBuilder = do
   eqBuilderMaximumLevel <- option (Variable "MAX_LEVEL") parseFormula
   return EqBuilder { .. }
 
+-- CHOOSE:SCHOOLS|x|x|..
+--   x is school name or feat or ALL
+data ChooseSchoolType = SchoolName String
+                      | FeatName String
+                      | AllSchools
+                        deriving (Show, Eq)
+
+parseChooseSchools :: PParser [ChooseSchoolType]
+parseChooseSchools = labeled "CHOOSE:SCHOOLS|" *> parseSchoolTypes `sepBy` char '|' where
+  parseSchoolTypes = (labeled "FEAT=" *> (FeatName <$> parseString))
+                 <|> (AllSchools <$ labeled "ALL")
+                 <|> (SchoolName <$> parseString)
+
 -- CHOOSE:STRING|x|x..|y
 --   x is choice to be offered
 --   y is TITLE=text
@@ -132,6 +147,19 @@ parseChooseString = do
   return StringBuilder { .. } where
     parseChoiceString = try $ notFollowedBy (labeled "TITLE=") *> parseString
 
+-- CHOOSE:USERINPUT|x|y
+--   x is number of inputs
+--   y is chooser dialog title
+data UserInput = UserInput { numberOfInputs :: Int
+                           , userInputTitle :: String }
+                   deriving (Show, Eq)
+
+parseChooseUserInput :: PParser UserInput
+parseChooseUserInput = do
+  _ <- labeled "CHOOSE:USERINPUT|"
+  numberOfInputs <- parseInteger
+  userInputTitle <- labeled "TITLE=" *> parseString
+  return UserInput { .. }
 -- CHOOSE:EQUIPMENT
 --   not implemented.
 parseChooseEquipment :: PParser ()
@@ -162,6 +190,8 @@ parseChoice = ChooseLanguageTag <$> parseChooseLanguage
           <|> ChooseNoChoice <$> parseChooseNoChoice
           <|> ChooseEqBuilder <$> parseChooseEqBuilder
           <|> ChooseString <$> parseChooseString
+          <|> ChooseUserInput <$> parseChooseUserInput
+          <|> ChooseSchools <$> parseChooseSchools
           <|> ChooseEquipment <$> parseChooseEquipment
           <|> ChooseStatBonus <$> parseChooseStatBonus
           <|> ChooseSkillBonus <$> parseChooseSkillBonus

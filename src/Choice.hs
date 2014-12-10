@@ -10,6 +10,9 @@ import ClassyPrelude hiding (try)
 import JEPFormula
 import Common
 
+-- most of the parsers are stubbed out -- not sure how to deal with
+-- choices in general atm.
+
 data ChoiceTag = ChooseLanguageTag [ChooseLanguage]
                | ChooseNumberChoicesTag Choices
                | ChooseNumberTag ChooseNumber
@@ -20,10 +23,20 @@ data ChoiceTag = ChooseLanguageTag [ChooseLanguage]
                | ChooseSchools [ChooseSchoolType]
                | ChooseString StringBuilder
                | ChooseUserInput UserInput
+               -- stubbed out
+               | ChooseSpells ()
+               | ChooseSpellLevel ()
+               | ChooseAbility ()
+               | ChooseClass ()
                | ChooseEquipment ()
+               | ChooseFeat ()
+               | ChooseFeatSelection ()
                | ChooseStatBonus ()
                | ChooseSkillBonus ()
+               | ChooseRace ()
+               | ChooseArmorProfBonus ()
                | ChooseWeaponProfBonus ()
+               | ChooseShieldProfBonus ()
                  deriving (Show, Eq)
 
 -- not fully implemented
@@ -160,10 +173,41 @@ parseChooseUserInput = do
   numberOfInputs <- parseInteger
   userInputTitle <- labeled "TITLE=" *> parseString
   return UserInput { .. }
+
+-- CHOOSE:ABILITY|w|x|y|y[x]|y[x,x]|x,y,y[x],y[x,x]
+--   not implemented.
+parseChooseAbility :: PParser ()
+parseChooseAbility = () <$ (labeled "CHOOSE:ABILITY|" >> restOfTag)
+
+-- CHOOSE:CLASS|x|y|y[x]|y[x,x]|x,y,y[x],y[x,x]
+--   not implemented.
+parseChooseClass :: PParser ()
+parseChooseClass = () <$ (labeled "CHOOSE:CLASS|" >> restOfTag)
+
 -- CHOOSE:EQUIPMENT
 --   not implemented.
 parseChooseEquipment :: PParser ()
 parseChooseEquipment = () <$ (labeled "CHOOSE:EQUIPMENT|" >> restOfTag)
+
+-- CHOOSE:FEAT|w|x|y|y[x]|y[x,x]|x,y,y[x],y[x,x]
+--   not implemented.
+parseChooseFeat :: PParser ()
+parseChooseFeat = () <$ (labeled "CHOOSE:FEAT|" >> restOfTag)
+
+-- CHOOSE:FEATSELECTION|w|x|y|y[z]|y[x,x]|x,y,y[x],y[x,x]
+--   not implemented.
+parseChooseFeatSelection :: PParser ()
+parseChooseFeatSelection = () <$ (labeled "CHOOSE:FEATSELECTION|" >> restOfTag)
+
+-- CHOOSE:SPELLS|x,y,y[z]|x|y|y[z;z]
+--   not implemented.
+parseChooseSpells :: PParser ()
+parseChooseSpells = () <$ (labeled "CHOOSE:SPELLS|" >> restOfTag)
+
+-- CHOOSE:SPELLLEVEL|w|x|y|z|x|y|z
+--   not implemented.
+parseChooseSpellLevel :: PParser ()
+parseChooseSpellLevel = () <$ (labeled "CHOOSE:SPELLLEVEL|" >> restOfTag)
 
 -- CHOOSE:STATBONUS|w|x|y|z
 --   not implemented.
@@ -175,10 +219,25 @@ parseChooseStatBonus = () <$ (labeled "CHOOSE:STATBONUS|" >> restOfTag)
 parseChooseSkillBonus :: PParser ()
 parseChooseSkillBonus = () <$ (labeled "CHOOSE:SKILLBONUS|" >> restOfTag)
 
+-- CHOOSE:RACE|x|y|y[x]|y[x,x]|x,y,y[x],y[x,x]
+--   not implemented.
+parseChooseRace :: PParser ()
+parseChooseRace = () <$ (labeled "CHOOSE:RACE|" >> restOfTag)
+
+-- CHOOSE:ARMORPROFICIENCY|x
+--   not implemented (or documented).
+parseChooseArmorProfBonus :: PParser ()
+parseChooseArmorProfBonus = () <$ (labeled "CHOOSE:ARMORPROFICIENCY|" >> restOfTag)
+
 -- CHOOSE:WEAPONPROFICIENCY|x
 --   not implemented (or documented).
 parseChooseWeaponProfBonus :: PParser ()
 parseChooseWeaponProfBonus = () <$ (labeled "CHOOSE:WEAPONPROFICIENCY|" >> restOfTag)
+
+-- CHOOSE:SHIELDPROFICIENCY|x
+--   not implemented (or documented).
+parseChooseShieldProfBonus :: PParser ()
+parseChooseShieldProfBonus = () <$ (labeled "CHOOSE:SHIELDPROFICIENCY|" >> restOfTag)
 
 parseChoice :: PParser ChoiceTag
 parseChoice = ChooseLanguageTag <$> parseChooseLanguage
@@ -192,7 +251,16 @@ parseChoice = ChooseLanguageTag <$> parseChooseLanguage
           <|> ChooseString <$> parseChooseString
           <|> ChooseUserInput <$> parseChooseUserInput
           <|> ChooseSchools <$> parseChooseSchools
+          <|> ChooseSpells <$> parseChooseSpells
+          <|> ChooseSpellLevel <$> parseChooseSpellLevel
+          <|> ChooseAbility <$> parseChooseAbility
+          <|> ChooseClass <$> parseChooseClass
           <|> ChooseEquipment <$> parseChooseEquipment
+          <|> ChooseFeat <$> parseChooseFeat
+          <|> ChooseFeatSelection <$> parseChooseFeatSelection
           <|> ChooseStatBonus <$> parseChooseStatBonus
           <|> ChooseSkillBonus <$> parseChooseSkillBonus
+          <|> ChooseRace <$> parseChooseRace
+          <|> ChooseArmorProfBonus <$> parseChooseArmorProfBonus
           <|> ChooseWeaponProfBonus <$> parseChooseWeaponProfBonus
+          <|> ChooseShieldProfBonus <$> parseChooseShieldProfBonus

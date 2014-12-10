@@ -44,6 +44,7 @@ data GlobalTag = KeyStat String
                | AutoEquipTag [String]
                | AutoFeatTag AutoFeat
                | AutoLanguageTag AutoLanguage
+               | AutoShieldProfTag [AutoShieldProf]
                | AutoWeaponProfTag [AutoWeaponProf]
                | ClassSkill [ClassSkillType]
                | CrossClassSkill [CrossClassSkillType]
@@ -54,6 +55,7 @@ data GlobalTag = KeyStat String
                | SpellsKnown [SpellKnown]
                | Damage [Roll]
                | SecondaryDamage [Roll]
+               | FollowersTag Followers
                | CriticalRange Int
                | KitTag Kit
                | Unknown (String, String)
@@ -297,6 +299,19 @@ parseAutoFeat = do
   featRestrictions <- option [] parseAdditionalRestrictions
   return AutoFeat { .. }
 
+-- AUTO:SHIELDPROF|x|x...
+--   x is weapon name, type or deity's favored weapon
+data AutoShieldProf = ShieldName String
+                    | ShieldType String
+                      deriving (Show, Eq)
+
+parseAutoShieldProf :: PParser [AutoShieldProf]
+parseAutoShieldProf = do
+  _ <- labeled "AUTO:SHIELDPROF|"
+  parseAutoShieldProfType `sepBy` char '|' where
+    parseAutoShieldProfType = (labeled "SHIELDTYPE=" >> ShieldType <$> parseString)
+                          <|> (ShieldName <$> parseString)
+
 -- AUTO:WEAPONPROF|x|x...
 --   x is weapon name, type or deity's favored weapon
 data AutoWeaponProf = WeaponName String
@@ -443,6 +458,20 @@ parseDR = do
   _ <- char '/'
   damageReductionText <- parseString
   return DamageReductionType { .. }
+
+-- FOLLOWERS:x|y
+--   x is text
+--   y is formula
+data Followers = Followers { followerType :: String
+                           , followerFormula :: Formula }
+               deriving (Show, Eq)
+
+parseFollowers :: PParser Followers
+parseFollowers = do
+  _ <- tag "FOLLOWERS"
+  followerType <- parseString <* char '|'
+  followerFormula <- parseFormula
+  return Followers { .. }
 
 -- NATURALATTACKS:v,w.w,x,y,z|v,w.w,x,y,z
 --   v is natural weapon name
@@ -624,9 +653,11 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> AutoEquipTag <$> parseAutoEquip
           <|> AutoFeatTag <$> parseAutoFeat
           <|> AutoLanguageTag <$> parseAutoLanguage
+          <|> AutoShieldProfTag <$> parseAutoShieldProf
           <|> AutoWeaponProfTag <$> parseAutoWeaponProf
           <|> Damage <$> parseDamage
           <|> SecondaryDamage <$> parseAltDamage
+          <|> FollowersTag <$> parseFollowers
           <|> ClassSkill <$> parseClassSkill
           <|> CrossClassSkill <$> parseCClassSkill
           <|> ChangeProficiency <$> parseChangeProf

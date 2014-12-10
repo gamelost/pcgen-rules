@@ -2,11 +2,12 @@
 pcgen-rules
 ===========
 
-pcgen-rules extracts and processes the rules and data from [PCGen](http://pcgen.sourceforge.net/01_overview.php) in order to make them more accessible to other services or programs.
+pcgen-rules is an Haskell library to extract and process the rules and data from
+[PCGen](http://pcgen.sourceforge.net/01_overview.php).
 
 You will need the PCGen data files in a separate directory. Edit the `Makefile` accordingly if you use a directory other than `data/`.
 
-Currently the code just parses `.pcc` and `.lst` files; this is still a work in progress. See [todo.org](todo.org) for a more detailed listing of what needs to be done. (I have begun the process of cleaning up the PCGen data as certain parts were too messy to deal with. Ping me if you want an updated data/ listing; I plan to push this listing upstream eventually.)
+Currently the code just parses `.pcc` and `.lst` files; this is still a work in progress. See [todo.org](todo.org) for a more detailed listing of what needs to be done.
 
 `.lst` file parsing status:
 

@@ -7,6 +7,7 @@ regex = re.compile(r'([^ ]+) \(line (\d+), column (\d+)\)')
 for line in lines:
     try:
         filename, line, column = regex.findall(line)[0]
+        print('filename:', filename)
         line = int(line)
         column = int(column)
         target = open(filename, 'r+').readlines()[line-1]
@@ -26,6 +27,8 @@ for line in lines:
         if starting == -1: starting = 0
         if ending == -1: ending = len(target)
         assert(starting <= index <= ending)
-        print(filename, '\n\terror:', target[starting:ending].strip())
+        print('\terror:', target[starting:ending].strip())
     except IndexError:
         print('error:', line)
+    except UnicodeDecodeError as err:
+        print('unicode error:', err)

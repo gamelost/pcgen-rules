@@ -512,7 +512,7 @@ parseSpecialAbilityName = do
   _ <- tag "SAB"
   parseStringNoBrackets `sepBy` char '|' where
     -- allow commas.
-    parseStringNoBrackets = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()~"
+    parseStringNoBrackets = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()~-+"
 
 -- SERVESAS:x|y|y
 --   x is ABILITY category, CLASS, RACE, or SKILL

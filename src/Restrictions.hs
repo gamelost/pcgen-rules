@@ -51,6 +51,8 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreSpellSchoolRestriction PreSpellSchool
                     | PreSpellSchoolSubRestriction PreSpellSchoolSub
                     | PreSpellTypeRestriction PreSpellType
+                    | PreProficencyArmorRestriction PreProficiency
+                    | PreProficencyShieldRestriction PreProficiency
                     | PrePCLevelRestriction PrePCLevel
                     | PreSkillTotalRestriction PreSkillTot
                     | PreVisionRestriction PreVision
@@ -475,6 +477,33 @@ parsePrePCLevel = do
   requiredPCLevelMax <- tryOption (labeled "MAX=" *> parseFormula)
   let _ = assert (isJust requiredPCLevelMin || isJust requiredPCLevelMax)
   return PrePCLevel { .. }
+
+-- PREPROFWITHARMOR:x,y,y,...
+-- PREPROFWITHSHIELD:x,y,y,...
+--   x is number of proficiencies needed
+--   y is name or type of proficiency
+data ProficiencyType = ProficiencyType String
+                     | ProficiencyName String
+                       deriving (Show, Eq)
+
+data PreProficiency = PreProficiency { numberOfProficiencies :: Int
+                                     , proficencyTypes :: [ProficiencyType] }
+                      deriving (Show, Eq)
+
+parsePreProficency :: String -> PParser PreProficiency
+parsePreProficency tagName = do
+  _ <- tag tagName
+  numberOfProficiencies <- parseInteger <* char ','
+  proficencyTypes <- parseProficiencies `sepBy` char ','
+  return PreProficiency { .. } where
+    parseProficiencies = (labeled "TYPE." *> (ProficiencyType <$> parseStringNoCommas))
+                     <|> (ProficiencyName <$> parseStringNoCommas)
+
+parsePreProfWithArmor :: PParser PreProficiency
+parsePreProfWithArmor = parsePreProficency "PREPROFWITHARMOR"
+
+parsePreProfWithShield :: PParser PreProficiency
+parsePreProfWithShield = parsePreProficency "PREPROFWITHSHIELD"
 
 -- PRERACE:x,y,y...
 --   x is number of racial properties
@@ -943,6 +972,8 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreTextRestriction <$> parsePreText
                        <|> PreTemplateRestriction <$> parsePreTemplate
                        <|> PreTotalAttackBonus <$> parsePreTotalAB
+                       <|> PreProficencyArmorRestriction <$> parsePreProfWithArmor
+                       <|> PreProficencyShieldRestriction <$> parsePreProfWithShield
                        <|> PrePCLevelRestriction <$> parsePrePCLevel
                        <|> PreVisionRestriction <$> parsePreVision
                        <|> PreWeaponProfRestriction <$> parsePreWeaponProf

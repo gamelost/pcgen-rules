@@ -2,7 +2,7 @@
 
 module Choice where
 
-import Text.Parsec.Char (char, string, satisfy)
+import Text.Parsec.Char (char, satisfy)
 import Text.Parsec.Combinator (sepBy, many1, notFollowedBy, option)
 import Text.Parsec.Prim (try)
 import ClassyPrelude hiding (try)
@@ -56,20 +56,28 @@ parseChooseNoChoice :: PParser ()
 parseChooseNoChoice = () <$ labeled "CHOOSE:NOCHOICE"
 
 -- not fully implemented
+data ChoiceType = AllChoices
+                | ChoiceType String
+                | ChoiceTitle String -- this is probably incorrect
+                | ChoiceName String
+                  deriving (Show, Eq)
+
 data Choices = Choices { choiceNumber :: Int
-                       , choices :: [String]
-                       , choiceType :: [String] }
+                       , choiceSelection :: String
+                       , choices :: [ChoiceType] }
                    deriving (Show, Eq)
 
 parseChooseNumChoices :: PParser Choices
 parseChooseNumChoices = do
   _ <- labeled "CHOOSE:NUMCHOICES="
-  choiceNumber <- parseInteger
-  choices <- many1 $ try (char '|' *> parseChoiceString)
-  choiceType <- many1 $ (labeled "|TYPE=" *> parseString)
+  choiceNumber <- parseInteger <* char '|'
+  choiceSelection <- parseString <* char '|'
+  choices <- parseChoiceString `sepBy` char '|'
   return Choices { .. } where
-    parseChoiceString = disallowed *> parseString
-    disallowed = notFollowedBy (string "TYPE")
+    parseChoiceString = AllChoices <$ labeled "ALL"
+                    <|> (labeled "TYPE=" *> (ChoiceType <$> parseString))
+                    <|> (labeled "TITLE=" *> (ChoiceTitle <$> parseString))
+                    <|> (ChoiceName <$> parseString)
 
 -- not fully implemented
 -- CHOOSE:NUMBER|v|w|x|y|z

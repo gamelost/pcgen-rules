@@ -58,6 +58,8 @@ data Formula = Number Int
              | Floating Float
              | Variable String
              | LookupSkill (SkillType, String)
+             | CharBonusTo (String, String)
+             | ClassLevel String
              | Function String [Formula]
              | Group Formula
              | Negate Formula
@@ -118,6 +120,12 @@ evalJEPFormulae _ (Number x) = toRational x
 evalJEPFormulae _ (Floating x) = toRational x
 evalJEPFormulae _ (LookupSkill _) =
   warning "evaluating skillinfo() is not implemented"
+  0
+evalJEPFormulae _ (CharBonusTo _) =
+  warning "evaluating charbonusto() is not implemented"
+  0
+evalJEPFormulae _ (ClassLevel _) =
+  warning "evaluating classlevel() is not implemented"
   0
 evalJEPFormulae vars (Negate f) =
   negate $ evalJEPFormulae vars f
@@ -215,6 +223,19 @@ parseMasterVarFunction = Variable <$> parseMasterVar where
   parseMasterVar = (labeled "mastervar(" >> parseQuotedString <* labeled ")")
                <|> (labeled "MASTERVAR(" >> parseQuotedString <* labeled ")")
 
+parseCharBonusToFunction :: PParser Formula
+parseCharBonusToFunction = do
+  prop <- labeled "charbonusto(" *> parseQuotedString
+  _ <- char ',' >> many space
+  var <- parseQuotedString <* char ')'
+  return $ CharBonusTo (prop, var)
+
+parseClassLevelFunction :: PParser Formula
+parseClassLevelFunction = do
+  prop <- labeled "classlevel(" *> parseQuotedString
+  _ <- many space <* char ')'
+  return $ ClassLevel prop
+
 -- treat the skillinfo() function specially
 parseSkillInfoFunction :: PParser Formula
 parseSkillInfoFunction = do
@@ -268,6 +289,8 @@ parseExpression = try parseFunction
               <|> try parseVarFunction
               <|> try parseMasterVarFunction
               <|> try parseSkillInfoFunction
+              <|> try parseCharBonusToFunction
+              <|> try parseClassLevelFunction
               <|> try parseFloating
               <|> try parseNumber
               <|> try parseVariable

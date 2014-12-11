@@ -507,7 +507,6 @@ parseNaturalAttacks = do
     parseInt = textToInt <$> manyNumbers
     parseStringNoPeriods = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+/:?!%#'()[]~"
 
--- still not correct
 data SpecialAbilityType = SpecialAbilityDescription String
                         | SpecialAbilityFormula Formula
                         deriving (Show, Eq)
@@ -520,15 +519,14 @@ parseSpecialAbilityName :: PParser SpecialAbility
 parseSpecialAbilityName = do
   _ <- tag "SAB"
   firstAbility <- SpecialAbilityDescription <$> untilEnd
-  _ <- optional $ char '|' -- ugh
-  restAbilities <- parseSpecialAbility `sepBy` char '|'
+  restAbilities <- many $ try (char '|' *> parseSpecialAbility)
   specialAbilityRestrictions <- option [] parseAdditionalRestrictions
   let specialAbilityType = firstAbility : restAbilities
   return SpecialAbility { .. } where
     parseSpecialAbility = try (notFollowedBy (string "PRE") *> parseSpecialAbilityType)
     parseSpecialAbilityType = try (SpecialAbilityFormula <$> parseFormula)
                           <|> try (SpecialAbilityDescription <$> untilEnd)
-    untilEnd = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()~+[]="
+    untilEnd = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:;?!%#'()~+[]="
 
 -- SERVESAS:x|y|y
 --   x is ABILITY category, CLASS, RACE, or SKILL

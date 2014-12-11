@@ -58,15 +58,15 @@ parseChooseNoChoice = () <$ labeled "CHOOSE:NOCHOICE"
 -- not fully implemented
 data Choices = Choices { choiceNumber :: Int
                        , choices :: [String]
-                       , choiceType :: Maybe String }
+                       , choiceType :: [String] }
                    deriving (Show, Eq)
 
 parseChooseNumChoices :: PParser Choices
 parseChooseNumChoices = do
   _ <- labeled "CHOOSE:NUMCHOICES="
-  choiceNumber <- textToInt <$> manyNumbers
+  choiceNumber <- parseInteger
   choices <- many1 $ try (char '|' *> parseChoiceString)
-  choiceType <- tryOption (labeled "|TYPE=" *> parseString)
+  choiceType <- many1 $ (labeled "|TYPE=" *> parseString)
   return Choices { .. } where
     parseChoiceString = disallowed *> parseString
     disallowed = notFollowedBy (string "TYPE")

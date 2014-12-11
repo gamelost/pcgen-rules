@@ -53,6 +53,8 @@ data GlobalTag = KeyStat String
                | ServesAsTag ServesAs
                | SpellTag Spell
                | SpellsKnown [SpellKnown]
+               | SpellLevelDomainTag SpellLevelDomain
+               | SpellLevelClassTag SpellLevelClass
                | Damage [Roll]
                | SecondaryDamage [Roll]
                | FollowersTag Followers
@@ -603,6 +605,60 @@ parseSpellsKnownClass = do
     parseSpellType = labeled "SPELLCASTER." *> (SpellCaster <$> parseString)
                  <|> (ClassName <$> parseString)
 
+-- SPELLLEVEL:v|w=x|y|w=x|y|z|z
+--   v is DOMAIN or CLASS
+--   w is domain or class name or spell caster type
+--   x is spell level number
+--   y is spell list
+--   z are restriction tags
+data SpellLevelDomainList = SpellLevelDomainList { domainName :: String
+                                                 , domainLevel :: Int
+                                                 , domainSpell :: String }
+                          deriving (Show, Eq)
+
+data SpellLevelDomain = SpellLevelDomain { spellLevelDomainList :: [SpellLevelDomainList]
+                                         , spellLevelDomainRestrictions :: [RestrictionTag] }
+                      deriving (Show, Eq)
+
+parseSpellLevelDomain :: PParser SpellLevelDomain
+parseSpellLevelDomain = do
+  _ <- labeled "SPELLLEVEL:DOMAIN|"
+  spellLevelDomainList <- parseDomainList `sepBy` char '|'
+  spellLevelDomainRestrictions <- option [] parseAdditionalRestrictions
+  return SpellLevelDomain { .. } where
+    parseDomainList = do
+      domainName <- parseString <* char '='
+      domainLevel <- parseInteger <* char '|'
+      domainSpell <- parseString
+      return SpellLevelDomainList { .. }
+
+data SpellLevelClassType = SpellLevelClassName String
+                         | SpellLevelSpellCaster String
+                           deriving (Show, Eq)
+
+data SpellLevelClassList = SpellLevelClassList { className :: SpellLevelClassType
+                                               , classLevel :: Int
+                                               , classSpell :: String }
+                           deriving (Show, Eq)
+
+data SpellLevelClass = SpellLevelClass { spellLevelClassList :: [SpellLevelClassList]
+                                       , spellLevelClassRestrictions :: [RestrictionTag] }
+                       deriving (Show, Eq)
+
+parseSpellLevelClass :: PParser SpellLevelClass
+parseSpellLevelClass = do
+  _ <- labeled "SPELLLEVEL:CLASS|"
+  spellLevelClassList <- parseClassList `sepBy` char '|'
+  spellLevelClassRestrictions <- option [] parseAdditionalRestrictions
+  return SpellLevelClass { .. } where
+    parseClassList = do
+      className <- parseClassType <* char '='
+      classLevel <- parseInteger <* char '|'
+      classSpell <- parseString
+      return SpellLevelClassList { .. }
+    parseClassType = (labeled "SPELLCASTER." *> (SpellLevelSpellCaster <$> parseString))
+                 <|> (SpellLevelClassName <$> parseString)
+
 -- UDAM:x,x,x...
 --   x is text (either 1 or 9)
 parseUnarmedDamage :: PParser [String]
@@ -667,6 +723,8 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> SpellResistance <$> parseSR
           <|> SpellTag <$> parseSpells
           <|> SpellsKnown <$> parseSpellsKnownClass
+          <|> SpellLevelDomainTag <$> parseSpellLevelDomain
+          <|> SpellLevelClassTag <$> parseSpellLevelClass
           <|> SpecialAbilityTag <$> parseSpecialAbilityName
           <|> UnarmedDamage <$> parseUnarmedDamage
           <|> NaturalAttacksTag <$> parseNaturalAttacks

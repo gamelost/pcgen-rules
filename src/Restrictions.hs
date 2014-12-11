@@ -53,6 +53,7 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreSpellTypeRestriction PreSpellType
                     | PrePCLevelRestriction PrePCLevel
                     | PreSkillTotalRestriction PreSkillTot
+                    | PreVisionRestriction PreVision
                     | PreWeaponProfRestriction PreWeaponProf
                     | PreWieldRestriction PreWield
                     | PreRuleRestriction PreRule
@@ -830,6 +831,30 @@ parsePreVar = do
     parsePreVarType = PreVarFormula <$> try parseFormula
                   <|> PreVarText <$> parseStringNoCommasBrackets
 
+-- PREVISION:x,y=z,y=z
+--   x is number of matching vision types
+--   y is vision type
+--   z is number or ANY
+data PreVisionType = Vision String Int
+                   | AnyVision
+                     deriving (Show, Eq)
+
+data PreVision = PreVision { preVisionNumber :: Int
+                           , preVisionTypes :: [PreVisionType] }
+               deriving (Show, Eq)
+
+parsePreVision :: PParser PreVision
+parsePreVision = do
+  _ <- tag "PREVISION"
+  preVisionNumber <- parseInteger <* char ','
+  preVisionTypes <- parsePreVisionTypes `sepBy` char ','
+  return PreVision { .. } where
+    parsePreVisionTypes = AnyVision <$ labeled "ANY"
+                      <|> parseStandardVision
+    parseStandardVision = do
+      (c, v) <- parseCheckValues
+      return $ Vision c v
+
 -- PREWEAPONPROF:x,y,y...
 --   x is number of matching proficiencies
 --   y is name or type or DEITYWEAPON
@@ -919,6 +944,7 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreTemplateRestriction <$> parsePreTemplate
                        <|> PreTotalAttackBonus <$> parsePreTotalAB
                        <|> PrePCLevelRestriction <$> parsePrePCLevel
+                       <|> PreVisionRestriction <$> parsePreVision
                        <|> PreWeaponProfRestriction <$> parsePreWeaponProf
                        <|> PreWieldRestriction <$> parsePreWield
                        <|> PreSkillTotalRestriction <$> parsePreSkillTotal

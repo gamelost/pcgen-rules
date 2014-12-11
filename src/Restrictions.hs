@@ -302,12 +302,12 @@ data PreFeat = PreFeat { featNumber :: Int
 
 parsePreFeat :: PParser PreFeat
 parsePreFeat = do
-  n <- tag "PREFEAT" >> manyNumbers
-  _ <- char ','
+  _ <- tag "PREFEAT"
+  featNumber <- parseInteger <* char ','
   countSeparately <- option False (True <$ labeled "CHECKMULT,")
   feats <- parseFeat `sepBy` char ','
   let cannotHave = False -- not implemented
-  return PreFeat { featNumber = textToInt n, .. } where
+  return PreFeat { .. } where
     parseFeat = FeatType <$> (labeled "TYPE=" >> parseStringNoCommasBrackets)
             <|> FeatName <$> parseStringNoCommasBrackets
 
@@ -496,8 +496,8 @@ parsePreProficency tagName = do
   numberOfProficiencies <- parseInteger <* char ','
   proficencyTypes <- parseProficiencies `sepBy` char ','
   return PreProficiency { .. } where
-    parseProficiencies = (labeled "TYPE." *> (ProficiencyType <$> parseStringNoCommas))
-                     <|> (ProficiencyName <$> parseStringNoCommas)
+    parseProficiencies = (labeled "TYPE." *> (ProficiencyType <$> parseStringNoCommasBrackets))
+                     <|> (ProficiencyName <$> parseStringNoCommasBrackets)
 
 parsePreProfWithArmor :: PParser PreProficiency
 parsePreProfWithArmor = parsePreProficency "PREPROFWITHARMOR"
@@ -560,7 +560,7 @@ parsePreSA :: PParser PreSA
 parsePreSA = do
   _ <- tag "PRESA"
   preSANumber <- parseInteger <* char ','
-  preSATypes <- parseStringNoCommas `sepBy` char ','
+  preSATypes <- parseStringNoCommasBrackets `sepBy` char ','
   return PreSA { .. }
 
 -- PRESIZEx:y
@@ -649,7 +649,7 @@ parsePreSpell :: PParser PreSpell
 parsePreSpell = do
   _ <- tag "PRESPELL"
   preSpellNumber <- parseInteger <* char ','
-  preSpells <- parseStringNoCommas `sepBy` char ','
+  preSpells <- parseStringNoCommasBrackets `sepBy` char ','
   return PreSpell { .. }
 
 -- PRESPELLBOOK:x
@@ -669,7 +669,7 @@ parsePreSpellCast :: PParser [PreSpellCast]
 parsePreSpellCast = tag "PRESPELLCAST" *> parsePreSpellCastType `sepBy` char ',' where
   parsePreSpellCastType = (MustMemorize <$ labeled "MEMORIZE=Y")
                       <|> (DoNotHaveToMemorize <$ labeled "MEMORIZE=N")
-                      <|> (labeled "TYPE=" *> (SpellType <$> parseStringNoCommas))
+                      <|> (labeled "TYPE=" *> (SpellType <$> parseStringNoCommasBrackets))
 
 -- PRESPELLDESCRIPTOR:x,y=z,y=z,...
 --   x is number of spells known
@@ -727,7 +727,7 @@ parsePreSpellSchoolSub = do
 data PreSpellTypeType = Arcane Int
                       | Divine Int
                       | Psionic Int
-                      | AnySpellType
+                      | AnySpellType Int
                         deriving (Show, Eq)
 
 data PreSpellType = PreSpellType { preSpellTypeNumber :: Int
@@ -740,7 +740,8 @@ parsePreSpellType = do
   preSpellTypeNumber <- parseInteger <* char ','
   preSpellTypes <- parsePreSpellTypes `sepBy` char ','
   return PreSpellType { .. } where
-    parsePreSpellTypes = (AnySpellType <$ labeled "ANY")
+    parsePreSpellTypes = AnySpellType <$> parseSpellType "Any"
+                     <|> AnySpellType <$> parseSpellType "ANY" -- TODO
                      <|> Arcane <$> parseSpellType "Arcane"
                      <|> Divine <$> parseSpellType "Divine"
                      <|> Psionic <$> parseSpellType "Psionic"

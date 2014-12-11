@@ -397,9 +397,7 @@ parseCompanionList :: PParser CompanionList
 parseCompanionList = do
   _ <- tag "COMPANIONLIST"
   companionListType <- parseString
-  _ <- traceM (show companionListType)
   companionListRaceTypes <- parseRaceTypes `sepBy` char ','
-  _ <- traceM (show companionListRaceTypes)
   followerAdjustment <- tryOption (labeled "|FOLLOWERADJUSTMENT" *> parseInteger)
   return CompanionList { .. } where
     parseRaceTypes = (labeled "RACETYPE=" *> (CompanionRaceType <$> parseStringNoCommas))

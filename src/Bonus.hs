@@ -34,6 +34,7 @@ data Bonus = BonusSkill Skill
            | BonusAddSituation BonusSituation
            | BonusDifficultyClass BonusDC
            | BonusVision BonusVisionData
+           | BonusRangeMultiple BonusRangeMult
            | BonusSlotItems BonusSlots
            | BonusSpellCasting BonusSpellCast
            | BonusSpellCastingMultiple BonusSpellCastMult
@@ -479,6 +480,31 @@ parseBonusPostMoveAdd = do
     parseBonusPostMoveAddType = (AllPostMovement <$ labeled "TYPE.All")
                             <|> (labeled "TYPE." *> (MovementPostType <$> parseString))
 
+-- BONUS:RANGEMULT|x|y
+--   x is PROJECTILE or THROWN
+--   y is formula
+data BonusRangeMultType = Projectile
+                        | Thrown
+                        -- not documented
+                        | RangeMultType String
+                        | RangeMultItem String
+                          deriving (Show, Eq)
+
+data BonusRangeMult = BonusRangeMult { bonusRangeMultType :: BonusRangeMultType
+                                     , bonusRangeMultFormula :: Formula }
+                    deriving (Show, Eq)
+
+parseBonusRangeMult :: PParser BonusRangeMult
+parseBonusRangeMult = do
+  _ <- bonusTag "RANGEMULT"
+  bonusRangeMultType <- parseBonusRangeMultType <* char '|'
+  bonusRangeMultFormula <- parseFormula
+  return BonusRangeMult { .. } where
+    parseBonusRangeMultType = Projectile <$ labeled "PROJECTILE"
+                          <|> Thrown <$ labeled "THROWN"
+                          <|> (labeled "TYPE=" *> (RangeMultType <$> parseString))
+                          <|> (RangeMultItem <$> parseString)
+
 -- BONUS:SAVE|x,x...|y
 --   x is save name or BASE.text or ALL
 --   y is formula
@@ -923,6 +949,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusMovement <$> parseBonusMoveAdd
             <|> BonusMovementMultiplier <$> parseBonusMoveMultiplier
             <|> BonusVision <$> parseBonusVision
+            <|> BonusRangeMultiple <$> parseBonusRangeMult
             <|> BonusSlotItems <$> parseBonusSlots
             <|> BonusSpellCasting <$> parseBonusSpellCast
             <|> BonusSpellCastingMultiple <$> parseBonusSpellCastMult

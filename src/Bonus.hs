@@ -682,9 +682,9 @@ data BonusSpellCastMult = BonusSpellCastMult { bonusSpellCastMultType :: BonusSp
                                              , bonusSpellCastMultNumber :: Int }
                         deriving (Show, Eq)
 
-parseBonusSpellCastMult :: PParser BonusSpellCastMult
-parseBonusSpellCastMult = do
-  _ <- bonusTag "SPELLCASTMULT"
+parseGenericBonusSpell :: String -> PParser BonusSpellCastMult
+parseGenericBonusSpell tagName = do
+  _ <- bonusTag tagName
   bonusSpellCastMultType <- parseBonusSpellCastMultType <* char ';'
   bonusSpellCastMultLevel <- textToInt <$> (labeled "LEVEL=" *> manyNumbers)
   _ <- char '|'
@@ -693,20 +693,15 @@ parseBonusSpellCastMult = do
     parseBonusSpellCastMultType = (labeled "CLASS=" *> (SpellCastMultClassName <$> parseString))
                               <|> (labeled "TYPE=" *> (SpellCastMultSpellType <$> parseString))
 
+parseBonusSpellCastMult :: PParser BonusSpellCastMult
+parseBonusSpellCastMult = parseGenericBonusSpell "SPELLCASTMULT"
+
 -- BONUS:SPELLKNOWN|x;y|z
 --   x is class name or spell type
 --   y is level number
 --   z is number of spells
 parseBonusSpellKnown :: PParser BonusSpellCastMult
-parseBonusSpellKnown = do
-  _ <- bonusTag "SPELLKNOWN"
-  bonusSpellCastMultType <- parseBonusSpellCastMultType <* char ';'
-  bonusSpellCastMultLevel <- textToInt <$> (labeled "LEVEL=" *> manyNumbers)
-  _ <- char '|'
-  bonusSpellCastMultNumber <- textToInt <$> manyNumbers
-  return BonusSpellCastMult { .. } where
-    parseBonusSpellCastMultType = (labeled "CLASS=" *> (SpellCastMultClassName <$> parseString))
-                              <|> (labeled "TYPE=" *> (SpellCastMultSpellType <$> parseString))
+parseBonusSpellKnown = parseGenericBonusSpell "SPELLKNOWN"
 
 -- BONUS:VAR|x,x,...|y
 --   x is variable name

@@ -30,15 +30,15 @@ data Alignment = LG | LN | LE | NG | TN | NE | CG | CN | CE
 
 parseAlignmentType :: PParser Alignment
 parseAlignmentType = tag "ALIGN" *> parseAlignment where
-  parseAlignment = LG <$ (labeled "LG")
-               <|> LN <$ (labeled "LN")
-               <|> LE <$ (labeled "LE")
-               <|> NG <$ (labeled "NG")
-               <|> TN <$ (labeled "TN")
-               <|> NE <$ (labeled "NE")
-               <|> CG <$ (labeled "CG")
-               <|> CN <$ (labeled "CN")
-               <|> CE <$ (labeled "CE")
+  parseAlignment = LG <$ labeled "LG"
+               <|> LN <$ labeled "LN"
+               <|> LE <$ labeled "LE"
+               <|> NG <$ labeled "NG"
+               <|> TN <$ labeled "TN"
+               <|> NE <$ labeled "NE"
+               <|> CG <$ labeled "CG"
+               <|> CN <$ labeled "CN"
+               <|> CE <$ labeled "CE"
 
 data DomainType = DomainName String
                 | AllDomains

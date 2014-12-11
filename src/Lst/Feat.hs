@@ -70,10 +70,10 @@ data Visibility = IsVisible
 
 parseVisible :: PParser Visibility
 parseVisible = tag "VISIBLE" *> parseVisibility where
-  parseVisibility = IsVisible <$ (labeled "YES")
-                <|> NotVisible <$ (labeled "NO")
-                <|> Display <$ (labeled "DISPLAY")
-                <|> Export <$ (labeled "EXPORT")
+  parseVisibility = IsVisible <$ labeled "YES"
+                <|> NotVisible <$ labeled "NO"
+                <|> Display <$ labeled "DISPLAY"
+                <|> Export <$ labeled "EXPORT"
 
 parseFeatTag :: PParser FeatDefinition
 parseFeatTag = Description <$> parseDescription

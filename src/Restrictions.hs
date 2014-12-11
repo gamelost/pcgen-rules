@@ -61,6 +61,7 @@ data RestrictionTag = PreClassRestriction PreClass
                     | Invert RestrictionTag
                       deriving (Show, Eq)
 
+-- helpers
 data Operator = OpEqual
               | OpGreaterThan
               | OpGreaterThanOrEqual
@@ -80,6 +81,13 @@ convertOperator "LTEQ" = OpLesserThanOrEqual
 convertOperator "LT" = OpLesserThan
 convertOperator "NEQ" = OpNotEqual
 convertOperator _ = error "invalid operator"
+
+-- parse s=n where s is a string, n an integer
+parseCheckValues :: PParser (String, Int)
+parseCheckValues = do
+  check <- parseString <* char '='
+  value <- parseInteger
+  return (check, value)
 
 -- PREABILITY:x,CATEGORY=y,z,z,z...
 --   x is the number of abilities needed
@@ -146,12 +154,8 @@ parsePreCheckBase :: PParser PreCheckBase
 parsePreCheckBase = do
   _ <- tag "PRECHECKBASE"
   preCheckBaseNumber <- parseInteger <* char ','
-  preCheckBaseChecks <- parsePreCheckBaseChecks `sepBy` char ','
-  return PreCheckBase { .. } where
-    parsePreCheckBaseChecks = do
-      check <- parseString <* char '='
-      value <- parseInteger
-      return (check, value)
+  preCheckBaseChecks <- parseCheckValues `sepBy` char ','
+  return PreCheckBase { .. }
 
 -- PRECLASS:x,y=z,y=z,y=z...
 --   x is number of classes to pass
@@ -164,13 +168,8 @@ data PreClass = PreClass { passNumber :: Int
 parsePreClass :: PParser PreClass
 parsePreClass = do
   n <- tag "PRECLASS" >> manyNumbers
-  classRequisites <- char ',' >> parseEqual `sepBy` char ','
-  return PreClass { passNumber = textToInt n, .. } where
-    parseEqual :: PParser (String, Int)
-    parseEqual = do
-      x <- parseString
-      n <- char '=' >> manyNumbers
-      return (x, textToInt n)
+  classRequisites <- char ',' >> parseCheckValues `sepBy` char ','
+  return PreClass { passNumber = textToInt n, .. }
 
 -- PRECSKILL:x,y
 --   x is number of class skills
@@ -247,12 +246,8 @@ parsePreDR :: PParser PreDR
 parsePreDR = do
   _ <- tag "PREDR"
   preDamageResistanceNumber <- parseInteger
-  preDamageResistanceChecks <- parseResistanceChecks `sepBy` char ','
-  return PreDR { .. } where
-    parseResistanceChecks = do
-      check <- parseString <* char '='
-      value <- parseInteger
-      return (check, value)
+  preDamageResistanceChecks <- parseCheckValues `sepBy` char ','
+  return PreDR { .. }
 
 -- PREEQUIP:x,y,y...
 --   x is number
@@ -658,12 +653,8 @@ parsePreSpellDescriptor :: PParser PreSpellDescriptor
 parsePreSpellDescriptor = do
   _ <- tag "PRESPELLDESCRIPTOR"
   preSpellDescriptorNumber <- parseInteger <* char ','
-  preSpellDescriptors <- parsePreSpellDescriptors `sepBy` char ','
-  return PreSpellDescriptor { .. } where
-    parsePreSpellDescriptors = do
-      descriptor <- parseString <* char '='
-      level <- parseInteger
-      return (descriptor, level)
+  preSpellDescriptors <- parseCheckValues `sepBy` char ','
+  return PreSpellDescriptor { .. }
 
 -- PRESPELLSCHOOL:x,y=z,y=z,...
 --   x is number of spells known
@@ -677,12 +668,8 @@ parsePreSpellSchool :: PParser PreSpellSchool
 parsePreSpellSchool = do
   _ <- tag "PRESPELLSCHOOL"
   preSpellSchoolNumber <- parseInteger <* char ','
-  preSpellSchools <- parsePreSpellSchools `sepBy` char ','
-  return PreSpellSchool { .. } where
-    parsePreSpellSchools = do
-      descriptor <- parseString <* char '='
-      level <- parseInteger
-      return (descriptor, level)
+  preSpellSchools <- parseCheckValues `sepBy` char ','
+  return PreSpellSchool { .. }
 
 -- PRESPELLSCHOOLSUB:x,y=z,y=z
 --   x is number of spells known

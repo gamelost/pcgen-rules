@@ -171,8 +171,8 @@ data StringBuilder = StringBuilder { stringBuilderChoices :: [String]
 parseChooseString :: PParser StringBuilder
 parseChooseString = do
   _ <- labeled "CHOOSE:STRING|"
-  stringBuilderChoices <- many1 (parseChoiceString <* char '|')
-  stringBuilderTitle <- labeled "TITLE=" *> parseString
+  stringBuilderChoices <- parseChoiceString `sepBy` char '|'
+  stringBuilderTitle <- option "Please pick a choice" $ labeled "|TITLE=" *> parseString
   return StringBuilder { .. } where
     parseChoiceString = try $ notFollowedBy (labeled "TITLE=") *> parseString
 

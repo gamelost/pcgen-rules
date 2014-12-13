@@ -74,6 +74,7 @@ listOfFunctions = [ "floor"
                   , "MAX"
                   , "ceil"
                   , "if"
+                  , "count"
                   ]
 
 getVariables :: PParser [String]
@@ -98,6 +99,7 @@ builtInFunction "min" = minimum
 builtInFunction "max" = maximum
 builtInFunction "MIN" = minimum
 builtInFunction "MAX" = maximum
+builtInFunction "count" = error "not implemented"
 builtInFunction "floor" = \x ->
   case length x of
     1 -> (toRational :: Int -> Rational) . floor $ head x

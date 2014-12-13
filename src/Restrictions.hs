@@ -96,18 +96,26 @@ parseCheckValues = do
 --   x is the number of abilities needed
 --   y is category name or ALL
 --   z is ability name, ability type (TYPE.z), or ALL
+data PreAbilityType = AbilityName String
+                    | AbilityType String
+                    | AllAbilities
+                      deriving (Show, Eq)
+
 data PreAbility = PreAbility { abilityNumber :: Int
                              , categoryName :: String
-                             , abilities :: [String] }
+                             , abilities :: [PreAbilityType] }
                   deriving (Show, Eq)
 
 parsePreAbility :: PParser PreAbility
 parsePreAbility = do
-  n <- tag "PREABILITY" >> manyNumbers
+  abilityNumber <- tag "PREABILITY" *> parseInteger
   categoryName <- labeled ",CATEGORY=" >> parseWordWithSpaces
-  abilities <- char ',' >> parseStringNoCommasBrackets `sepBy` char ','
-  return PreAbility { abilityNumber = textToInt n, .. } where
+  abilities <- char ',' >> parseAbilities `sepBy` char ','
+  return PreAbility { .. } where
     parseWordWithSpaces = many1 $ satisfy $ inClass "-A-Za-z "
+    parseAbilities = (labeled "TYPE." *> (AbilityType <$> parseStringNoCommasBrackets))
+                 <|> AllAbilities <$ labeled "ALL"
+                 <|> AbilityName <$> parseStringNoCommasBrackets
 
 -- PREALIGN:x,x...
 --   x is alignment abbreviation or alignment array number
@@ -777,7 +785,7 @@ parsePreStat = do
   statChecks <- parseStatCheck `sepBy` char ','
   return PreStat { .. } where
     parseStatCheck = do
-      stat <- allCaps <* char '='
+      stat <- parseStringNoCommas <* char '='
       num <- parseInteger
       return (stat, num)
 

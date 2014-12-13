@@ -601,11 +601,13 @@ parseSpells = do
 --   z is PRExxx tag
 data SpellKnownType = SpellCaster String
                     | ClassName String
+                    | SpellKnownList
                       deriving (Show, Eq)
 
 data SpellKnown = SpellKnown { spellKnownType :: SpellKnownType
                              , spellKnownLevel :: Int
-                             , spellKnowns :: [String] }
+                             , spellKnowns :: [String]
+                             , spellKnownRestrictions :: [RestrictionTag] }
                  deriving (Show, Eq)
 
 parseSpellsKnownClass :: PParser [SpellKnown]
@@ -617,8 +619,10 @@ parseSpellsKnownClass = do
       spellKnownLevel <- textToInt <$> manyNumbers
       _ <- char '|'
       spellKnowns <- parseStringNoCommas `sepBy` char ','
+      spellKnownRestrictions <- option [] parseAdditionalRestrictions
       return SpellKnown { .. }
     parseSpellType = labeled "SPELLCASTER." *> (SpellCaster <$> parseString)
+                 <|> SpellKnownList <$ labeled "%LIST"
                  <|> (ClassName <$> parseString)
 
 -- SPELLLEVEL:v|w=x|y|w=x|y|z|z
@@ -693,7 +697,9 @@ parseVirtualFeat = do
   let vfeats = vfeat : vfeatRest
   return VFeat { .. } where
     disallowed = notFollowedBy (string "|PRE")
-    parseVFeat = disallowed *> char '|' *> parseString
+    parseVFeat = disallowed *> parseVFeatTypes
+    parseVFeatTypes = labeled "|TYPE=" *> parseString -- undocumented
+                  <|> char '|' *> parseString
 
 parseUnknownTag :: PParser (String, String)
 parseUnknownTag = do

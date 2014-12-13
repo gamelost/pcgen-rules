@@ -21,6 +21,8 @@ data Bonus = BonusSkill Skill
            | BonusAbilityPool BonusAbility
            | BonusCasterLevel CasterLevel
            | BonusCombat Combat
+           | BonusDomain Formula
+           | BonusLanguages Formula
            | BonusCheck Checks
            | BonusDamageReduction BonusDR
            | BonusModifyEquipmentWeight BonusEquipmentWeight
@@ -252,6 +254,11 @@ parseBonusDC = do
                        <|> (labeled "DESCRIPTOR." >> SpellDescriptor <$> parseString)
                        <|> (labeled "TYPE." >> SpellType <$> parseString)
 
+-- BONUS:DOMAIN|NUMBER|x
+--  x is formula (number of additional domains)
+parseBonusDomain :: PParser Formula
+parseBonusDomain = labeled "DOMAIN|NUMBER|" *> parseFormula
+
 -- BONUS:DR|x|y
 --   x is damage reduction type
 --   y is formula
@@ -393,6 +400,11 @@ parseBonusItemCost = do
   return ItemCost { .. } where
     parseItemCostType = labeled "TYPE." >> parseStringNoPeriods `sepBy` char '.'
     parseStringNoPeriods = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+/:?!%#'()[]~"
+
+-- BONUS:LANGUAGES|NUMBER|x
+--   x is formula (number of available language slots)
+parseBonusLanguages :: PParser Formula
+parseBonusLanguages = labeled "LANGUAGES|NUMBER|" *> parseFormula
 
 -- BONUS:MISC|x|y
 --   x is ACCHECK, CR, MAXDEX, SPELLFAILURE, or SR
@@ -804,6 +816,7 @@ parseBonusWeaponProp = do
 --   z is number, variable, or formula to add
 data BonusWeapon = WeaponName String
                  | WeaponType String
+                 | WeaponList
                    deriving (Show, Eq)
 
 data BonusWeaponProfProperty = CRITMULTADD
@@ -836,17 +849,18 @@ parseBonusWeaponProf = do
   return BonusWeaponProf { .. } where
     parseWeaponProficiency = try (labeled "TYPE=" >> (WeaponType <$> parseString))
                          <|> try (labeled "TYPE." >> (WeaponType <$> parseString))
+                         <|> WeaponList <$ labeled "%LIST"
                          <|> WeaponName <$> parseString
     parseWeaponProperty = try (CRITMULTADD <$ labeled "CRITMULTADD")
                       <|> try (CRITRANGEADD <$ labeled "CRITRANGEADD")
                       <|> try (CRITRANGEDOUBLE <$ labeled "CRITRANGEDOUBLE")
                       <|> try (DAMAGEMULT <$ labeled "DAMAGEMULT")
                       <|> try (DAMAGESIZE <$ labeled "DAMAGESIZE")
-                      <|> try (DAMAGESHORTRANGE <$ labeled "DAMAGESHORTRANGE")
+                      <|> try (DAMAGESHORTRANGE <$ labeled "DAMAGE-SHORTRANGE")
                       <|> try (DAMAGE <$ labeled "DAMAGE")
                       <|> try (PCSIZE <$ labeled "PCSIZE")
                       <|> try (REACH <$ labeled "REACH")
-                      <|> try (TOHITSHORTRANGE <$ labeled "TOHITSHORTRANGE")
+                      <|> try (TOHITSHORTRANGE <$ labeled "TOHIT-SHORTRANGE")
                       <|> try (TOHITOVERSIZE <$ labeled "TOHITOVERSIZE")
                       <|> try (TOHIT <$ labeled "TOHIT")
                       <|> (WIELDCATEGORY <$ labeled "WIELDCATEGORY")
@@ -934,6 +948,8 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusCasterLevel <$> parseBonusCasterLevel
             <|> BonusCheck <$> parseBonusCheck
             <|> BonusCombat <$> parseBonusCombat
+            <|> BonusDomain <$> parseBonusDomain
+            <|> BonusLanguages <$> parseBonusLanguages
             <|> BonusDamageReduction <$> parseBonusDR
             <|> BonusModifyEquipmentPenalty <$> parseBonusEquipmentPenalty
             <|> BonusModifyEquipmentRange <$> parseBonusEquipmentRange

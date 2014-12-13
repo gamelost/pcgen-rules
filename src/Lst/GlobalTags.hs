@@ -534,6 +534,7 @@ parseSpecialAbilityName = do
 data ServesAsType = ServesAsAbility String
                   | ServesAsClass
                   | ServesAsRace
+                  | ServesAsFeat -- undocumented
                   | ServesAsSkill
                     deriving (Show, Eq)
 
@@ -550,6 +551,7 @@ parseServesAs = do
     parseServesAsType = (ServesAsClass <$ labeled "CLASS")
                     <|> (ServesAsSkill <$ labeled "SKILL")
                     <|> (ServesAsRace <$ labeled "RACE")
+                    <|> (ServesAsFeat <$ labeled "FEAT")
                     <|> (labeled "ABILITY=" *> (ServesAsAbility <$> parseString))
 
 -- SPELLS:s|u|v|w|x,y|x,y|z|z

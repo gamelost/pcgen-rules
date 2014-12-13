@@ -201,7 +201,7 @@ data AddFeat = AddFeat { featChoices :: Int
 parseAddFeat :: PParser AddFeat
 parseAddFeat = do
   _ <- labeled "ADD:FEAT|"
-  featChoices <- option 1 (textToInt <$> manyNumbers)
+  featChoices <- option 1 (textToInt <$> manyNumbers <* char '|')
   featTypes <- parseFeatTypes `sepBy` char ','
   return AddFeat { .. } where
     parseFeatTypes = (AllFeats <$ labeled "ALL")

@@ -296,8 +296,8 @@ data Feat = FeatName String
 
 data PreFeat = PreFeat { featNumber :: Int
                        , feats :: [Feat]
-                       , countSeparately :: Bool
-                       , cannotHave :: Bool }
+                       , notFeats :: [Feat]
+                       , countSeparately :: Bool }
                deriving (Show, Eq)
 
 parsePreFeat :: PParser PreFeat
@@ -305,11 +305,12 @@ parsePreFeat = do
   _ <- tag "PREFEAT"
   featNumber <- parseInteger <* char ','
   countSeparately <- option False (True <$ labeled "CHECKMULT,")
-  feats <- parseFeat `sepBy` char ','
-  let cannotHave = False -- not implemented
+  feats <- option [] $ parseFeat `sepBy` char ','
+  notFeats <- option [] $ parseNotFeats
   return PreFeat { .. } where
     parseFeat = FeatType <$> (labeled "TYPE=" >> parseStringNoCommasBrackets)
             <|> FeatName <$> parseStringNoCommasBrackets
+    parseNotFeats = char '[' *> parseFeat `sepBy` char ',' <* char ']'
 
 -- PREGENDER:x
 --   x is gender to require

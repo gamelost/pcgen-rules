@@ -72,8 +72,10 @@ parseChooseNumChoices = do
   _ <- labeled "CHOOSE:NUMCHOICES="
   choiceNumber <- parseInteger <* char '|'
   choiceSelection <- parseString <* char '|'
-  choices <- parseChoiceString `sepBy` char '|'
+  choices <- parseChoicesIfSelection choiceSelection
   return Choices { .. } where
+    parseChoicesIfSelection "NOCHOICE" = return []
+    parseChoicesIfSelection _ = parseChoiceString `sepBy` char '|'
     parseChoiceString = AllChoices <$ labeled "ALL"
                     <|> (labeled "TYPE=" *> (ChoiceType <$> parseString))
                     <|> (labeled "TITLE=" *> (ChoiceTitle <$> parseString))
@@ -113,6 +115,8 @@ parseChooseManyNumbers = do
 data ChooseSkill = ChoiceSkill String
                  | ChoiceSkillType String
                  | ChoiceSkillTitle String
+                 | ChoiceSkillFeat String
+                 | ChoiceSkillRanks Int
                    deriving (Show, Eq)
 
 parseChooseSkill :: PParser [ChooseSkill]
@@ -121,6 +125,8 @@ parseChooseSkill = do
   parseChoiceSkill `sepBy` char '|' where
     parseChoiceSkill = ChoiceSkillType <$> (labeled "TYPE=" *> parseString)
                    <|> ChoiceSkillTitle <$> (labeled "TITLE=" *> parseString)
+                   <|> ChoiceSkillFeat <$> (labeled "FEAT=" *> parseString)
+                   <|> ChoiceSkillRanks <$> (labeled "RANKS=" *> parseInteger)
                    <|> ChoiceSkill <$> parseString
 
 -- CHOOSE:EQBUILDER.SPELL|w|x|y|z
@@ -178,11 +184,11 @@ data StringBuilder = StringBuilder { stringBuilderChoices :: [String]
 
 parseChooseString :: PParser StringBuilder
 parseChooseString = do
-  _ <- labeled "CHOOSE:STRING|"
-  stringBuilderChoices <- parseChoiceString `sepBy` char '|'
+  _ <- labeled "CHOOSE:STRING"
+  stringBuilderChoices <- many1 $ try $ char '|' *> parseChoiceString
   stringBuilderTitle <- option "Please pick a choice" $ labeled "|TITLE=" *> parseString
   return StringBuilder { .. } where
-    parseChoiceString = try $ notFollowedBy (labeled "TITLE=") *> parseString
+    parseChoiceString = notFollowedBy (labeled "TITLE=") *> parseString
 
 -- CHOOSE:USERINPUT|x|y
 --   x is number of inputs

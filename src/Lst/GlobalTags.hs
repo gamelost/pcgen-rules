@@ -40,10 +40,11 @@ data GlobalTag = KeyStat String
                | AddFeatTag AddFeat
                | AddLanguageTag AddLanguage
                | AddSpellCasterTag AddSpellCaster
+               | AddVFeatTag String
                | AutoArmorProfTag [AutoArmorProf]
                | AutoEquipTag [String]
                | AutoFeatTag AutoFeat
-               | AutoLanguageTag AutoLanguage
+               | AutoLanguageTag [AutoLanguage]
                | AutoShieldProfTag [AutoShieldProf]
                | AutoWeaponProfTag [AutoWeaponProf]
                | ClassSkill [ClassSkillType]
@@ -250,6 +251,14 @@ parseAddSpellCaster = do
     parseSpellCasterType = (AnySpellClass <$ labeled "ANY")
                        <|> (SpellType <$> parseString)
 
+-- ADD:VFEAT|x|y,y...
+--   x is formula (optional)
+--   y is feat name, type of feat, or ALL
+
+-- todo: spaces are allowed?
+parseAddVFeat :: PParser String
+parseAddVFeat = labeled "ADD:VFEAT|" *> restOfTag
+
 -- AUTO:ARMORPROF|x|x...
 --   x is armor name or armor type
 data AutoArmorProf = ArmorName String
@@ -271,8 +280,8 @@ data AutoLanguage = Language String
                   | Invert AutoLanguage
                     deriving (Show, Eq)
 
-parseAutoLanguage :: PParser AutoLanguage
-parseAutoLanguage = labeled "AUTO:LANG|" >> parseLanguages where
+parseAutoLanguage :: PParser [AutoLanguage]
+parseAutoLanguage = labeled "AUTO:LANG|" >> parseLanguages `sepBy` char '|' where
   parseLanguages = AutoLanguageType <$> (labeled "TYPE=" *> parseString)
                <|> (AutoAllLanguages <$ labeled "ALL")
                <|> (ListLanguages <$ labeled "%LIST")
@@ -727,6 +736,7 @@ parseGlobal = KeyStat <$> parseKeyStat
           <|> AddFeatTag <$> parseAddFeat
           <|> AddLanguageTag <$> parseAddLanguage
           <|> AddSpellCasterTag <$> parseAddSpellCaster
+          <|> AddVFeatTag <$> parseAddVFeat
           <|> AutoArmorProfTag <$> parseAutoArmorProf
           <|> AutoEquipTag <$> parseAutoEquip
           <|> AutoFeatTag <$> parseAutoFeat

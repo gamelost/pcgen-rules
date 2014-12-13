@@ -42,10 +42,12 @@ data Bonus = BonusSkill Skill
            | BonusSpellCastingMultiple BonusSpellCastMult
            | BonusSpellKnown BonusSpellCastMult
            | BonusSkillPoints Formula
+           | BonusSkillPool BonusSkillPoolType
            | BonusPostMoveAddition BonusPostMoveAdd
            | BonusMiscellany BonusMisc
            | BonusMovement BonusMove
            | BonusMovementMultiplier BonusMoveMultiplier
+           | BonusFollowers BonusFollowersType
            | BonusDescription String
            | BonusPCLevel PCLevel
            | BonusCharacterStatBaseSpell Formula
@@ -367,6 +369,20 @@ parseBonusEquipmentPenalty = do
 parseBonusFeat :: PParser Formula
 parseBonusFeat = bonusTag "FEAT|POOL" >> parseFormula
 
+-- BONUS:FOLLOWERS|x|y
+--   x is type of companion list
+--   y is formula
+data BonusFollowersType = BonusFollowersType { bonusFollowersType :: String
+                                             , bonusFollowersFormula :: Formula }
+                        deriving (Show, Eq)
+
+parseBonusFollowers :: PParser BonusFollowersType
+parseBonusFollowers = do
+  _ <- bonusTag "FOLLOWERS"
+  bonusFollowersType <- parseString <* char '|'
+  bonusFollowersFormula <- parseFormula
+  return BonusFollowersType { .. }
+
 -- BONUS:HP|x|y
 --   x is ALTHP or CURRENTMAX
 --   y is formula
@@ -663,6 +679,23 @@ parseBonusSkillRank = do
 --   x is formula
 parseBonusSkillPoints :: PParser Formula
 parseBonusSkillPoints = bonusTag "SKILLPOINTS|NUMBER" *> parseFormula
+
+-- BONUS:SKILLPOOL|CLASS=x;LEVEL=y|z
+--  x is text
+--  y is number
+--  z is formula to add to skill pool
+data BonusSkillPoolType = BonusSkillPoolType { bonusSkillPoolClass :: String
+                                             , bonusSkillPoolLevel :: Int
+                                             , bonusSkillPoolFormula :: Formula }
+                          deriving (Show, Eq)
+
+parseBonusSkillPool :: PParser BonusSkillPoolType
+parseBonusSkillPool = do
+  _ <- bonusTag "SKILLPOOL"
+  bonusSkillPoolClass <- labeled "CLASS=" *> parseString <* char ';'
+  bonusSkillPoolLevel <- labeled "LEVEL=" *> parseInteger <* char '|'
+  bonusSkillPoolFormula <- parseFormula
+  return BonusSkillPoolType { .. }
 
 -- BONUS:SLOTS|x,y
 --   x is slot type or LIST
@@ -1007,6 +1040,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusMiscellany <$> parseBonusMisc
             <|> BonusMovement <$> parseBonusMoveAdd
             <|> BonusMovementMultiplier <$> parseBonusMoveMultiplier
+            <|> BonusFollowers <$> parseBonusFollowers
             <|> BonusVision <$> parseBonusVision
             <|> BonusRangeMultiple <$> parseBonusRangeMult
             <|> BonusSlotItems <$> parseBonusSlots
@@ -1014,6 +1048,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusSpellCastingMultiple <$> parseBonusSpellCastMult
             <|> BonusSpellKnown <$> parseBonusSpellKnown
             <|> BonusSkillPoints <$> parseBonusSkillPoints
+            <|> BonusSkillPool <$> parseBonusSkillPool
             <|> BonusPostMoveAddition <$> parseBonusPostMoveAdd
             <|> BonusCharacterStatBaseSpell <$> parseBonusStatBaseSpellStat
             <|> BonusCharacterStatBaseSpellClass <$> parseBonusStatBaseSpellStatClass

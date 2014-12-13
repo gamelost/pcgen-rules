@@ -60,6 +60,7 @@ data Formula = Number Int
              | LookupSkill (SkillType, String)
              | CharBonusTo (String, String)
              | ClassLevel String
+             | Count [String]
              | Function String [Formula]
              | Group Formula
              | Negate Formula
@@ -74,7 +75,6 @@ listOfFunctions = [ "floor"
                   , "MAX"
                   , "ceil"
                   , "if"
-                  , "count"
                   ]
 
 getVariables :: PParser [String]
@@ -128,6 +128,9 @@ evalJEPFormulae _ (CharBonusTo _) =
   0
 evalJEPFormulae _ (ClassLevel _) =
   warning "evaluating classlevel() is not implemented"
+  0
+evalJEPFormulae _ (Count _) =
+  warning "evaluating count() is not implemented"
   0
 evalJEPFormulae vars (Negate f) =
   negate $ evalJEPFormulae vars f
@@ -238,6 +241,12 @@ parseClassLevelFunction = do
   _ <- many space <* char ')'
   return $ ClassLevel prop
 
+-- incomplete. not sure what this function does, exactly.
+parseCountFunction :: PParser Formula
+parseCountFunction = do
+  items <- labeled "count(" *> parseQuotedString `sepBy` char ',' <* char ')'
+  return $ Count items
+
 -- treat the skillinfo() function specially
 parseSkillInfoFunction :: PParser Formula
 parseSkillInfoFunction = do
@@ -293,6 +302,7 @@ parseExpression = try parseFunction
               <|> try parseSkillInfoFunction
               <|> try parseCharBonusToFunction
               <|> try parseClassLevelFunction
+              <|> try parseCountFunction
               <|> try parseFloating
               <|> try parseNumber
               <|> try parseVariable

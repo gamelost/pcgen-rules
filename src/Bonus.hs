@@ -47,6 +47,9 @@ data Bonus = BonusSkill Skill
            | BonusMovement BonusMove
            | BonusMovementMultiplier BonusMoveMultiplier
            | BonusDescription String
+           | BonusPCLevel PCLevel
+           | BonusCharacterStatBaseSpell Formula
+           | BonusCharacterStatBaseSpellClass BonusStatBaseSpellClass
            | BonusCharacterStat BonusStat
            | BonusCharacterStatChoice ()
            | BonusUnarmedDamage UnarmedDamage
@@ -472,6 +475,27 @@ parseBonusMoveMultiplier = do
     parseBonusMoveMultiplierTypes = (BonusMoveMultiplierAll <$ labeled "TYPE.All")
                                 <|> (labeled "TYPE." >> BonusMoveMultiplierType <$> parseStringNoCommas)
 
+-- BONUS:PCLEVEL|x|y
+--   x is class name or TYPE.text (class or spell type)
+--   y is formula
+data PCLevelType = PCLevelClassName String
+                 | PCLevelClassType String
+                   deriving (Show, Eq)
+
+data PCLevel = PCLevel { playerLevelClass :: PCLevelType
+                       , playerLevelFormula :: Formula }
+             deriving (Show, Eq)
+
+parsePCLevel :: PParser PCLevel
+parsePCLevel = do
+  _ <- bonusTag "PCLEVEL"
+  playerLevelClass <- parsePCLevelType <* char '|'
+  playerLevelFormula <- parseFormula
+  return PCLevel { .. } where
+    parsePCLevelType = (labeled "TYPE." *> (PCLevelClassType <$> parseString))
+                   <|> (labeled "TYPE=" *> (PCLevelClassType <$> parseString)) -- as per documentation
+                   <|> (PCLevelClassName <$> parseString)
+
 -- BONUS:POSTMOVEADD|x|y
 --   x is movement type or all
 --   y is formula
@@ -678,6 +702,25 @@ parseBonusStat = do
 -- TODO: define.
 parseBonusStatChoice :: PParser ()
 parseBonusStatChoice = () <$ labeled "STAT|%CHOICE"
+
+-- BONUS:STAT|BASESPELLSTAT|x
+--   x is formula
+parseBonusStatBaseSpellStat :: PParser Formula
+parseBonusStatBaseSpellStat = labeled "STAT|BASESPELLSTAT|" *> parseFormula
+
+-- BONUS:STAT|BASESPELLSTAT;Class=x|y
+--   x is class name
+--   y is formula to adjust stat by
+data BonusStatBaseSpellClass = BonusStatBaseSpellClass { bonusStatBaseSpellClass :: String
+                                                       , bonusStatBaseSpellFormula :: Formula }
+                               deriving (Show, Eq)
+
+parseBonusStatBaseSpellStatClass :: PParser BonusStatBaseSpellClass
+parseBonusStatBaseSpellStatClass = do
+  _ <- labeled "STAT|BASESPELLSTAT;Class="
+  bonusStatBaseSpellClass <- parseString <* char '|'
+  bonusStatBaseSpellFormula <- parseFormula
+  return BonusStatBaseSpellClass { .. }
 
 -- BONUS:SPELLCAST|x;y|z
 data BonusSpellCastType = SpellCastClassName String
@@ -972,8 +1015,11 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusSpellKnown <$> parseBonusSpellKnown
             <|> BonusSkillPoints <$> parseBonusSkillPoints
             <|> BonusPostMoveAddition <$> parseBonusPostMoveAdd
+            <|> BonusCharacterStatBaseSpell <$> parseBonusStatBaseSpellStat
+            <|> BonusCharacterStatBaseSpellClass <$> parseBonusStatBaseSpellStatClass
             <|> BonusCharacterStatChoice <$> parseBonusStatChoice
             <|> BonusCharacterStat <$> parseBonusStat
+            <|> BonusPCLevel <$> parsePCLevel
             <|> BonusWieldCategory <$> parseBonusWieldCategory
             <|> BonusWeaponProficency <$> parseBonusWeaponProf
             <|> BonusWeaponProperty <$> parseBonusWeaponProp

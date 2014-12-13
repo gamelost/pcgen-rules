@@ -64,6 +64,13 @@ needs to be in x=y,x=y format.
 ** TODO ./data/35e/paradigm_concepts/arcanis/players_guide_to_arcanis/pgta_spells_rsrd.lst
 error: TEMPBONUS:PC|SKILL|Disguise,Climb,Jump|TYPE=Temporary
 needs a formula.
+* feat [0/2]
+** TODO ./data/modern/rpg_objects/blood_and_blades/bloodandblades_feats_hidden.lst
+BONUS:WEAPONPROF=%LIST|TOHIT.MELEE|INT-STR
+TOHIT.MELEE is not a valid option
+** TODO ./data/pathfinder/paizo/roleplaying_game/ultimate_combat/uc_feats.lst
+BONUS:COMBAT|TOHIT-FIRSTRANGE,DAMAGE-FIRSTRANGE|1
+FIRSTRANGE is not a valid option
 * questions
 ** when are JEPs used? [2/6]
 - [ ] EVAL() (only in KIT files)

@@ -82,16 +82,16 @@ parseChooseNumChoices = do
 -- not fully implemented
 -- CHOOSE:NUMBER|v|w|x|y|z
 --   not implemented. (NOSIGN/MULTIPLE seems to be undocumented)
-data ChooseNumber = ChooseNumber { chooseMin :: Int
-                                 , chooseMax :: Int
+data ChooseNumber = ChooseNumber { chooseMin :: Formula
+                                 , chooseMax :: Formula
                                  , chooseTitle :: String }
                     deriving (Show, Eq)
 
 parseChooseNumber :: PParser ChooseNumber
 parseChooseNumber = do
   _ <- labeled "CHOOSE:NUMBER"
-  chooseMin <- labeled "|MIN=" *> parseInteger
-  chooseMax <- labeled "|MAX=" *> parseInteger
+  chooseMin <- labeled "|MIN=" *> parseFormula
+  chooseMax <- labeled "|MAX=" *> parseFormula
   chooseTitle <- labeled "|TITLE=" *> parseStringSemicolon
   return ChooseNumber { .. } where
    parseStringSemicolon = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+,./:?!%#'()[]~;"

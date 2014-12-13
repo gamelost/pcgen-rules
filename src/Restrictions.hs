@@ -16,6 +16,7 @@ data RestrictionTag = PreClassRestriction PreClass
                     | PreAlignRestriction PreAlign
                     | PreEquipRestriction PreEquip
                     | PreEquipBothRestriction PreEquip
+                    | PreEquipTwoWeaponRestriction PreEquip
                     | PreEquipPrimaryRestriction PreEquip
                     | PreEquipSecondaryRestriction PreEquip
                     | PreAbilityRestriction PreAbility
@@ -294,6 +295,9 @@ parsePreEquipSecondary = _parsePreEquip "PREEQUIPSECONDARY"
 parsePreEquipBoth :: PParser PreEquip
 parsePreEquipBoth = _parsePreEquip "PREEQUIPBOTH"
 
+parsePreEquipTwoWeapon :: PParser PreEquip
+parsePreEquipTwoWeapon = _parsePreEquip "PREEQUIPTWOWEAPON"
+
 -- PREFEAT:x,y,z,z,..
 --   x is number of required feats
 --   y can be CHECKMULT
@@ -314,7 +318,7 @@ parsePreFeat = do
   featNumber <- parseInteger <* char ','
   countSeparately <- option False (True <$ labeled "CHECKMULT,")
   feats <- option [] $ parseFeat `sepBy` char ','
-  notFeats <- option [] $ parseNotFeats
+  notFeats <- option [] parseNotFeats
   return PreFeat { .. } where
     parseFeat = FeatType <$> (labeled "TYPE=" >> parseStringNoCommasBrackets)
             <|> FeatName <$> parseStringNoCommasBrackets
@@ -968,6 +972,7 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreAlignRestriction <$> parsePreAlign
                        <|> PreEquipRestriction <$> parsePreEquip
                        <|> PreEquipBothRestriction <$> parsePreEquipBoth
+                       <|> PreEquipTwoWeaponRestriction <$> parsePreEquipTwoWeapon
                        <|> PreEquipPrimaryRestriction <$> parsePreEquipSecondary
                        <|> PreEquipSecondaryRestriction <$> parsePreEquipSecondary
                        <|> PreLevelRestriction <$> parsePreLevel

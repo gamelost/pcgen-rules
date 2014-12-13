@@ -390,15 +390,17 @@ data CompanionRaceListType = CompanionRace String
 
 data CompanionList = CompanionList { companionListType :: String
                                    , companionListRaceTypes :: [CompanionRaceListType]
-                                   , followerAdjustment :: Maybe Int }
+                                   , followerAdjustment :: Maybe Int
+                                   , companionRestrictions :: [RestrictionTag] }
                    deriving (Show, Eq)
 
 parseCompanionList :: PParser CompanionList
 parseCompanionList = do
   _ <- tag "COMPANIONLIST"
-  companionListType <- parseString
+  companionListType <- parseString <* char '|'
   companionListRaceTypes <- parseRaceTypes `sepBy` char ','
-  followerAdjustment <- tryOption (labeled "|FOLLOWERADJUSTMENT" *> parseInteger)
+  followerAdjustment <- tryOption (labeled "|FOLLOWERADJUSTMENT:" *> parseInteger)
+  companionRestrictions <- option [] parseAdditionalRestrictions
   return CompanionList { .. } where
     parseRaceTypes = (labeled "RACETYPE=" *> (CompanionRaceType <$> parseStringNoCommas))
                  <|> (labeled "RACESUBTYPE=" *> (CompanionRaceSubType <$> parseStringNoCommas))

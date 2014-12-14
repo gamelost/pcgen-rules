@@ -238,6 +238,7 @@ varBuiltins = [ "ACCHECK"
               , "TurnTimesSnakes"
               , "TwoWeaponShield"
               , "unit" -- ??
+              , "Unarmed"
               , "ValBloodrank"
               , "vcargo" -- ??
               , "vcrew" -- ??

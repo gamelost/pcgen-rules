@@ -275,10 +275,10 @@ data PreEquip = PreEquip { preEquipNumber :: Int
 
 _parsePreEquip :: String -> PParser PreEquip
 _parsePreEquip s = do
-  n <- tag s >> manyNumbers
+  preEquipNumber <- tag s *> parseInteger
   _ <- char ','
   preEquipTypes <- parsePreEquipmentType `sepBy` char ','
-  return PreEquip { preEquipNumber = textToInt n, .. } where
+  return PreEquip { .. } where
     parsePreEquipmentType = (labeled "WIELDCATEGORY=" >> WieldCategory <$> parseStringNoCommasBrackets)
                         <|> (labeled "TYPE=" >> EquipmentType <$> parseStringNoCommasBrackets)
                         <|> (EquipmentName <$> parseStringNoCommasBrackets)
@@ -471,9 +471,10 @@ data PreMult = PreMult { restrictionNumber :: Int
 
 parsePreMult :: PParser PreMult
 parsePreMult = do
-  n <- tag "PREMULT" >> manyNumbers
-  restrictionsToPass <- char ',' >> parseRestrictions `sepBy` char ','
-  return PreMult { restrictionNumber = textToInt n, .. } where
+  restrictionNumber <- tag "PREMULT" *> parseInteger
+  _ <- char ','
+  restrictionsToPass <- parseRestrictions `sepBy` char ','
+  return PreMult { .. } where
     parseRestrictions = char '[' >> parseRestriction <* char ']'
 
 -- PREPCLEVEL:x,y
@@ -810,9 +811,13 @@ parsePreSubClass = do
 
 -- PRETEMPLATE:x,y,y...
 --   x is number
---   y is template name
+--   y is template name or type
+data PreTemplateType = TemplateName String
+                     | TemplateType String
+                       deriving (Show, Eq)
+
 data PreTemplate = PreTemplate { preTemplateNumber :: Int
-                               , preTemplateNames :: [String] }
+                               , preTemplateNames :: [PreTemplateType] }
                    deriving (Show, Eq)
 
 parsePreTemplate :: PParser PreTemplate
@@ -820,8 +825,10 @@ parsePreTemplate = do
   _ <- tag "PRETEMPLATE"
   preTemplateNumber <- parseInteger
   _ <- char ','
-  preTemplateNames <- parseStringNoCommasBrackets `sepBy` char ','
-  return PreTemplate { .. }
+  preTemplateNames <- parsePreTemplateTypes `sepBy` char ','
+  return PreTemplate { .. } where
+    parsePreTemplateTypes = (labeled "TYPE=" *> (TemplateType <$> parseStringNoCommasBrackets))
+                        <|> TemplateName <$> parseStringNoCommasBrackets
 
 -- PRETEXT:x
 --   where x is explanation of requirement
@@ -973,7 +980,7 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreEquipRestriction <$> parsePreEquip
                        <|> PreEquipBothRestriction <$> parsePreEquipBoth
                        <|> PreEquipTwoWeaponRestriction <$> parsePreEquipTwoWeapon
-                       <|> PreEquipPrimaryRestriction <$> parsePreEquipSecondary
+                       <|> PreEquipPrimaryRestriction <$> parsePreEquipPrimary
                        <|> PreEquipSecondaryRestriction <$> parsePreEquipSecondary
                        <|> PreLevelRestriction <$> parsePreLevel
                        <|> PreLevelMaxRestriction <$> parsePreLevelMax

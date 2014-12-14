@@ -676,8 +676,8 @@ data SpellLevelClass = SpellLevelClass { spellLevelClassList :: [SpellLevelClass
 
 parseSpellLevelClass :: PParser SpellLevelClass
 parseSpellLevelClass = do
-  _ <- labeled "SPELLLEVEL:CLASS|"
-  spellLevelClassList <- parseClassList `sepBy` char '|'
+  _ <- labeled "SPELLLEVEL:CLASS"
+  spellLevelClassList <- many1 $ try $ char '|' *> parseClassList
   spellLevelClassRestrictions <- option [] parseAdditionalRestrictions
   return SpellLevelClass { .. } where
     parseClassList = do

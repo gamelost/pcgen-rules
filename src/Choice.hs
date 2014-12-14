@@ -178,7 +178,11 @@ parseChoosePCStat = labeled "CHOOSE:PCSTAT|" *> parsePCStat `sepBy` char '|' whe
 -- CHOOSE:STRING|x|x..|y
 --   x is choice to be offered
 --   y is TITLE=text
-data StringBuilder = StringBuilder { stringBuilderChoices :: [String]
+data ChooseStringType = ChooseStringText String
+                      | ChooseStringFeat String
+                        deriving (Show, Eq)
+
+data StringBuilder = StringBuilder { stringBuilderChoices :: [ChooseStringType]
                                    , stringBuilderTitle :: String }
                    deriving (Show, Eq)
 
@@ -188,7 +192,9 @@ parseChooseString = do
   stringBuilderChoices <- many $ try $ char '|' *> parseChoiceString
   stringBuilderTitle <- option "Please pick a choice" $ labeled "|TITLE=" *> parseString
   return StringBuilder { .. } where
-    parseChoiceString = notFollowedBy (labeled "TITLE=") *> parseString
+    parseChoiceString = notFollowedBy (labeled "TITLE=") *> parseChooseStringType
+    parseChooseStringType = (labeled "FEAT=" *> (ChooseStringFeat <$> parseString))
+                        <|> ChooseStringText <$> parseString
 
 -- CHOOSE:USERINPUT|x|y
 --   x is number of inputs
@@ -200,7 +206,7 @@ data UserInput = UserInput { numberOfInputs :: Int
 parseChooseUserInput :: PParser UserInput
 parseChooseUserInput = do
   _ <- labeled "CHOOSE:USERINPUT|"
-  numberOfInputs <- parseInteger
+  numberOfInputs <- option 1 parseInteger
   userInputTitle <- labeled "TITLE=" *> parseString
   return UserInput { .. }
 

@@ -4,7 +4,7 @@ module Choice where
 
 import Text.Parsec.Char (char, satisfy)
 import Text.Parsec.Combinator (sepBy, many1, notFollowedBy, option)
-import Text.Parsec.Prim (try)
+import Text.Parsec.Prim (try, many)
 import ClassyPrelude hiding (try)
 
 import JEPFormula
@@ -71,11 +71,11 @@ parseChooseNumChoices :: PParser Choices
 parseChooseNumChoices = do
   _ <- labeled "CHOOSE:NUMCHOICES="
   choiceNumber <- parseInteger <* char '|'
-  choiceSelection <- parseString <* char '|'
+  choiceSelection <- parseString
   choices <- parseChoicesIfSelection choiceSelection
   return Choices { .. } where
     parseChoicesIfSelection "NOCHOICE" = return []
-    parseChoicesIfSelection _ = parseChoiceString `sepBy` char '|'
+    parseChoicesIfSelection _ = char '|' *> parseChoiceString `sepBy` char '|'
     parseChoiceString = AllChoices <$ labeled "ALL"
                     <|> (labeled "TYPE=" *> (ChoiceType <$> parseString))
                     <|> (labeled "TITLE=" *> (ChoiceTitle <$> parseString))
@@ -185,7 +185,7 @@ data StringBuilder = StringBuilder { stringBuilderChoices :: [String]
 parseChooseString :: PParser StringBuilder
 parseChooseString = do
   _ <- labeled "CHOOSE:STRING"
-  stringBuilderChoices <- many1 $ try $ char '|' *> parseChoiceString
+  stringBuilderChoices <- many $ try $ char '|' *> parseChoiceString
   stringBuilderTitle <- option "Please pick a choice" $ labeled "|TITLE=" *> parseString
   return StringBuilder { .. } where
     parseChoiceString = notFollowedBy (labeled "TITLE=") *> parseString

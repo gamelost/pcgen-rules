@@ -879,7 +879,7 @@ parsePreVar = do
 --   y is vision type
 --   z is number or ANY
 data PreVisionType = Vision String Int
-                   | AnyVision
+                   | AnyVision String
                      deriving (Show, Eq)
 
 data PreVision = PreVision { preVisionNumber :: Int
@@ -892,11 +892,11 @@ parsePreVision = do
   preVisionNumber <- parseInteger <* char ','
   preVisionTypes <- parsePreVisionTypes `sepBy` char ','
   return PreVision { .. } where
-    parsePreVisionTypes = AnyVision <$ labeled "ANY"
-                      <|> parseStandardVision
-    parseStandardVision = do
-      (c, v) <- parseCheckValues
-      return $ Vision c v
+    parsePreVisionTypes = do
+      check <- parseString <* char '='
+      parseVisionValue check
+    parseVisionValue str = AnyVision str <$ labeled "ANY"
+                       <|> (Vision str <$> parseInteger)
 
 -- PREWEAPONPROF:x,y,y...
 --   x is number of matching proficiencies

@@ -41,6 +41,7 @@ data Bonus = BonusSkill Skill
            | BonusSpellCasting BonusSpellCast
            | BonusSpellCastingMultiple BonusSpellCastMult
            | BonusSpellKnown BonusSpellCastMult
+           | BonusSpellKnownList Formula
            | BonusSkillPoints Formula
            | BonusSkillPool BonusSkillPoolType
            | BonusPostMoveAddition BonusPostMoveAdd
@@ -817,6 +818,9 @@ parseBonusSpellCastMult = parseGenericBonusSpell "SPELLCASTMULT"
 parseBonusSpellKnown :: PParser BonusSpellCastMult
 parseBonusSpellKnown = parseGenericBonusSpell "SPELLKNOWN"
 
+parseBonusSpellKnownList :: PParser Formula
+parseBonusSpellKnownList = labeled "SPELLKNOWN|%LIST|" *> parseFormula
+
 -- BONUS:VAR|x,x,...|y
 --   x is variable name
 --   y is number, variable, or formula to adjust variable by
@@ -1046,6 +1050,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusSlotItems <$> parseBonusSlots
             <|> BonusSpellCasting <$> parseBonusSpellCast
             <|> BonusSpellCastingMultiple <$> parseBonusSpellCastMult
+            <|> BonusSpellKnownList <$> parseBonusSpellKnownList
             <|> BonusSpellKnown <$> parseBonusSpellKnown
             <|> BonusSkillPoints <$> parseBonusSkillPoints
             <|> BonusSkillPool <$> parseBonusSkillPool

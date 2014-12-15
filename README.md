@@ -2,8 +2,9 @@
 pcgen-rules
 ===========
 
-pcgen-rules is an Haskell library to extract and process the rules and data from
-[PCGen](http://pcgen.sourceforge.net/01_overview.php).
+pcgen-rules is an Haskell library to extract and process the rules and
+data from [PCGen](http://pcgen.sourceforge.net/01_overview.php). This
+project is on hold while PCGen itself undergoes an overhaul.
 
 You will need the PCGen data files in a separate directory. Edit the `Makefile` accordingly if you use a directory other than `data/`.
 
@@ -22,7 +23,7 @@ Currently the code just parses `.pcc` and `.lst` files; this is still a work in 
 - [x] EQUIPMOD (113/115)
 - [x] EQUIPMENT (695/709)
 - [x] SPELL (205/209)
-- [x] FEAT (208/347)
+- [x] FEAT (311/347)
 - [ ] RACE (0/281)
 - [ ] KIT (block-based) (0/284)
 - [ ] TEMPLATE (0/192)

@@ -11,9 +11,11 @@ import JEPFormula
 import Common
 
 data RestrictionTag = PreClassRestriction PreClass
+                    | PreClassLevelMaxRestriction PreClassLevelMax
                     | PreClassSkillRestriction PreClassSkill
                     | PreVarRestriction PreVar
                     | PreAlignRestriction PreAlign
+                    | PreDeityAlignRestriction PreAlign
                     | PreEquipRestriction PreEquip
                     | PreEquipBothRestriction PreEquip
                     | PreEquipTwoWeaponRestriction PreEquip
@@ -115,6 +117,7 @@ parsePreAbility = do
   return PreAbility { .. } where
     parseWordWithSpaces = many1 $ satisfy $ inClass "-A-Za-z "
     parseAbilities = (labeled "TYPE." *> (AbilityType <$> parseStringNoCommasBrackets))
+                 <|> (labeled "TYPE=" *> (AbilityType <$> parseStringNoCommasBrackets)) -- ??
                  <|> AllAbilities <$ labeled "ALL"
                  <|> AbilityName <$> parseStringNoCommasBrackets
 
@@ -183,6 +186,31 @@ parsePreClass = do
   classRequisites <- char ',' >> parseCheckValues `sepBy` char ','
   return PreClass { passNumber = textToInt n, .. }
 
+-- PRECLASSLEVELMAX:x,y=z,y=z
+--   x is number of listed classes required
+--   y is class name, class type, spellcaster, spellcaster type
+--   z is maximum class level
+data PreClassLevelMaxType = MaxClassName (String, Int)
+                          | MaxClassType (String, Int)
+                          | MaxSpellCasterType (String, Int)
+                          | MaxSpellCaster
+                            deriving (Show, Eq)
+
+data PreClassLevelMax = PreClassLevelMax { preClassLevelNumber :: Int
+                                         , preClassLevels :: [PreClassLevelMaxType] }
+                        deriving (Show, Eq)
+
+parsePreClassLevelMax :: PParser PreClassLevelMax
+parsePreClassLevelMax = do
+  _ <- tag "PRECLASSLEVELMAX"
+  preClassLevelNumber <- parseInteger <* char ','
+  preClassLevels <- parseClassLevels `sepBy` char ','
+  return PreClassLevelMax { .. } where
+    parseClassLevels = (labeled "TYPE." *> (MaxClassType <$> parseCheckValues))
+                   <|> (labeled "SPELLCASTER." *> (MaxSpellCasterType <$> parseCheckValues))
+                   <|> (MaxSpellCaster <$ labeled "SPELLCASTER")
+                   <|> (MaxClassName <$> parseCheckValues)
+
 -- PRECSKILL:x,y
 --   x is number of class skills
 --   y is skill name or skill type (TYPE=y)
@@ -225,6 +253,24 @@ parsePreDeity = do
              <|> try (NoWorship <$ labeled "N" <* notFollowedBy parseWord)
              <|> PantheonName <$> (labeled "PANTHEON." >> parseStringNoCommasBrackets)
              <|> DeityName <$> parseStringNoCommasBrackets
+
+-- PREDEITYALIGN:x
+--   x is LG,LN,LE,NG,TN,NE,CG,CN,CE or 0..8
+parsePreDeityAlign :: PParser PreAlign
+parsePreDeityAlign = do
+  args <- tag "PREDEITYALIGN" >> parseWord `sepBy` char ','
+  return PreAlign { alignments = map parseAlignment args } where
+    parseAlignment :: String -> Alignment
+    parseAlignment x | x == "LG", x == "0" = LG
+    parseAlignment x | x == "LN", x == "1" = LN
+    parseAlignment x | x == "LE", x == "2" = LE
+    parseAlignment x | x == "NG", x == "3" = NG
+    parseAlignment x | x == "TN", x == "4" = TN
+    parseAlignment x | x == "NE", x == "5" = NE
+    parseAlignment x | x == "CG", x == "6" = CG
+    parseAlignment x | x == "CN", x == "7" = CN
+    parseAlignment x | x == "CE", x == "8" = CE
+    parseAlignment _ = None
 
 -- PREDOMAIN:x,y,y...
 --   x is number of required deity's domains
@@ -304,6 +350,7 @@ parsePreEquipTwoWeapon = _parsePreEquip "PREEQUIPTWOWEAPON"
 --   z is feat name (or TYPE=type) ([] indicates inversion)
 data Feat = FeatName String
           | FeatType String
+          | FeatNameWithType (String, String) -- undocumented
             deriving (Show, Eq)
 
 data PreFeat = PreFeat { featNumber :: Int
@@ -315,14 +362,24 @@ data PreFeat = PreFeat { featNumber :: Int
 parsePreFeat :: PParser PreFeat
 parsePreFeat = do
   _ <- tag "PREFEAT"
-  featNumber <- parseInteger <* char ','
-  countSeparately <- option False (True <$ labeled "CHECKMULT,")
-  feats <- option [] $ parseFeat `sepBy` char ','
+  featNumber <- parseInteger
+  _ <- traceM $ show featNumber
+  countSeparately <- option False (True <$ labeled ",CHECKMULT")
+  feats <- option [] . many1 $ try (char ',' *> parseFeat)
+  _ <- traceM $ show feats
   notFeats <- option [] parseNotFeats
+  _ <- traceM $ show notFeats
   return PreFeat { .. } where
     parseFeat = FeatType <$> (labeled "TYPE=" >> parseStringNoCommasBrackets)
-            <|> FeatName <$> parseStringNoCommasBrackets
-    parseNotFeats = char '[' *> parseFeat `sepBy` char ',' <* char ']'
+            <|> FeatType <$> (labeled "TYPE." >> parseStringNoCommasBrackets) -- ??
+            <|> try (FeatNameWithType <$> parseFeatNameWithType)
+            <|> try (FeatName <$> parseStringNoCommasBrackets)
+    parseNotFeats = char ',' *> char '[' *> parseFeat `sepBy` char ',' <* char ']'
+    parseFeatNameWithType = do
+      name <- parseFeatTypeString -- TODO: remove trailing space
+      oldtype <- labeled "(TYPE=" *> parseFeatTypeString <* char ')'
+      return (name, oldtype)
+    parseFeatTypeString = many1 $ satisfy $ inClass "-A-Za-z0-9_ &+./:?!%#'~"
 
 -- PREGENDER:x
 --   x is gender to require
@@ -955,6 +1012,7 @@ parsePossibleRestriction :: PParser RestrictionTag
 parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreClassSkillRestriction <$> parsePreClassSkill
                        <|> PreClassRestriction <$> parsePreClass
+                       <|> PreClassLevelMaxRestriction <$> parsePreClassLevelMax
                        <|> PreDeityRestriction <$> parsePreDeity
                        <|> PreDomainRestriction <$> parsePreDomain
                        <|> PreAbilityRestriction <$> parsePreAbility
@@ -977,6 +1035,7 @@ parsePossibleRestriction = PreVarRestriction <$> parsePreVar
                        <|> PreRuleRestriction <$> parsePreRule
                        <|> PreCheckBaseRestriction <$> parsePreCheckBase
                        <|> PreAlignRestriction <$> parsePreAlign
+                       <|> PreDeityAlignRestriction <$> parsePreDeityAlign
                        <|> PreEquipRestriction <$> parsePreEquip
                        <|> PreEquipBothRestriction <$> parsePreEquipBoth
                        <|> PreEquipTwoWeaponRestriction <$> parsePreEquipTwoWeapon

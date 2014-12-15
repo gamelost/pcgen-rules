@@ -700,15 +700,15 @@ data VFeat = VFeat { vfeats :: [String]
 parseVirtualFeat :: PParser VFeat
 parseVirtualFeat = do
   _ <- tag "VFEAT"
-  vfeat <- parseString
+  vfeat <- parseVFeatTypes
   vfeatRest <- try (many parseVFeat)
   vfeatRestrictions <- option [] parseAdditionalRestrictions
   let vfeats = vfeat : vfeatRest
   return VFeat { .. } where
     disallowed = notFollowedBy (string "|PRE")
-    parseVFeat = disallowed *> parseVFeatTypes
-    parseVFeatTypes = labeled "|TYPE=" *> parseString -- undocumented
-                  <|> char '|' *> parseString
+    parseVFeat = disallowed *> char '|' *> parseVFeatTypes
+    parseVFeatTypes = labeled "TYPE=" *> parseString -- undocumented
+                  <|> parseString
 
 parseUnknownTag :: PParser (String, String)
 parseUnknownTag = do

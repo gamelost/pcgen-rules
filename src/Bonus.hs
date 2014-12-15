@@ -21,6 +21,7 @@ data Bonus = BonusSkill Skill
            | BonusAbilityPool BonusAbility
            | BonusCasterLevel CasterLevel
            | BonusCombat Combat
+           | BonusConcentration BonusConcentrationCheck
            | BonusDomain Formula
            | BonusLanguages Formula
            | BonusCheck Checks
@@ -162,6 +163,38 @@ parseBonusCheck = do
     parseChecks = (CheckAll <$ labeled "ALL")
               <|> (labeled "BASE." >> CheckBase <$> parseStringNoCommas)
               <|> CheckName <$> parseStringNoCommas
+
+-- BONUS:CONCENTRATION|x|y
+--   x is class name, ALLSPELLS, spell descriptor, domain, school, spell, subschool or class type.
+--   y is formula to add to caster level.
+data BonusConcentrationType = BonusConcentrationClassName String
+                            | BonusConcentrationSpellDescriptor String
+                            | BonusConcentrationDomain String
+                            | BonusConcentrationSchool String
+                            | BonusConcentrationSpell String
+                            | BonusConcentrationSubSchool String
+                            | BonusConcentrationType String
+                            | BonusConcentrationAllSpells
+                              deriving (Show, Eq)
+
+data BonusConcentrationCheck = BonusConcentrationCheck { bonusConcentrationType :: BonusConcentrationType
+                                                       , bonusConcentrationFormula :: Formula }
+                               deriving (Show, Eq)
+
+parseBonusConcentration :: PParser BonusConcentrationCheck
+parseBonusConcentration = do
+  _ <- bonusTag "CONCENTRATION"
+  bonusConcentrationType <- parseBonusConcentrationType <* char '|'
+  bonusConcentrationFormula <- parseFormula
+  return BonusConcentrationCheck { .. } where
+    parseBonusConcentrationType = BonusConcentrationAllSpells <$ (labeled "ALLSPELLS")
+                              <|> (labeled "DESCRIPTOR." *> (BonusConcentrationSpellDescriptor <$> parseString))
+                              <|> (labeled "DOMAIN." *> (BonusConcentrationDomain <$> parseString))
+                              <|> (labeled "SCHOOL." *> (BonusConcentrationSchool <$> parseString))
+                              <|> (labeled "SPELL." *> (BonusConcentrationSpell <$> parseString))
+                              <|> (labeled "SUBSCHOOL." *> (BonusConcentrationSubSchool <$> parseString))
+                              <|> (labeled "TYPE." *> (BonusConcentrationType <$> parseString))
+                              <|> (BonusConcentrationClassName <$> parseString)
 
 -- BONUS:COMBAT|x|y
 --   x is combat bonus type
@@ -1028,6 +1061,7 @@ parseAnyBonus = BonusSkillRank <$> parseBonusSkillRank
             <|> BonusCasterLevel <$> parseBonusCasterLevel
             <|> BonusCheck <$> parseBonusCheck
             <|> BonusCombat <$> parseBonusCombat
+            <|> BonusConcentration <$> parseBonusConcentration
             <|> BonusDomain <$> parseBonusDomain
             <|> BonusLanguages <$> parseBonusLanguages
             <|> BonusDamageReduction <$> parseBonusDR
